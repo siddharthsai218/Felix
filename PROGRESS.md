@@ -79,6 +79,13 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Strict Grounding on AI-Asked Questions & Removal of Arbitrary Timestamps:
+  - Enforced that all report sections (Rubric Breakdown, Evidence Audit, Answer Transformer, turn milestones) display strictly and exclusively the questions that Felix (the AI interviewer) asked during the interview (`candidateResponses[i].questionAsked`).
+  - Added strict prompt negative constraints in `/api/evaluate` barring Gemini from inventing, hallucinating, or rewriting technical questions; programmatically clamped and mapped `transcriptAudit` and `transformations` to `validResponses` on both backend and frontend so questions and turn counts match the interview exactly.
+  - Eliminated arbitrary hardcoded time strings (e.g., `14:28` timer pill in `session/report/page.tsx` header bar, `01:15 – 02:40` fallback range in `AnswerTransformer.tsx`, and fake clock markers on the timeline axis in `FeedbackReport.tsx`).
+  - Replaced fake Answer Transformer scenario tabs (`Q1: Core Incident`, `Q2: Architecture Sync`) with clean `Prompt 01` / `Turn 01` indicators, and bound cognitive friction factors dynamically to real critique notes.
+  - Verified clean TypeScript compilation and Next.js production builds.
+
 - 2026-10-11 [1+3] — Dynamic Question Capture, Verbatim Spoken Transcript Recording & 100% Grounded Report:
   - Eliminated all hardcoded evaluation values, canned stories, and placeholder metrics across the interview rehearsal suite.
   - Hardened live turn speech capture (`frontend/src/app/session/live/page.tsx`): Fixed `activeQuestionRef` and `handleSubmitResponse` to prevent question clearing before persisting records; added automatic speech recognition restart on pause (`onend`) to prevent dropped verbal answers; removed dummy fallback text (`"I explained my approach..."`) so only the candidate's exact spoken words are recorded.

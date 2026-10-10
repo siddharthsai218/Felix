@@ -171,8 +171,13 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
     },
   ];
 
-  const activeTransformations =
-    transformations && transformations.length > 0 ? transformations : dynamicDefaultTransformations;
+  const activeTransformations = (
+    transformations && transformations.length > 0 ? transformations : dynamicDefaultTransformations
+  ).map((t, idx) => ({
+    ...t,
+    questionAsked: candidateResponses?.[idx]?.questionAsked || candidateResponses?.[0]?.questionAsked || t.questionAsked,
+    originalTranscript: candidateResponses?.[idx]?.transcript || candidateResponses?.[0]?.transcript || t.originalTranscript,
+  }));
 
   // Filler word calculation from candidate's exact words
   const fillerRegex = /\b(um|uh|like|basically|actually|literally|you know|so)\b/gi;
@@ -481,16 +486,12 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
             </span>
           </div>
 
-          {/* Timestamp Axis Labels */}
+          {/* Timeline Axis Labels */}
           <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-2 border-t border-slate-800/80 z-10">
-            <span>00:00 [Start]</span>
-            {candidateResponses.length > 1 && (
-              <span>0{Math.floor(computedDurationSecs * 0.4 / 60)}:{(Math.floor(computedDurationSecs * 0.4) % 60).toString().padStart(2, '0')} [Q1]</span>
-            )}
-            {candidateResponses.length > 2 && (
-              <span>0{Math.floor(computedDurationSecs * 0.7 / 60)}:{(Math.floor(computedDurationSecs * 0.7) % 60).toString().padStart(2, '0')} [Q2]</span>
-            )}
-            <span>{totalDurationFormatted} [Concluded]</span>
+            <span>Interview Start</span>
+            {candidateResponses.length > 1 && <span>Turn 1</span>}
+            {candidateResponses.length > 2 && <span>Turn 2</span>}
+            <span>Session Concluded</span>
           </div>
         </div>
 

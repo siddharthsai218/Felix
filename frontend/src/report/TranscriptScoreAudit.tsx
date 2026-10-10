@@ -57,55 +57,57 @@ export function TranscriptScoreAudit({
     }));
   };
 
-  // If no structured audit is present, build one from candidateResponses
+  // effectiveAudit must STRICTLY show ONLY the questions asked by the AI in candidateResponses
   const effectiveAudit: TurnTranscriptAudit[] =
-    transcriptAudit.length > 0
-      ? transcriptAudit
-      : candidateResponses.map((r, i) => {
-          const words = r.transcript.split(/\s+/).filter(Boolean);
+    candidateResponses.length > 0
+      ? candidateResponses.map((r, i) => {
+          const matchedAudit = transcriptAudit[i];
+          const words = (r.transcript || '').split(/\s+/).filter(Boolean);
           const wordCount = words.length;
           const isWeak =
             wordCount < 25 ||
-            r.transcript.toLowerCase().includes('sleep') ||
-            r.transcript.toLowerCase().includes('tired') ||
-            r.transcript.toLowerCase().includes("don't know");
+            (r.transcript || '').toLowerCase().includes('sleep') ||
+            (r.transcript || '').toLowerCase().includes('tired') ||
+            (r.transcript || '').toLowerCase().includes("don't know");
 
-          const score = isWeak ? 2.2 : 3.8;
           return {
             turnNumber: i + 1,
-            question: r.questionAsked || `Question ${i + 1} for ${roleTitle}`,
+            question: r.questionAsked || `Question ${i + 1}`,
             transcript: r.transcript || 'No spoken transcript captured.',
-            turnScore: score,
-            durationFormatted: `${Math.round(wordCount * 0.45)}s`,
+            turnScore: matchedAudit?.turnScore ?? (isWeak ? 2.2 : 3.8),
+            durationFormatted: matchedAudit?.durationFormatted ?? `${Math.round(wordCount * 0.45)}s`,
             wordCount,
-            scoringJustification: isWeak
-              ? `Response was conversational and lacked structured STAR framing or technical depth for ${roleTitle}.`
-              : `Demonstrated technical clarity for ${roleTitle} with actionable reasoning.`,
-            positiveEvidence: isWeak
+            scoringJustification:
+              matchedAudit?.scoringJustification ??
+              (isWeak
+                ? `Response was conversational and lacked structured STAR framing or technical depth for ${roleTitle}.`
+                : `Demonstrated technical clarity for ${roleTitle} with actionable reasoning.`),
+            positiveEvidence: matchedAudit?.positiveEvidence ?? (isWeak
               ? []
               : [
                   {
-                    quote: r.transcript.slice(0, Math.min(r.transcript.length, 90)),
+                    quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 90)),
                     impact: `Highlighted domain familiarity and direct engagement with the question.`,
                   },
-                ],
-            deductionEvidence: isWeak
+                ]),
+            deductionEvidence: matchedAudit?.deductionEvidence ?? (isWeak
               ? [
                   {
-                    quote: r.transcript.slice(0, Math.min(r.transcript.length, 80)),
+                    quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 80)),
                     critique: `Answer lacked Situation, Task, Action, Result components and specific engineering tools.`,
                     recommendation: `Structure response using the STAR method and specify exact technical tools used.`,
                   },
                 ]
               : [
                   {
-                    quote: r.transcript.slice(Math.min(r.transcript.length, 50), Math.min(r.transcript.length, 120)) || r.transcript,
+                    quote: (r.transcript || '').slice(Math.min((r.transcript || '').length, 50), Math.min((r.transcript || '').length, 120)) || (r.transcript || ''),
                     critique: `Could elevate by citing quantitative benchmarks (latency, throughput, % increase).`,
                     recommendation: `Add measurable metrics to prove the impact of your engineering actions.`,
                   },
-                ],
+                ]),
           };
-        });
+        })
+      : transcriptAudit;
 
   const effectiveRationale: ScoreRationaleData = scoreRationale || {
     overallScore: 3.5,

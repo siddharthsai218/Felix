@@ -85,7 +85,16 @@ function ReportContent() {
               setScoreRationale(data.scoreRationale);
             }
             if (Array.isArray(data.transcriptAudit) && data.transcriptAudit.length > 0) {
-              setTranscriptAudit(data.transcriptAudit);
+              const cleanedAudit = (storedResponses.length > 0 ? storedResponses : data.transcriptAudit).map((r: any, i: number) => {
+                const item = data.transcriptAudit[i] || {};
+                return {
+                  ...item,
+                  turnNumber: i + 1,
+                  question: r.questionAsked || item.question || `Interview Question ${i + 1}`,
+                  transcript: r.transcript || item.transcript,
+                };
+              });
+              setTranscriptAudit(cleanedAudit);
             }
             if (Array.isArray(data.rubricScores) && data.rubricScores.length > 0) {
               setRubricScores(data.rubricScores);
@@ -94,7 +103,13 @@ function ReportContent() {
               setBehavioralInsights(data.behavioralInsights);
             }
             if (Array.isArray(data.transformations) && data.transformations.length > 0) {
-              setTransformations(data.transformations);
+              const sourceTransformations = storedResponses.length > 0 ? data.transformations.slice(0, storedResponses.length) : data.transformations;
+              const strictlyGroundedTransformations = sourceTransformations.map((t: any, i: number) => ({
+                ...t,
+                questionAsked: storedResponses[i]?.questionAsked || storedResponses[0]?.questionAsked || t.questionAsked,
+                originalTranscript: storedResponses[i]?.transcript || storedResponses[0]?.transcript || t.originalTranscript,
+              }));
+              setTransformations(strictlyGroundedTransformations);
             }
             if (Array.isArray(data.remediationPlan) && data.remediationPlan.length > 0) {
               const plan = data.remediationPlan[0];
@@ -121,7 +136,7 @@ function ReportContent() {
       const primaryResp = storedResponses.length > 0 ? storedResponses[0] : null;
       const candidateText =
         primaryResp?.transcript ||
-        "So basically we had bugs and the pod restarted like three times because memory went crazy and customers couldn't check out, so I went in and killed some processes and we fixed it after a while.";
+        'Spoken explanation recorded during the technical rehearsal.';
 
       const gaze = storedTelemetry?.gazePercentage ?? 82;
       const wpm = storedTelemetry?.speakingRateWpm ?? 142;
@@ -137,7 +152,7 @@ function ReportContent() {
           feedback: isWeak
             ? `The response lacked architectural precision, domain terminology, and metrics for ${storedRole}.`
             : `Demonstrated solid domain understanding for ${storedRole} with clear intuition of component failure modes.`,
-          quotes: [{ text: candidateText.slice(0, 85) + '...', time: '00:40' }],
+          quotes: [{ text: candidateText.slice(0, 85) + '...', time: 'Evidence' }],
         },
         {
           criterion: 'STAR Structure & Impact Quantification',
@@ -145,7 +160,7 @@ function ReportContent() {
           feedback: isWeak
             ? 'Missing Situation, Task, Action, and measurable Result. Casual phrasing without clear ownership boundaries.'
             : 'Good structural framing. Elevate by citing explicit latency reductions and revenue impact benchmarks.',
-          quotes: [{ text: candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText, time: '01:15' }],
+          quotes: [{ text: candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText, time: 'Evidence' }],
         },
         {
           criterion: 'Communication Pacing & Clarity',
@@ -352,10 +367,12 @@ function ReportContent() {
 
           {/* Right Status Indicators */}
           <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
-            <div className="hidden sm:flex items-center gap-1.5 text-slate-300">
-              <span>⏱️</span>
-              <span>14:28</span>
-            </div>
+            {sessionDurationSeconds > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 text-slate-300">
+                <span>⏱️</span>
+                <span>{Math.floor(sessionDurationSeconds / 60)}:{(sessionDurationSeconds % 60).toString().padStart(2, '0')}</span>
+              </div>
+            )}
             <div className="hidden sm:flex items-center gap-1 text-emerald-400">
               <span>⚡</span>
               <span>18ms</span>

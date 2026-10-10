@@ -63,6 +63,7 @@ Candidate's Measured Behavioral Telemetry:
 - Hesitation Pauses: ${telemetry.pauseCount ?? 0}
 
 2. HONEST & ACCURATE SCORING RULES:
+- ONLY evaluate the exact questions asked by the interviewer in the transcripts above. NEVER hallucinate or invent new questions.
 - If the candidate spoke casually, sleepily, gave a short or lazy answer (e.g. "i was just sleepy", "i don't know", informal mumbles):
   DO NOT give fake high scores! Score realistically low (e.g. 1.8 to 2.8 out of 5.0).
   In your critique, explicitly quote their actual words and explain why their answer fell short in depth, technical rigor, and STAR delivery.
@@ -87,7 +88,7 @@ Return ONLY a valid JSON object matching this schema:
   "transcriptAudit": [
     {
       "turnNumber": number (1, 2, ...),
-      "question": string (the interviewer question asked),
+      "question": string (the exact interviewer question asked above),
       "transcript": string (the candidate's exact spoken words),
       "turnScore": number (1.0 to 5.0 for this specific answer),
       "durationFormatted": string (e.g. "35s"),
@@ -107,7 +108,7 @@ Return ONLY a valid JSON object matching this schema:
       "score": number (1.0 to 5.0),
       "feedback": string (honest evaluation quoting candidate),
       "quotes": [
-        { "text": string (actual quote from candidate transcript or note), "time": "00:45" }
+        { "text": string (actual quote from candidate transcript or note), "time": "Evidence" }
       ]
     },
     {
@@ -115,7 +116,7 @@ Return ONLY a valid JSON object matching this schema:
       "score": number (1.0 to 5.0),
       "feedback": string (critique of Situation, Task, Action, Result elements),
       "quotes": [
-        { "text": string (actual quote), "time": "01:20" }
+        { "text": string (actual quote), "time": "Evidence" }
       ]
     },
     {
@@ -256,25 +257,80 @@ Return ONLY a valid JSON object matching this schema:
           };
         }
 
-        if (!Array.isArray(parsed.transcriptAudit) || parsed.transcriptAudit.length === 0) {
-          parsed.transcriptAudit = validResponses.map((r, i) => ({
-            turnNumber: i + 1,
-            question: r.questionAsked || `Question ${i + 1} for ${roleTitle}`,
-            transcript: r.transcript,
-            turnScore: parsed.overallScore || 3.5,
-            durationFormatted: `${Math.round((r.durationMs || 25000) / 1000)}s`,
-            wordCount: r.transcript.split(/\s+/).filter(Boolean).length,
-            scoringJustification: `Assessed for technical domain depth and communication clarity.`,
-            positiveEvidence: [
-              { quote: r.transcript.slice(0, Math.min(r.transcript.length, 80)), impact: 'Direct response to question.' },
-            ],
-            deductionEvidence: [
-              {
-                quote: r.transcript.slice(Math.min(r.transcript.length, 30), Math.min(r.transcript.length, 90)),
-                critique: 'Can improve structural framing and add quantifiable engineering metrics.',
-                recommendation: 'Use STAR structure with concrete benchmarks.',
-              },
-            ],
+        // Strictly ground transcriptAudit and transformations on validResponses
+        if (validResponses.length > 0) {
+          parsed.transcriptAudit = validResponses.map((r, i) => {
+            const aiAudit = Array.isArray(parsed.transcriptAudit) ? parsed.transcriptAudit[i] : null;
+            const words = (r.transcript || '').split(/\s+/).filter(Boolean);
+            const isTurnWeak =
+              words.length < 25 ||
+              (r.transcript || '').toLowerCase().includes('sleep') ||
+              (r.transcript || '').toLowerCase().includes('tired') ||
+              (r.transcript || '').toLowerCase().includes("don't know");
+            return {
+              turnNumber: i + 1,
+              question: r.questionAsked || `Question ${i + 1}`,
+              transcript: r.transcript,
+              turnScore: aiAudit?.turnScore ?? (isTurnWeak ? 2.2 : (parsed.overallScore || 3.8)),
+              durationFormatted: aiAudit?.durationFormatted ?? `${Math.round((r.durationMs || 25000) / 1000)}s`,
+              wordCount: words.length,
+              scoringJustification:
+                aiAudit?.scoringJustification ??
+                (isTurnWeak
+                  ? `Response lacked structured STAR framing and technical depth for ${roleTitle}.`
+                  : `Demonstrated technical clarity for ${roleTitle}.`),
+              positiveEvidence:
+                aiAudit?.positiveEvidence ??
+                (isTurnWeak
+                  ? []
+                  : [
+                      {
+                        quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 80)),
+                        impact: 'Direct response to question.',
+                      },
+                    ]),
+              deductionEvidence:
+                aiAudit?.deductionEvidence ??
+                (isTurnWeak
+                  ? [
+                      {
+                        quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 80)),
+                        critique: 'Answer lacked Situation, Task, Action, Result framing and engineering metrics.',
+                        recommendation: 'Structure response using the STAR method with concrete outcomes.',
+                      },
+                    ]
+                  : [
+                      {
+                        quote: (r.transcript || '').slice(
+                          Math.min((r.transcript || '').length, 30),
+                          Math.min((r.transcript || '').length, 90)
+                        ),
+                        critique: 'Can improve structural framing and add quantifiable engineering metrics.',
+                        recommendation: 'Use STAR structure with concrete benchmarks.',
+                      },
+                    ]),
+            };
+          });
+
+          if (Array.isArray(parsed.transformations) && parsed.transformations.length > 0) {
+            parsed.transformations = parsed.transformations.slice(0, validResponses.length).map((t: any, i: number) => ({
+              ...t,
+              questionAsked: validResponses[i]?.questionAsked || validResponses[0]?.questionAsked || t.questionAsked,
+              originalTranscript: validResponses[i]?.transcript || validResponses[0]?.transcript || t.originalTranscript,
+            }));
+          }
+        }
+
+        // Sanitize quote times in rubricScores so they never show fake time strings
+        if (Array.isArray(parsed.rubricScores)) {
+          parsed.rubricScores = parsed.rubricScores.map((scoreItem: any) => ({
+            ...scoreItem,
+            quotes: Array.isArray(scoreItem.quotes)
+              ? scoreItem.quotes.map((q: any) => ({
+                  ...q,
+                  time: typeof q.time === 'string' && q.time.includes(':') ? 'Evidence' : q.time || 'Evidence',
+                }))
+              : [],
           }));
         }
 

@@ -106,7 +106,7 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
         {/* Tab switcher if multiple questions */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           {transformations.map((t, idx) => {
-            const label = idx === 0 ? 'Q1: Core Incident' : idx === 1 ? 'Q2: Architecture Sync' : `Q${idx + 1}: Follow-up`;
+            const label = `Prompt 0${idx + 1}`;
             const isActive = selectedIndex === idx;
             return (
               <button
@@ -141,7 +141,7 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
           <div className="shrink-0 flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 text-[11px] font-mono font-medium border border-amber-500/30">
               <span>⚠️</span>
-              <span>Casual Verb Fillers Detected</span>
+              <span>Spoken Rehearsal Record</span>
             </span>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
                   </span>
                 </div>
                 <span className="text-[11px] font-mono text-slate-500">
-                  Timestamp: {active.timeRange || '01:15 – 02:40'}
+                  Turn 0{selectedIndex + 1}
                 </span>
               </div>
 
@@ -169,25 +169,24 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
               </div>
 
               {/* Cognitive Friction Factors */}
-              <div className="space-y-2 pt-2">
-                <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 block">
-                  COGNITIVE FRICTION FACTORS:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-950/40 text-rose-300 text-[11px] font-mono border border-rose-800/50">
-                    <span>✕</span>
-                    <span>3 filler anchors ("basically", "like")</span>
+              {active.critiqueNotes && active.critiqueNotes.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 block">
+                    COGNITIVE FRICTION FACTORS:
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-950/40 text-amber-300 text-[11px] font-mono border border-amber-800/50">
-                    <span>⇄</span>
-                    <span>Diffuse ownership ("we had", "we fixed")</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-950/40 text-amber-300 text-[11px] font-mono border border-amber-800/50">
-                    <span>→</span>
-                    <span>Non-quantified metrics ("after a while")</span>
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {active.critiqueNotes.map((note, nIdx) => (
+                      <span
+                        key={nIdx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-950/40 text-amber-300 text-[11px] font-mono border border-amber-800/50"
+                      >
+                        <span>⚠️</span>
+                        <span>{note}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Audio Replay Footer */}
@@ -201,7 +200,7 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
                 </span>
                 <span>{isPlayingAudio ? 'Pause Segment' : 'Replay Original Audio Segment'}</span>
               </button>
-              <span className="text-slate-500">{active.wpm || 142} wpm (Optimal)</span>
+              <span className="text-slate-500">{active.wpm ? `${active.wpm} wpm` : 'Spoken Audio'}</span>
             </div>
           </div>
 
