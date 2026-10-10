@@ -108,21 +108,22 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
     };
   }, []); // Run only once on mount!
 
-  // Video Frame Streaming to Part 2 via EventBus (~5 fps)
+  // Video Frame Streaming to Part 2 / HUD via EventBus (~5 fps continuous while camera active)
   const extractAndEmitFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !isRecordingResponse) return;
+    if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    if (video.readyState < 2 || video.videoWidth === 0) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx || video.videoWidth === 0) return;
+    if (!ctx) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.min(320, video.videoWidth);
+    canvas.height = Math.round((canvas.width / video.videoWidth) * video.videoHeight) || 240;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     try {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const timestamp = Date.now() - responseStartTimeRef.current;
+      const timestamp = responseStartTimeRef.current > 0 ? Date.now() - responseStartTimeRef.current : 0;
 
       captureEventBus.emit('capture:video-frame', {
         type: 'video-frame',
@@ -136,7 +137,14 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
     } catch (e) {
       // Ignore security or context errors
     }
-  }, [sessionId, responseIndex, isRecordingResponse]);
+  }, [sessionId, responseIndex, isCameraActive]);
+
+  // Continuous frame emitter for live behavioral telemetry
+  useEffect(() => {
+    if (!hasPermission || !isCameraActive) return;
+    const interval = setInterval(extractAndEmitFrame, 200); // 5 fps
+    return () => clearInterval(interval);
+  }, [hasPermission, isCameraActive, extractAndEmitFrame]);
 
   // Handle Response-Level Recording (per-response audio & video handoffs)
   useEffect(() => {
@@ -167,19 +175,11 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
         };
 
         recorder.start(250); // Slice every 250ms
-
-        // Start 5 fps frame emitter for Part 2
-        frameIntervalRef.current = setInterval(extractAndEmitFrame, 200);
       } catch (e) {
         console.error('MediaRecorder start error:', e);
       }
     } else {
       // End of response
-      if (frameIntervalRef.current) {
-        clearInterval(frameIntervalRef.current);
-        frameIntervalRef.current = null;
-      }
-
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         const durationMs = Date.now() - responseStartTimeRef.current;
         mediaRecorderRef.current.onstop = () => {
