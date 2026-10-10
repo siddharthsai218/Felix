@@ -309,16 +309,12 @@ export class TurnEngine {
    * Silence detection — triggers Rescue Mode after 5 seconds.
    */
   private startSilenceDetection(): void {
+    // Automatic rescue mode on silence disabled per user request
     this.clearSilenceTimer();
-    this.session.silenceTimerStart = Date.now();
-    this.silenceTimer = setTimeout(async () => {
-      await this.triggerRescueMode();
-    }, config.rescueModeTimeoutMs);
   }
 
   private resetSilenceTimer(): void {
     this.clearSilenceTimer();
-    this.startSilenceDetection();
   }
 
   private clearSilenceTimer(): void {
