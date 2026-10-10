@@ -31,7 +31,26 @@ function LiveInterviewContent() {
   const isUnlimited = questionCount <= 0;
   const coachModeEnabled = searchParams.get('coach') !== 'false';
 
+  const rawGithubParam = searchParams.get('github') || '';
+  const initialGithub = rawGithubParam ? decodeURIComponent(rawGithubParam) : '';
+
   // State
+  const [githubUrl, setGithubUrl] = useState<string>(initialGithub);
+  const [resumeText, setResumeText] = useState<string>('');
+  const [jobDescription, setJobDescription] = useState<string>('');
+
+  // Load saved context from sessionStorage if available
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedGithub = sessionStorage.getItem('felix_session_github') || '';
+      const storedResume = sessionStorage.getItem('felix_session_resume') || '';
+      const storedJd = sessionStorage.getItem('felix_session_jd') || '';
+      if (!githubUrl && storedGithub) setGithubUrl(storedGithub);
+      if (storedResume) setResumeText(storedResume);
+      if (storedJd) setJobDescription(storedJd);
+    }
+  }, [githubUrl]);
+
   const [sessionId, setSessionId] = useState<string>('local-session');
   const [turnState, setTurnState] = useState<TurnState>('idle');
   const [currentQuestionText, setCurrentQuestionText] = useState<string>('');
@@ -54,6 +73,7 @@ function LiveInterviewContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
   const [lastAudioPayload, setLastAudioPayload] = useState<string>('');
+  const [showQuestionSubtitle, setShowQuestionSubtitle] = useState<boolean>(false);
 
   // References
   const wsRef = useRef<WebSocket | null>(null);
@@ -62,6 +82,7 @@ function LiveInterviewContent() {
   const turnStartTimeRef = useRef<number>(0);
   const currentTimestampsRef = useRef<SttWordTimestamp[]>([]);
   const drillTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
@@ -83,6 +104,8 @@ function LiveInterviewContent() {
   const speakWithBrowserTts = useCallback((text: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setIsAvatarSpeaking(true);
+      setShowQuestionSubtitle(true);
+      setTurnState('speaking');
       setTimeout(() => {
         setIsAvatarSpeaking(false);
         setTurnState('listening');
@@ -111,6 +134,8 @@ function LiveInterviewContent() {
 
       utterance.onstart = () => {
         setIsAvatarSpeaking(true);
+        setShowQuestionSubtitle(true);
+        setTurnState('speaking');
       };
 
       utterance.onend = () => {
@@ -122,6 +147,7 @@ function LiveInterviewContent() {
         console.warn('Browser TTS utterance error:', e);
         setIsAvatarSpeaking(false);
         setTurnState('listening');
+        setShowQuestionSubtitle(true);
       };
 
       window.speechSynthesis.speak(utterance);
@@ -129,6 +155,7 @@ function LiveInterviewContent() {
       console.error('Browser TTS failed:', err);
       setIsAvatarSpeaking(false);
       setTurnState('listening');
+      setShowQuestionSubtitle(true);
     }
   }, []);
 
@@ -144,10 +171,23 @@ function LiveInterviewContent() {
 
     try {
       if (isBase64Audio) {
+        if (currentAudioRef.current) {
+          try {
+            currentAudioRef.current.pause();
+            currentAudioRef.current = null;
+          } catch (e) {}
+        }
+
         const audio = new Audio();
+        currentAudioRef.current = audio;
         audio.src = audioData.startsWith('data:') ? audioData : `data:audio/wav;base64,${audioData}`;
         audio.volume = 1.0;
-        setIsAvatarSpeaking(true);
+
+        audio.onplay = () => {
+          setIsAvatarSpeaking(true);
+          setShowQuestionSubtitle(true);
+          setTurnState('speaking');
+        };
 
         audio.onended = () => {
           setIsAvatarSpeaking(false);
@@ -161,6 +201,8 @@ function LiveInterviewContent() {
 
         await audio.play().catch((err) => {
           console.warn('Autoplay prevented, audio requires user interaction:', err);
+          setIsAvatarSpeaking(false);
+          setShowQuestionSubtitle(false);
           setAudioUnlocked(false);
         });
       } else {
@@ -282,7 +324,19 @@ function LiveInterviewContent() {
 
     const finalAnswer = learnerTranscript || partialTranscript || 'I explained my approach and technical solution.';
 
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      } catch (e) {}
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     setTurnState('processing');
+    setShowQuestionSubtitle(false);
+    setCurrentQuestionText('');
     turnStartTimeRef.current = Date.now();
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -300,12 +354,13 @@ function LiveInterviewContent() {
       if (hasNext) {
         const fallbacks = fallbackQuestionsRef.current;
         const nextQ = fallbacks[nextIndex % fallbacks.length];
+        setShowQuestionSubtitle(false);
+        setCurrentQuestionText('');
         setTimeout(() => {
           setCurrentQuestionIndex(nextIndex + 1);
           setCurrentQuestionText(nextQ);
           setLearnerTranscript('');
           setPartialTranscript('');
-          setTurnState('speaking');
           playAudio(nextQ);
         }, 1200);
       } else {
@@ -332,14 +387,22 @@ function LiveInterviewContent() {
   // Resilient Local Turn Fallback
   const runLocalSessionFallback = useCallback(() => {
     setTurnState('processing');
-    const firstQ = fallbackQuestionsRef.current[0];
+    setShowQuestionSubtitle(false);
+    setCurrentQuestionText('');
+    const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
+    const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
+
+    let firstQ = fallbackQuestionsRef.current[0];
+    if (effectiveGithub || effectiveResume) {
+      firstQ = `In the technical projects on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+    }
+
     setTimeout(() => {
       setCurrentQuestionText(firstQ);
       setCurrentQuestionIndex(1);
-      setTurnState('speaking');
       playAudio(firstQ);
     }, 800);
-  }, [playAudio]);
+  }, [playAudio, githubUrl, resumeText, targetRole]);
 
   // WebSocket Connection & Turn loop
   useEffect(() => {
@@ -354,6 +417,10 @@ function LiveInterviewContent() {
 
       socket.onopen = () => {
         console.log('Connected to Felix turn engine WebSocket');
+        const activeGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
+        const activeResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
+        const activeJd = jobDescription || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_jd') || '' : '');
+
         socket.send(
           JSON.stringify({
             type: 'session:start',
@@ -363,6 +430,9 @@ function LiveInterviewContent() {
               questionCount,
               difficulty,
               coachModeEnabled,
+              githubUrl: activeGithub,
+              resumeText: activeResume,
+              jobDescription: activeJd,
             },
           } as ClientMessage)
         );
@@ -389,6 +459,8 @@ function LiveInterviewContent() {
                 }
               } else if (msg.state === 'speaking') {
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+              } else if (msg.state === 'processing' || msg.state === 'asking') {
+                setShowQuestionSubtitle(false);
               }
               break;
 
@@ -397,6 +469,7 @@ function LiveInterviewContent() {
               if (msg.questionIndex >= 0) {
                 setCurrentQuestionIndex(msg.questionIndex + 1);
               }
+              setShowQuestionSubtitle(false);
               setLearnerTranscript('');
               setPartialTranscript('');
               setRescueActive(false);
@@ -591,7 +664,7 @@ function LiveInterviewContent() {
             state={turnState}
             isSpeaking={isAvatarSpeaking}
             audioLevel={avatarVolume}
-            captionText={turnState === 'speaking' || turnState === 'asking' ? currentQuestionText : undefined}
+            captionText={showQuestionSubtitle ? currentQuestionText : undefined}
           />
 
           {/* Rescue Mode Scaffolding Overlay Banner */}
@@ -614,8 +687,8 @@ function LiveInterviewContent() {
           {/* Floating Closed Captions / Subtitle Bar (Google Meet Style) */}
           <div className="absolute bottom-4 left-4 right-4 sm:left-12 sm:right-12 z-20 pointer-events-none flex flex-col items-center">
             {/* Question or Speaking Text */}
-            {currentQuestionText && (
-              <div className="pointer-events-auto max-w-2xl px-4 py-2.5 rounded-2xl bg-gray-950/85 border border-gray-800/80 backdrop-blur-md shadow-2xl text-center mb-2 flex items-center gap-2">
+            {showQuestionSubtitle && currentQuestionText && (
+              <div className="pointer-events-auto max-w-2xl px-4 py-2.5 rounded-2xl bg-gray-950/85 border border-gray-800/80 backdrop-blur-md shadow-2xl text-center mb-2 flex items-center gap-2 animate-in fade-in duration-300">
                 <p className="text-xs sm:text-sm text-gray-100 font-medium leading-snug">
                   <span className="text-violet-400 font-semibold mr-1.5">Felix:</span>
                   "{currentQuestionText}"
