@@ -681,35 +681,7 @@ function LiveInterviewContent() {
             </div>
           )}
 
-          {/* Floating Closed Captions / Subtitle Bar (Google Meet Style) */}
-          <div className="absolute bottom-4 left-4 right-4 sm:left-12 sm:right-12 z-20 pointer-events-none flex flex-col items-center">
-            {/* Question or Speaking Text */}
-            {(showQuestionSubtitle || turnState === 'speaking' || turnState === 'listening') && currentQuestionText && (
-              <div className="pointer-events-auto max-w-2xl px-4 py-2.5 rounded-2xl bg-gray-950/85 border border-gray-800/80 backdrop-blur-md shadow-2xl text-center mb-2 flex items-center gap-2 animate-in fade-in duration-300">
-                <p className="text-xs sm:text-sm text-gray-100 font-medium leading-snug">
-                  <span className="text-violet-400 font-semibold mr-1.5">Felix:</span>
-                  "{currentQuestionText}"
-                </p>
-                <button
-                  onClick={() => playAudio(currentQuestionText)}
-                  type="button"
-                  title="Replay Audio"
-                  className="p-1 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex-shrink-0"
-                >
-                  🔊
-                </button>
-              </div>
-            )}
 
-            {/* Learner Real-time Transcript */}
-            {(learnerTranscript || partialTranscript) && (
-              <div className="pointer-events-auto max-w-xl px-4 py-1.5 rounded-xl bg-gray-900/90 border border-gray-800 text-center text-xs text-gray-200 backdrop-blur-sm shadow-lg">
-                <span className="text-emerald-400 font-semibold mr-1.5">You:</span>
-                <span>{learnerTranscript}</span>{' '}
-                <span className="text-violet-400 italic">{partialTranscript}</span>
-              </div>
-            )}
-          </div>
 
           {/* Self-View Camera: Google Meet Bottom-Right Floating PiP */}
           <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-48 sm:w-60 md:w-72 aspect-video z-30 shadow-2xl transition-all">

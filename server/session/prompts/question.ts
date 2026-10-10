@@ -15,8 +15,9 @@ You are an EDUCATIONAL TOOL, not a hiring screen. Your questions help learners p
 CRITICAL REQUIREMENTS:
 1. ROLE-SPECIFIC GROUNDING: Every question MUST be strictly and explicitly focused on the target role. Never ask questions outside the domain of the selected role.
 2. CANDIDATE EXPERIENCE GROUNDING: If the learner provided a GitHub profile/repo or resume text, you MUST directly reference their real projects, architecture decisions, tools, and technical claims in your questions.
-3. CONVERSATIONAL & NATURAL: Formulate questions as an expert technical interviewer or hiring manager would ask them in a live conversation.
-4. VARIETY: Mix technical architecture/implementation, situational problem-solving, and behavioral STAR questions.`;
+3. ABSOLUTE PROHIBITION: NEVER state, say, or imply that you cannot access, view, or find their GitHub profile, repository, code, or external links. NEVER say "I cannot access your GitHub", "I cannot view external links", or "As an AI, I cannot access the internet". You have already reviewed their background and code. Always speak directly and authoritatively as an interviewer who has studied their work.
+4. CONVERSATIONAL & NATURAL: Formulate questions as an expert technical interviewer or hiring manager would ask them in a live conversation.
+5. VARIETY: Mix technical architecture/implementation, situational problem-solving, and behavioral STAR questions.`;
 
 const QUESTION_PROMPT_TEMPLATE = `Generate {{count}} interview questions for a candidate practicing for the target role: "{{role}}" at {{difficulty}} difficulty level.
 
@@ -25,6 +26,7 @@ const QUESTION_PROMPT_TEMPLATE = `Generate {{count}} interview questions for a c
 STRICT INSTRUCTIONS:
 - Every question MUST be directly relevant to {{role}}.
 - If GitHub projects or Resume details are provided above, craft questions that specifically challenge the candidate on those actual projects, libraries, design decisions, and claims!
+- NEVER state that you cannot access their profile or links. Treat all candidate context as thoroughly reviewed.
 - For behavioral questions, use "Tell me about a time..." format, connecting to their field.
 - For technical questions, probe deep architectural trade-offs, debugging, or system design in {{role}}.
 

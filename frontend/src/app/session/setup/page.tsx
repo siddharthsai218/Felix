@@ -235,14 +235,14 @@ export default function SessionSetupPage() {
                 <span>GitHub Profile or Repository URL</span>
               </label>
               <input
-                type="url"
+                type="text"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="https://github.com/username or https://github.com/username/project"
+                placeholder="e.g. username, github.com/username, or repository URL"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-mono"
               />
               <span className="text-[11px] text-gray-500 mt-1 block">
-                Felix reads your README, primary tech stack, and repositories to challenge your implementation choices.
+                Enter your GitHub username or profile URL. Felix reads your public repositories and projects to ground your interview questions.
               </span>
             </div>
 

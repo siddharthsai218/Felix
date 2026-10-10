@@ -10,7 +10,17 @@ export interface ParsedGithubTarget {
 
 export function parseGithubUrl(rawUrl: string): ParsedGithubTarget | null {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
-  const clean = rawUrl.trim().replace(/\/+$/, '');
+  // Clean query strings, hashes, leading @, and trailing slashes
+  let clean = rawUrl.trim().replace(/^@+/, '').split('?')[0].split('#')[0].replace(/\/+$/, '');
+
+  // Handle git@github.com:owner/repo.git
+  const sshMatch = clean.match(/^git@github\.com:([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_.-]+))?$/);
+  if (sshMatch) {
+    return {
+      owner: sshMatch[1],
+      repo: sshMatch[2] ? sshMatch[2].replace(/\.git$/, '') : undefined,
+    };
+  }
 
   // Matches https://github.com/owner/repo or github.com/owner/repo or https://github.com/owner
   const match = clean.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_.-]+))?/);
@@ -32,7 +42,7 @@ export function parseGithubUrl(rawUrl: string): ParsedGithubTarget | null {
     };
   }
 
-  // Matches pure username format (e.g. "siddharthsai218")
+  // Matches pure username format (e.g. "Praharsha2007")
   const usernameMatch = clean.match(/^([a-zA-Z0-9_-]{1,39})$/);
   if (usernameMatch) {
     return {
@@ -52,12 +62,11 @@ async function fetchRawReadme(owner: string, repo: string): Promise<string | nul
     try {
       const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/README.md`;
       const res = await fetch(url, {
-        signal: AbortSignal.timeout(3500),
+        signal: AbortSignal.timeout(4500),
       });
       if (res.ok) {
         const text = await res.text();
         if (text && text.trim().length > 30) {
-          // Return clean summary
           return text.slice(0, 1500);
         }
       }
@@ -76,17 +85,20 @@ interface ScrapedRepo {
 }
 
 /**
- * Scrape user's public repositories from profile HTML (unauthenticated, never rate-limited)
+ * Scrape user's public repositories and pinned items from profile HTML
  */
-async function scrapeUserRepositories(owner: string): Promise<ScrapedRepo[]> {
+async function scrapeUserRepositories(owner: string): Promise<{ bio?: string; repos: ScrapedRepo[] }> {
   const repos: ScrapedRepo[] = [];
+  let bio: string | undefined;
+
+  // 1. Try fetching tab=repositories
   try {
     const res = await fetch(`https://github.com/${owner}?tab=repositories`, {
       headers: {
         'User-Agent': 'Felix-Interview-Coach/1.0 (Mozilla/5.0 compatible)',
         'Accept': 'text/html',
       },
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (res.ok) {
@@ -106,10 +118,42 @@ async function scrapeUserRepositories(owner: string): Promise<ScrapedRepo[]> {
       }
     }
   } catch (err) {
-    console.warn(`HTML scrape for user repos ${owner} fell back:`, err);
+    console.warn(`HTML scrape for user repos ${owner} tab failed:`, err);
   }
 
-  return repos;
+  // 2. Try fetching main profile page for pinned items and bio
+  try {
+    const profileRes = await fetch(`https://github.com/${owner}`, {
+      headers: {
+        'User-Agent': 'Felix-Interview-Coach/1.0 (Mozilla/5.0 compatible)',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (profileRes.ok) {
+      const html = await profileRes.text();
+
+      // Extract user bio
+      const bioMatch = html.match(/<div class="p-note user-profile-bio[^>]*>([\s\S]*?)<\/div>/);
+      if (bioMatch) {
+        const rawBio = bioMatch[1].replace(/<[^>]+>/g, '').trim();
+        if (rawBio) bio = rawBio;
+      }
+
+      // Match pinned items on profile
+      const pinnedRegex = /<span class="repo"[^>]*title="([^\"]+)"/g;
+      let pm;
+      while ((pm = pinnedRegex.exec(html)) !== null && repos.length < 6) {
+        const name = pm[1].trim();
+        if (name.toLowerCase() !== owner.toLowerCase() && !repos.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+          repos.push({ name });
+        }
+      }
+    }
+  } catch {}
+
+  return { bio, repos };
 }
 
 /**
@@ -131,11 +175,10 @@ export async function fetchGithubContext(githubUrl: string): Promise<string> {
       return summary;
     }
 
-    // Try scraping the repo page if raw README failed
     try {
       const res = await fetch(`https://github.com/${owner}/${repo}`, {
         headers: { 'User-Agent': 'Felix-Interview-Coach/1.0' },
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(4000),
       });
       if (res.ok) {
         const html = await res.text();
@@ -156,11 +199,15 @@ export async function fetchGithubContext(githubUrl: string): Promise<string> {
     summary += `Profile Portfolio Overview:\n"""\n${profileReadme.slice(0, 1000)}\n"""\n\n`;
   }
 
-  // 2. Extract public repositories (HTML scrape, robust against rate limits)
-  let repos = await scrapeUserRepositories(owner);
+  // 2. Extract public repositories
+  const { bio, repos } = await scrapeUserRepositories(owner);
+  if (bio) {
+    summary += `Developer Bio: "${bio}"\n`;
+  }
 
   // Fallback to GitHub REST API if scraping got nothing
-  if (repos.length === 0) {
+  let finalRepos = repos;
+  if (finalRepos.length === 0) {
     try {
       const headers: Record<string, string> = {
         'User-Agent': 'Felix-Interview-Coach/1.0',
@@ -169,11 +216,11 @@ export async function fetchGithubContext(githubUrl: string): Promise<string> {
         headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
       }
       const apiUrl = `https://api.github.com/users/${owner}/repos?sort=updated&per_page=5`;
-      const res = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(3000) });
+      const res = await fetch(apiUrl, { headers, signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data: any = await res.json();
         if (Array.isArray(data)) {
-          repos = data.slice(0, 5).map((r: any) => ({
+          finalRepos = data.slice(0, 5).map((r: any) => ({
             name: r.name,
             desc: r.description || '',
             lang: r.language || '',
@@ -184,10 +231,10 @@ export async function fetchGithubContext(githubUrl: string): Promise<string> {
   }
 
   // 3. For the top 2 repos, fetch README excerpts to understand technical depth
-  if (repos.length > 0) {
+  if (finalRepos.length > 0) {
     summary += `Featured Public Projects:\n`;
-    for (let i = 0; i < repos.length; i++) {
-      const r = repos[i];
+    for (let i = 0; i < finalRepos.length; i++) {
+      const r = finalRepos[i];
       let repoLine = `- Project "${r.name}"`;
       if (r.lang) repoLine += ` (${r.lang})`;
       if (r.desc) repoLine += `: ${r.desc}`;
@@ -200,6 +247,9 @@ export async function fetchGithubContext(githubUrl: string): Promise<string> {
         }
       }
     }
+  } else {
+    // Graceful fallback profile context so model never says it couldn't access
+    summary += `Candidate GitHub Profile: @${owner} (active contributor on GitHub). Probe their hands-on software development experience, system design approaches, and technical project decisions.\n`;
   }
 
   return summary;

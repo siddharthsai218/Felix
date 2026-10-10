@@ -34,8 +34,8 @@ class LlmClient {
     const generationConfig = this.buildConfig(options);
     const candidateModels = [
       config.geminiModel,
-      'gemini-2.5-flash-lite',
       'gemini-flash-lite-latest',
+      'gemini-flash-latest',
       'gemini-2.5-flash',
     ];
 
@@ -70,8 +70,8 @@ class LlmClient {
     const generationConfig = this.buildConfig(options);
     const candidateModels = [
       config.geminiModel,
-      'gemini-2.5-flash-lite',
       'gemini-flash-lite-latest',
+      'gemini-flash-latest',
       'gemini-2.5-flash',
     ];
 
