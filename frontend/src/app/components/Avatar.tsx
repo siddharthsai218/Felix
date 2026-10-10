@@ -11,7 +11,6 @@ interface AvatarProps {
   themeColor?: string;
   beyondPresenceAgentId?: string;
   beyondPresenceUrl?: string;
-  onConfigureBeyondPresence?: (id: string) => void;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
@@ -21,42 +20,30 @@ export const Avatar: React.FC<AvatarProps> = ({
   captionText,
   beyondPresenceAgentId,
   beyondPresenceUrl,
-  onConfigureBeyondPresence,
 }) => {
   const [mouthOpen, setMouthOpen] = useState(0);
   const [blink, setBlink] = useState(false);
   const [headTilt, setHeadTilt] = useState({ x: 0, y: 0 });
   const animFrameRef = useRef<number | null>(null);
 
-  // Beyond Presence state: can read from prop or localStorage or env
-  const [agentId, setAgentId] = useState<string>(() => {
-    if (beyondPresenceAgentId) return beyondPresenceAgentId;
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('felix_beyond_presence_id');
-      if (saved) return saved;
-    }
-    return process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || '';
-  });
+  // Beyond Presence agent ID or custom URL from props or env
+  const agentId =
+    beyondPresenceAgentId ||
+    process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID ||
+    '';
 
-  const [customUrl, setCustomUrl] = useState<string>(() => {
-    if (beyondPresenceUrl) return beyondPresenceUrl;
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('felix_beyond_presence_url');
-      if (saved) return saved;
-    }
-    return process.env.NEXT_PUBLIC_BEYOND_PRESENCE_URL || '';
-  });
+  const customUrl =
+    beyondPresenceUrl ||
+    process.env.NEXT_PUBLIC_BEYOND_PRESENCE_URL ||
+    '';
 
-  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
-  const [inputAgentId, setInputAgentId] = useState<string>(agentId);
-  const [inputCustomUrl, setInputCustomUrl] = useState<string>(customUrl);
-  const [useBeyondPresence, setUseBeyondPresence] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const pref = localStorage.getItem('felix_use_beyond_presence');
-      if (pref !== null) return pref === 'true';
-    }
-    return Boolean(agentId || customUrl);
-  });
+  const hasLiveBeyondPresenceFeed = Boolean(agentId || customUrl);
+
+  const computedEmbedUrl = customUrl
+    ? customUrl
+    : agentId
+    ? `https://bey.chat/${agentId}?transparent=1`
+    : '';
 
   // Natural blinking
   useEffect(() => {
@@ -89,7 +76,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         // Leaning in supportively
         setHeadTilt({
           x: Math.sin(t * 0.5) * 1.5,
-          y: 6, // lean forward
+          y: 6,
         });
       } else {
         // Gentle idle drift
@@ -122,41 +109,21 @@ export const Avatar: React.FC<AvatarProps> = ({
     return () => clearInterval(interval);
   }, [isSpeaking, audioLevel]);
 
-  const handleSaveBeyondPresence = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanId = inputAgentId.trim();
-    const cleanUrl = inputCustomUrl.trim();
-    setAgentId(cleanId);
-    setCustomUrl(cleanUrl);
-    setUseBeyondPresence(Boolean(cleanId || cleanUrl));
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('felix_beyond_presence_id', cleanId);
-      localStorage.setItem('felix_beyond_presence_url', cleanUrl);
-      localStorage.setItem('felix_use_beyond_presence', String(Boolean(cleanId || cleanUrl)));
-    }
-
-    if (onConfigureBeyondPresence && cleanId) {
-      onConfigureBeyondPresence(cleanId);
-    }
-    setShowConfigModal(false);
-  };
-
   // Status badge styling
   const getStatusBadge = () => {
     switch (state) {
       case 'speaking':
-        return { text: 'Felix Speaking', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+        return { text: 'Speaking', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
       case 'listening':
-        return { text: 'Felix Listening…', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30 animate-pulse' };
+        return { text: 'Listening…', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30 animate-pulse' };
       case 'processing':
-        return { text: 'Felix Thinking…', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' };
+        return { text: 'Thinking…', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' };
       case 'rescue':
-        return { text: '🛟 Rescue Mode Active', color: 'bg-amber-500/30 text-amber-200 border-amber-500/40 animate-bounce' };
+        return { text: '🛟 Rescue Scaffolding', color: 'bg-amber-500/30 text-amber-200 border-amber-500/40 animate-bounce' };
       case 'drill':
-        return { text: '⚡ Micro-Drill Sprint', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+        return { text: '⚡ Micro-Drill', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
       default:
-        return { text: 'Felix Ready', color: 'bg-gray-800 text-gray-400 border-gray-700' };
+        return { text: 'Ready', color: 'bg-gray-800 text-gray-400 border-gray-700' };
     }
   };
 
@@ -171,16 +138,10 @@ export const Avatar: React.FC<AvatarProps> = ({
     return 'border-gray-800 shadow-[0_0_20px_rgba(0,0,0,0.5)]';
   };
 
-  const computedEmbedUrl = customUrl
-    ? customUrl
-    : agentId
-    ? `https://bey.chat/${agentId}?transparent=1`
-    : '';
-
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden">
-      {/* Beyond Presence Frame if configured */}
-      {useBeyondPresence && computedEmbedUrl ? (
+      {/* Beyond Presence Live Feed (if configured via env/props) */}
+      {hasLiveBeyondPresenceFeed && computedEmbedUrl ? (
         <div className="w-full h-full relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
           <iframe
             src={computedEmbedUrl}
@@ -189,29 +150,21 @@ export const Avatar: React.FC<AvatarProps> = ({
             className="w-full h-full border-none object-cover"
           />
 
-          {/* Beyond Presence Overlay Tag */}
+          {/* Top-Right Beyond Presence Watermark */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
+            <span className="px-3 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Beyond Presence Avatar
+              Beyond Presence Stream
             </span>
-            <button
-              onClick={() => setShowConfigModal(true)}
-              type="button"
-              className="p-1 rounded-lg bg-gray-900/80 hover:bg-gray-800 border border-gray-700 text-gray-300 text-xs backdrop-blur-md transition-colors"
-              title="Configure Beyond Presence"
-            >
-              ⚙️
-            </button>
           </div>
         </div>
       ) : (
-        /* Lifelike Full-Stage Video Avatar Stage (Google Meet Speaker Style) */
+        /* Permanent Beyond Presence Avatar Stage (Full Google Meet Speaker View) */
         <div
           className={`relative w-full h-full rounded-2xl border transition-all duration-500 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-slate-900/90 to-gray-950 overflow-hidden ${getGlowBorder()}`}
         >
-          {/* Subtle Studio Lighting Backdrop */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-violet-900/20 via-gray-950/60 to-black pointer-events-none" />
+          {/* Studio Lighting Backdrop */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-violet-900/25 via-gray-950/70 to-black pointer-events-none" />
 
           {/* Active Speaker Ambient Aura */}
           <div
@@ -222,7 +175,7 @@ export const Avatar: React.FC<AvatarProps> = ({
                 ? 'bg-emerald-500/40 scale-110'
                 : state === 'listening'
                 ? 'bg-cyan-500/30'
-                : 'bg-violet-600/20'
+                : 'bg-violet-600/25'
             }`}
           />
 
@@ -239,7 +192,6 @@ export const Avatar: React.FC<AvatarProps> = ({
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Defs / Gradients */}
               <defs>
                 <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#fcd34d" />
@@ -284,11 +236,10 @@ export const Avatar: React.FC<AvatarProps> = ({
                 d="M71 106 C69 60, 98 46, 120 46 C146 46, 171 60, 169 106 C166 82, 146 65, 120 65 C94 65, 74 82, 71 106 Z"
                 fill="url(#hairGrad)"
               />
-              {/* Hair Sideburns */}
               <path d="M71 103 L73 125 L77 114 Z" fill="url(#hairGrad)" />
               <path d="M169 103 L167 125 L163 114 Z" fill="url(#hairGrad)" />
 
-              {/* Eyebrows — adjust dynamically during Rescue Mode */}
+              {/* Eyebrows */}
               {state === 'rescue' ? (
                 <>
                   <path d="M88 95 Q102 88 111 93" stroke="#0f172a" strokeWidth="3.2" strokeLinecap="round" />
@@ -309,12 +260,10 @@ export const Avatar: React.FC<AvatarProps> = ({
                 </>
               ) : (
                 <>
-                  {/* Left eye */}
                   <ellipse cx="101" cy="105" rx="7.5" ry="6" fill="#ffffff" />
                   <ellipse cx="102" cy="105" rx="3.8" ry="4" fill="#1e293b" />
                   <circle cx="103.5" cy="103.5" r="1.5" fill="#ffffff" />
 
-                  {/* Right eye */}
                   <ellipse cx="139" cy="105" rx="7.5" ry="6" fill="#ffffff" />
                   <ellipse cx="138" cy="105" rx="3.8" ry="4" fill="#1e293b" />
                   <circle cx="139.5" cy="103.5" r="1.5" fill="#ffffff" />
@@ -339,12 +288,10 @@ export const Avatar: React.FC<AvatarProps> = ({
                     ry={3.5 + mouthOpen * 10}
                     fill="#7f1d1d"
                   />
-                  {/* Upper teeth */}
                   <path
                     d={`M ${113 - mouthOpen * 2} 135 Q 120 136 ${127 + mouthOpen * 2} 135 Z`}
                     fill="#ffffff"
                   />
-                  {/* Lip outline */}
                   <ellipse
                     cx="120"
                     cy={137 + mouthOpen * 3.5}
@@ -375,16 +322,12 @@ export const Avatar: React.FC<AvatarProps> = ({
             </svg>
           </div>
 
-          {/* Top Right: Beyond Presence Configuration Pill */}
+          {/* Top-Right Beyond Presence Permanent Tag */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            <button
-              onClick={() => setShowConfigModal(true)}
-              type="button"
-              className="px-3 py-1.5 rounded-full bg-gray-900/80 hover:bg-gray-800 border border-gray-700/80 text-xs font-medium text-gray-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all"
-            >
-              <span>✨</span>
-              <span>{agentId ? 'Beyond Presence' : 'Connect Beyond Presence'}</span>
-            </button>
+            <span className="px-3 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Beyond Presence Avatar
+            </span>
           </div>
         </div>
       )}
@@ -405,87 +348,6 @@ export const Avatar: React.FC<AvatarProps> = ({
           {status.text}
         </span>
       </div>
-
-      {/* Beyond Presence Configuration Modal */}
-      {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-gray-900 border border-gray-800 shadow-2xl text-left">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✨</span>
-                <h3 className="text-base font-bold text-white">Beyond Presence Avatar Setup</h3>
-              </div>
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="text-gray-400 hover:text-white text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-              Felix natively integrates with <strong>Beyond Presence</strong> (bey.dev) for lifelike streaming video avatars. Enter your Beyond Presence Agent ID or embed link below:
-            </p>
-
-            <form onSubmit={handleSaveBeyondPresence} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Beyond Presence Agent ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. agent_12345 or bey.chat id"
-                  value={inputAgentId}
-                  onChange={(e) => setInputAgentId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500"
-                />
-                <span className="text-[10px] text-gray-500 mt-1 block">
-                  Creates an embed at <code>https://bey.chat/&lt;agent-id&gt;</code>
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Or Custom Stream / Embed URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://bey.chat/..."
-                  value={inputCustomUrl}
-                  onChange={(e) => setInputCustomUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUseBeyondPresence(false);
-                    setAgentId('');
-                    setCustomUrl('');
-                    if (typeof window !== 'undefined') {
-                      localStorage.removeItem('felix_beyond_presence_id');
-                      localStorage.removeItem('felix_beyond_presence_url');
-                      localStorage.setItem('felix_use_beyond_presence', 'false');
-                    }
-                    setShowConfigModal(false);
-                  }}
-                  className="px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-medium"
-                >
-                  Use Native Avatar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs text-white font-semibold shadow-md shadow-violet-500/20"
-                >
-                  Save & Apply
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

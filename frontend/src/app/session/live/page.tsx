@@ -28,6 +28,7 @@ function LiveInterviewContent() {
   const targetRole = searchParams.get('role') || 'Software Engineer';
   const difficulty = (searchParams.get('difficulty') as any) || 'intermediate';
   const questionCount = parseInt(searchParams.get('questions') || '3', 10);
+  const isUnlimited = questionCount <= 0;
   const coachModeEnabled = searchParams.get('coach') !== 'false';
 
   // State
@@ -65,8 +66,17 @@ function LiveInterviewContent() {
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
     `Tell me about a challenging technical project you worked on recently in ${targetRole}. What was your specific role and what was the outcome?`,
-    `How do you approach debugging a high-stakes issue in production when logs are sparse?`,
+    `How do you approach debugging a high-stakes issue in production when telemetry or logs are sparse?`,
     `Describe a time you had a technical disagreement with a team member. How did you resolve it constructively?`,
+    `Can you walk me through a major system architecture decision you made? What trade-offs did you consider?`,
+    `Tell me about a time you had to quickly pick up an unfamiliar technology or framework to deliver on a critical deadline.`,
+    `How do you prioritize tech debt reduction, code quality, and testing against urgent product feature demands?`,
+    `Imagine your application experiences an unexpected latency spike under heavy user load. What is your diagnostic plan?`,
+    `Describe a project where you took leadership or proactive initiative to improve the team's developer workflow.`,
+    `Tell me about a time you received difficult constructive feedback. How did you process and apply it?`,
+    `How would you explain a complex architectural choice or database schema to a non-technical product manager?`,
+    `Describe a situation where a release fell behind schedule. How did you communicate and align expectations?`,
+    `How do you evaluate and implement security and input validation considerations in your applications?`,
   ]);
 
   // Web Speech synthesis helper
@@ -286,8 +296,10 @@ function LiveInterviewContent() {
     } else {
       // Local fallback turn progression
       const nextIndex = currentQuestionIndex;
-      if (nextIndex < questionCount && nextIndex < fallbackQuestionsRef.current.length) {
-        const nextQ = fallbackQuestionsRef.current[nextIndex];
+      const hasNext = isUnlimited || nextIndex < questionCount;
+      if (hasNext) {
+        const fallbacks = fallbackQuestionsRef.current;
+        const nextQ = fallbacks[nextIndex % fallbacks.length];
         setTimeout(() => {
           setCurrentQuestionIndex(nextIndex + 1);
           setCurrentQuestionText(nextQ);
@@ -303,7 +315,19 @@ function LiveInterviewContent() {
         }, 1500);
       }
     }
-  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, sessionId, router, playAudio]);
+  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio]);
+
+  // Gracefully Finish Interview & View Report at any time
+  const handleFinishInterview = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'session:end' } as ClientMessage));
+    } else {
+      setTurnState('complete');
+      setTimeout(() => {
+        router.push(`/session/report?sessionId=${sessionId}`);
+      }, 1000);
+    }
+  }, [sessionId, router]);
 
   // Resilient Local Turn Fallback
   const runLocalSessionFallback = useCallback(() => {

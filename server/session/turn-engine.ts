@@ -56,11 +56,13 @@ export class TurnEngine {
     sessionManager.updateState(this.session.sessionId, 'processing');
 
     try {
-      // Generate questions for the session
+      const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
+      // Generate initial questions: batch of 5 for unlimited, or up to configured count
+      const countToGen = isUnlimited ? 5 : Math.min(this.session.config.questionCount, 8);
       const questions = await generateQuestions(
         this.session.config.targetRole,
         this.session.config.difficulty,
-        this.session.config.questionCount,
+        countToGen,
       );
       this.session.questions = questions;
 
@@ -73,12 +75,35 @@ export class TurnEngine {
   }
 
   /**
-   * Ask a specific question by index.
+   * Ask a specific question by index. Dynamically generates additional questions if needed.
    */
   async askQuestion(index: number): Promise<void> {
-    const question = this.session.questions[index];
+    const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
+    if (!isUnlimited && index >= this.session.config.questionCount) {
+      // Completed configured number of questions
+      await this.endSession();
+      return;
+    }
+
+    let question = this.session.questions[index];
     if (!question) {
-      // No more questions — end session
+      // Questions ran out: dynamically generate additional questions on the fly
+      try {
+        const batchSize = isUnlimited ? 3 : Math.min(this.session.config.questionCount - index, 5);
+        const additionalQuestions = await generateQuestions(
+          this.session.config.targetRole,
+          this.session.config.difficulty,
+          batchSize,
+        );
+        this.session.questions.push(...additionalQuestions);
+        question = this.session.questions[index];
+      } catch (err) {
+        console.error('Failed to generate additional questions dynamically:', err);
+      }
+    }
+
+    if (!question) {
+      // No more questions could be generated — end session gracefully
       await this.endSession();
       return;
     }
@@ -176,8 +201,9 @@ export class TurnEngine {
     sessionManager.addResponse(this.session.sessionId, record);
     this.sendMessage({ type: 'response:complete', record });
 
-    // Decide what's next
-    if (this.session.currentQuestionIndex < this.session.config.questionCount) {
+    // Decide what's next: if unlimited or current index < questionCount, keep interviewing
+    const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
+    if (isUnlimited || this.session.currentQuestionIndex < this.session.config.questionCount) {
       // Check for follow-up
       if (text.length < 50 || this.rescueTriggered) {
         // Short or rescued answer — ask a follow-up

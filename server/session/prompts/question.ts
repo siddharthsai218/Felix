@@ -31,69 +31,145 @@ export async function generateQuestions(
   difficulty: 'beginner' | 'intermediate' | 'advanced',
   count: number,
 ): Promise<GeneratedQuestion[]> {
+  const effectiveCount = count <= 0 ? 5 : count;
+  // Keep individual prompt generation batch <= 10 to ensure fast Gemini latency and reliable JSON
+  const batchCount = Math.min(effectiveCount, 10);
   const prompt = QUESTION_PROMPT_TEMPLATE
-    .replace(/\{\{count\}\}/g, String(count))
+    .replace(/\{\{count\}\}/g, String(batchCount))
     .replace(/\{\{role\}\}/g, targetRole)
     .replace(/\{\{difficulty\}\}/g, difficulty);
 
   try {
     const questions = await llmClient.generateJSON<GeneratedQuestion[]>(prompt, {
       systemInstruction: QUESTION_SYSTEM_PROMPT,
-      temperature: 0.8,  // Some variety in questions
+      temperature: 0.8, // Some variety in questions
     });
-    return questions;
+
+    if (Array.isArray(questions) && questions.length > 0) {
+      return questions;
+    }
+    return getFallbackQuestions(targetRole, difficulty, effectiveCount);
   } catch (error) {
     console.error('Failed to generate questions, using fallback:', error);
-    return getFallbackQuestions(targetRole, difficulty, count);
+    return getFallbackQuestions(targetRole, difficulty, effectiveCount);
   }
 }
 
 /**
  * Fallback questions in case the LLM call fails.
- * Ensures the demo never breaks.
+ * Comprehensive bank covering multiple competencies that dynamically expands to any count.
  */
 function getFallbackQuestions(
-  _role: string,
+  role: string,
   difficulty: string,
   count: number,
 ): GeneratedQuestion[] {
-  const fallbacks: GeneratedQuestion[] = [
+  const diff = difficulty as 'beginner' | 'intermediate' | 'advanced';
+  const baseQuestions: GeneratedQuestion[] = [
     {
-      text: 'Tell me about a challenging project you worked on recently. What was your role, and what was the outcome?',
+      text: `Tell me about a challenging project you worked on recently in ${role}. What was your specific role, and what was the outcome?`,
       type: 'behavioral',
       targetCompetency: 'problem-solving',
-      difficulty: difficulty as any,
+      difficulty: diff,
       followUpHints: ['What was the biggest obstacle?', 'How did you measure success?'],
     },
     {
-      text: 'How would you explain a complex technical concept to someone without a technical background?',
+      text: 'How would you explain a complex technical concept or architecture to someone without a technical background?',
       type: 'situational',
       targetCompetency: 'communication',
-      difficulty: difficulty as any,
+      difficulty: diff,
       followUpHints: ['Can you give a specific example?', 'What if they still didn\'t understand?'],
     },
     {
-      text: 'Describe a time when you had to work with a difficult team member. How did you handle it?',
+      text: 'Describe a time when you had to work with a difficult team member or conflicting project requirements. How did you handle it?',
       type: 'behavioral',
       targetCompetency: 'teamwork',
-      difficulty: difficulty as any,
+      difficulty: diff,
       followUpHints: ['What did you learn from it?', 'Would you handle it differently now?'],
     },
     {
-      text: 'Walk me through how you approach debugging a complex issue in production.',
+      text: 'Walk me through how you approach debugging a high-stakes issue in production when logs are sparse.',
       type: 'technical',
       targetCompetency: 'technical-knowledge',
-      difficulty: difficulty as any,
+      difficulty: diff,
       followUpHints: ['What tools do you use?', 'How do you prioritize when multiple issues arise?'],
     },
     {
-      text: 'Tell me about a time you had to learn something completely new in a short timeframe. How did you approach it?',
+      text: 'Tell me about a time you had to learn something completely new in a very short timeframe. How did you approach it?',
       type: 'behavioral',
-      targetCompetency: 'problem-solving',
-      difficulty: difficulty as any,
+      targetCompetency: 'adaptability',
+      difficulty: diff,
       followUpHints: ['What resources did you use?', 'How did you know you had learned enough?'],
+    },
+    {
+      text: 'Can you describe a technical decision or trade-off you made that you later regretted or refactored? What did you learn?',
+      type: 'technical',
+      targetCompetency: 'system-design',
+      difficulty: diff,
+      followUpHints: ['What trade-offs were evaluated?', 'How did it affect the team?'],
+    },
+    {
+      text: 'How do you balance high-velocity feature delivery with code quality, test coverage, and tech debt reduction?',
+      type: 'situational',
+      targetCompetency: 'engineering-practices',
+      difficulty: diff,
+      followUpHints: ['How do you communicate tech debt to product managers?'],
+    },
+    {
+      text: 'Tell me about a time you took the initiative to improve a team workflow, system reliability, or developer experience without being asked.',
+      type: 'behavioral',
+      targetCompetency: 'leadership',
+      difficulty: diff,
+      followUpHints: ['How did you gain team alignment?', 'What was the long-term impact?'],
+    },
+    {
+      text: 'Imagine your service experiences an unexpected spike in latency or error rates. What is your step-by-step triage workflow?',
+      type: 'technical',
+      targetCompetency: 'troubleshooting',
+      difficulty: diff,
+      followUpHints: ['Where in the stack do you look first?', 'What metrics do you monitor?'],
+    },
+    {
+      text: 'Describe a situation where a project you owned fell behind schedule. How did you handle scope, stakeholders, and delivery?',
+      type: 'situational',
+      targetCompetency: 'time-management',
+      difficulty: diff,
+      followUpHints: ['What trade-offs were made?', 'How was feedback received?'],
+    },
+    {
+      text: 'How do you ensure data integrity, security, and edge-case resilience when building core application workflows?',
+      type: 'technical',
+      targetCompetency: 'security-design',
+      difficulty: diff,
+      followUpHints: ['How do you validate inputs?', 'What about authentication boundaries?'],
+    },
+    {
+      text: 'Tell me about a time you received constructive feedback that was difficult to hear. How did you respond and improve?',
+      type: 'behavioral',
+      targetCompetency: 'growth-mindset',
+      difficulty: diff,
+      followUpHints: ['Did your daily habits change?', 'How did you follow up?'],
     },
   ];
 
-  return fallbacks.slice(0, count);
+  if (count <= baseQuestions.length) {
+    return baseQuestions.slice(0, count);
+  }
+
+  // If count exceeds base question list, scale dynamically by synthesizing variations
+  const scaled: GeneratedQuestion[] = [...baseQuestions];
+  let cycle = 1;
+  while (scaled.length < count) {
+    for (const q of baseQuestions) {
+      if (scaled.length >= count) break;
+      scaled.push({
+        ...q,
+        text: `Follow-up deep-dive (${cycle + 1}): In the context of ${role}, ${q.text.charAt(0).toLowerCase() + q.text.slice(1)}`,
+        targetCompetency: q.targetCompetency,
+      });
+    }
+    cycle++;
+  }
+
+  return scaled;
 }

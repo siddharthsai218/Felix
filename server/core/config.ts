@@ -12,6 +12,8 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   assemblyAiApiKey: process.env.ASSEMBLYAI_API_KEY || '',
   cartesiaApiKey: process.env.CARTESIA_API_KEY || '',
+  beyondPresenceApiKey: process.env.BEYOND_PRESENCE_API_KEY || '',
+  beyondPresenceAvatarId: process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || '',
 
   // Server
   port: parseInt(process.env.PORT || '3001', 10),
