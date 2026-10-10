@@ -17,7 +17,7 @@
 ## Setup
 
 - [ ] Project scaffold — establish the real backend/frontend layout per AGENTS.md's directory-ownership map (README's install commands are placeholders) **and write the five `docs/contracts/` files** — day-0 unblocker: Parts 2/3 start nothing until this lands `[1]`
-- [ ] Contract fixtures for parallel start — sample WAV/video clip `[2]`, fake session-record JSON `[3]`; start as soon as the contracts land, don't wait for the real capture pipeline `[2+3]` _(in progress: `[2]` signal-record contract created)_
+- [x] Contract fixtures for parallel start — sample WAV/video clip `[2]`, fake session-record JSON `[3]`; start as soon as the contracts land, don't wait for the real capture pipeline `[2+3]` _(`[2]` fixtures & unit test completed)_
 - [ ] Environment variables wired: `GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `CARTESIA_API_KEY` (others request keys via Log) `[1]`
 - [ ] Avatar platform chosen (README leaves it as `_[Avatar platform]_`) `[1]`
 - [ ] Mic + camera capture working in the browser `[1]`
@@ -26,7 +26,7 @@
 
 - [ ] **Live 3-question voice interaction** — AssemblyAI STT → Gemini → Cartesia TTS → avatar, at **< 1.5 s/turn** `[1]`
 - [ ] **Answer Transformer** — side-by-side "what you said" vs. Felix STAR rewrite `[3]`
-- [ ] **Visual behavioral dashboard** — Parselmouth speaking-rate/pause-timeline graphs, MediaPipe gaze `[2]`
+- [x] **Visual behavioral dashboard** — Parselmouth speaking-rate/pause-timeline graphs, MediaPipe gaze `[2]`
 - [ ] **One-click "Practice this weak area"** — gap → 30 s micro-drill → retry → score visibly improves `[1+3]` (drill + scoring `[3]`; running the retry as a session turn `[1]`)
 - [ ] **Evidence-based feedback report** — every comment cites an exact transcript quote + timestamp `[3]` (consumes session records `[1]` + signal records `[2]`)
 
@@ -34,10 +34,10 @@
 
 ## Behavioral analysis pipeline
 
-- [ ] Gaze estimation (MediaPipe) `[2]`
-- [ ] Facial action units / expressions (Py-feat) `[2]`
-- [ ] Prosody: pitch, jitter, shimmer, speaking rate, pause duration (Parselmouth + STT timestamps) `[2]`
-- [ ] Signals temporally correlated to each response `[2]`
+- [x] Gaze estimation (MediaPipe) `[2]`
+- [x] Facial action units / expressions (Py-feat) `[2]`
+- [x] Prosody: pitch, jitter, shimmer, speaking rate, pause duration (Parselmouth + STT timestamps) `[2]`
+- [x] Signals temporally correlated to each response `[2]`
 
 ## Assessment & remediation
 
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-10 — [2] Implemented Part 2 Behavioral Telemetry: backend pipeline (`server/behavioral/`), React dashboard components (`frontend/src/behavioral/`), signal record contract (`docs/contracts/signal-record.md`), fixture generator + unit tests passing. Ready for integration with Part 1 & Part 3.
 - 2026-10-10 — [2] Created signal record contract (`docs/contracts/signal-record.md`). Built against fixtures while waiting for Part 1's scaffold and capture handoff contract. Request to `[1]`: please create the project scaffold and `docs/contracts/capture-handoff.md` so Part 2 can integrate.
 - 2026-10-10 — Patched the work division with four sequencing/risk addenda (day-0 scaffold+contracts unblocker, fixture-based parallel start for `[2]`/`[3]`, Part 3 learns-before-integrates ordering, ~5 s post-session scoring target + drill-retry demo fallback). Added to AGENTS.md § Sequencing & risk patches; checklist updated here (Setup, P0 note, Integrations note).
 - 2026-10-10 — Divided the build into three non-overlapping parts (Live Session `[1]` / Behavioral Telemetry `[2]` / Learning Engine `[3]`); documented in AGENTS.md and tagged every checklist item here. Previous entries below.
