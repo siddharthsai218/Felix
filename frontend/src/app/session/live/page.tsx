@@ -90,6 +90,8 @@ function LiveInterviewContent() {
   const drillTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const activeQuestionRef = useRef<string>('');
+  const turnStateRef = useRef<TurnState>('idle');
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
@@ -298,8 +300,21 @@ function LiveInterviewContent() {
         }
       };
 
+      recognition.onend = () => {
+        // Automatically restart speech recognition while in listening state to prevent dropped words
+        if (turnStateRef.current === 'listening') {
+          try {
+            recognition.start();
+          } catch (e) {
+            // Already active or restarting
+          }
+        }
+      };
+
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition warning:', event.error);
+        if (event.error !== 'no-speech') {
+          console.warn('Speech recognition warning:', event.error);
+        }
       };
 
       recognitionRef.current = recognition;
@@ -317,7 +332,8 @@ function LiveInterviewContent() {
       } catch (e) {}
     }
 
-    const finalAnswer = learnerTranscript || partialTranscript || 'I explained my approach and technical solution.';
+    const rawAnswer = (learnerTranscript || partialTranscript || '').trim();
+    const finalAnswer = rawAnswer || '[No verbal response captured during turn]';
 
     if (currentAudioRef.current) {
       try {
@@ -329,15 +345,20 @@ function LiveInterviewContent() {
       window.speechSynthesis.cancel();
     }
 
-    setTurnState('processing');
-    setCurrentQuestionText('');
-    turnStartTimeRef.current = Date.now();
+    // Retrieve active question BEFORE resetting
+    const currentQ =
+      activeQuestionRef.current ||
+      currentQuestionText ||
+      fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
+      'Technical interview question';
 
-    // Save response record to sessionStorage for instant, rich report generation
-    const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+    setTurnState('processing');
+    turnStateRef.current = 'processing';
+    setCurrentQuestionText('');
     const now = Date.now();
     const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 30000;
     const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
+    turnStartTimeRef.current = now;
 
     const newRecord: SessionResponseRecord = {
       sessionId,
@@ -359,6 +380,7 @@ function LiveInterviewContent() {
         const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
         stored.push(newRecord);
         sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+        sessionStorage.setItem('felix_session_duration_seconds', elapsedSeconds.toString());
 
         // Sync signals to backend API
         const rawTelem = sessionStorage.getItem('felix_session_telemetry');
@@ -390,6 +412,7 @@ function LiveInterviewContent() {
         const nextQ = fallbacks[nextIndex % fallbacks.length];
         setCurrentQuestionText('');
         setTimeout(() => {
+          activeQuestionRef.current = nextQ;
           setCurrentQuestionIndex(nextIndex + 1);
           setCurrentQuestionText(nextQ);
           setLearnerTranscript('');
@@ -398,19 +421,28 @@ function LiveInterviewContent() {
         }, 1200);
       } else {
         setTurnState('complete');
+        turnStateRef.current = 'complete';
         setTimeout(() => {
           router.push(`/session/report?sessionId=${sessionId}`);
         }, 1500);
       }
     }
-  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio, currentQuestionText, turnState]);
+  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio, currentQuestionText, turnState, elapsedSeconds]);
 
   // Gracefully Finish Interview & View Report at any time
   const handleFinishInterview = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('felix_session_duration_seconds', elapsedSeconds.toString());
+    }
+
     // If the learner has spoken in the current turn, preserve it for the report
-    if (learnerTranscript || partialTranscript) {
-      const finalAnswer = learnerTranscript || partialTranscript;
-      const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+    const rawAnswer = (learnerTranscript || partialTranscript || '').trim();
+    if (rawAnswer) {
+      const currentQ =
+        activeQuestionRef.current ||
+        currentQuestionText ||
+        fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
+        'Technical interview question';
       const now = Date.now();
       const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 25000;
       const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
@@ -421,7 +453,7 @@ function LiveInterviewContent() {
         responseIndex: currentQuestionIndex - 1,
         questionAsked: currentQ,
         questionType: 'behavioral',
-        transcript: finalAnswer,
+        transcript: rawAnswer,
         timestamps: currentTimestampsRef.current,
         startedAt: turnStartIso,
         endedAt: new Date(now).toISOString(),
@@ -454,15 +486,17 @@ function LiveInterviewContent() {
       wsRef.current.send(JSON.stringify({ type: 'session:end' } as ClientMessage));
     } else {
       setTurnState('complete');
+      turnStateRef.current = 'complete';
       setTimeout(() => {
         router.push(`/session/report?sessionId=${sessionId}`);
       }, 1000);
     }
-  }, [sessionId, router, learnerTranscript, partialTranscript, currentQuestionText, currentQuestionIndex]);
+  }, [sessionId, router, learnerTranscript, partialTranscript, currentQuestionText, currentQuestionIndex, elapsedSeconds]);
 
   // Resilient Local Turn Fallback
   const runLocalSessionFallback = useCallback(() => {
     setTurnState('processing');
+    turnStateRef.current = 'processing';
     setCurrentQuestionText('');
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
     const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
@@ -475,6 +509,7 @@ function LiveInterviewContent() {
     }
 
     setTimeout(() => {
+      activeQuestionRef.current = firstQ;
       setCurrentQuestionText(firstQ);
       setCurrentQuestionIndex(1);
       playAudio(firstQ);
@@ -528,6 +563,7 @@ function LiveInterviewContent() {
               break;
 
             case 'turn:state':
+              turnStateRef.current = msg.state;
               setTurnState(msg.state);
               if (msg.state === 'listening') {
                 turnStartTimeRef.current = Date.now();
@@ -543,6 +579,7 @@ function LiveInterviewContent() {
               break;
 
             case 'question:text':
+              activeQuestionRef.current = msg.text;
               setCurrentQuestionText(msg.text);
               if (msg.questionIndex >= 0) {
                 setCurrentQuestionIndex(msg.questionIndex + 1);
@@ -565,10 +602,24 @@ function LiveInterviewContent() {
               // Suppressed per user request
               break;
 
-
-
             case 'response:complete':
               setResponsesCompleted((prev) => [...prev, msg.record]);
+              if (typeof window !== 'undefined' && msg.record) {
+                try {
+                  const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
+                  const existingIdx = stored.findIndex((r: any) => r.responseIndex === msg.record.responseIndex);
+                  if (existingIdx !== -1) {
+                    stored[existingIdx] = {
+                      ...stored[existingIdx],
+                      questionAsked: msg.record.questionAsked || stored[existingIdx].questionAsked,
+                      transcript: msg.record.transcript || stored[existingIdx].transcript,
+                    };
+                  } else {
+                    stored.push(msg.record);
+                  }
+                  sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+                } catch (e) {}
+              }
               break;
 
             case 'session:complete':
@@ -693,6 +744,50 @@ function LiveInterviewContent() {
             state={turnState}
             isSpeaking={isAvatarSpeaking}
           />
+
+          {/* Sleek Floating Prompt & Live Speech Banner */}
+          {currentQuestionText && (
+            <div className="absolute top-3 left-3 right-3 z-10 flex flex-col items-center pointer-events-none">
+              <div className="max-w-xl w-full bg-slate-950/85 backdrop-blur-md border border-violet-500/30 rounded-xl px-4 py-2.5 shadow-2xl pointer-events-auto">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-violet-400 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                    FELIX PROMPT {currentQuestionIndex > 0 ? `#${currentQuestionIndex}` : ''}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-300">
+                    {turnState === 'listening' ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        YOUR TURN (RECORDING)
+                      </span>
+                    ) : (
+                      <span className="text-cyan-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                        AI INTERVIEWER SPEAKING
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-medium text-slate-100 leading-snug">
+                  {currentQuestionText}
+                </p>
+
+                {/* Real-time Candidate Spoken Transcript Preview */}
+                {turnState === 'listening' && (
+                  <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-start gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1 shrink-0" />
+                    <p className="text-[11px] font-mono text-emerald-300 italic line-clamp-2">
+                      {learnerTranscript || partialTranscript ? (
+                        <span>"{learnerTranscript} <span className="opacity-75">{partialTranscript}</span>"</span>
+                      ) : (
+                        <span className="text-slate-400 not-italic">Listening... Speak your response clearly. Words are being captured live.</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar: Camera PiP + Live Behavioral Telemetry HUD (Clean Stack, Zero Overlap) */}

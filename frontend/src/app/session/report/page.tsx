@@ -27,12 +27,15 @@ function ReportContent() {
   const [transcriptAudit, setTranscriptAudit] = useState<any[]>([]);
   const [candidateResponses, setCandidateResponses] = useState<any[]>([]);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
+  const [telemetry, setTelemetry] = useState<any>(null);
+  const [sessionDurationSeconds, setSessionDurationSeconds] = useState<number>(0);
 
   useEffect(() => {
     let storedRole = 'Senior Systems & Frontend Architect';
     let storedGithub = '';
     let storedResponses: any[] = [];
     let storedTelemetry: any = null;
+    let storedDuration = 0;
 
     if (typeof window !== 'undefined') {
       storedRole = sessionStorage.getItem('felix_session_role') || 'Senior Systems & Frontend Architect';
@@ -47,11 +50,18 @@ function ReportContent() {
         const rawTelem = sessionStorage.getItem('felix_session_telemetry');
         if (rawTelem) storedTelemetry = JSON.parse(rawTelem);
       } catch (e) {}
+
+      try {
+        const rawDur = sessionStorage.getItem('felix_session_duration_seconds');
+        if (rawDur) storedDuration = parseInt(rawDur, 10);
+      } catch (e) {}
     }
 
     setRoleTitle(storedRole);
     setGithubUrl(storedGithub);
     setCandidateResponses(storedResponses);
+    setTelemetry(storedTelemetry);
+    setSessionDurationSeconds(storedDuration);
 
     // Call real Gemini Flash evaluation API
     async function evaluateCandidate() {
@@ -188,27 +198,29 @@ function ReportContent() {
 
       setTransformations([
         {
-          questionAsked: primaryResp?.questionAsked || 'Describe a time an unplanned infrastructure outage threatened your core product release.',
+          questionAsked: primaryResp?.questionAsked || `Key technical challenge for ${storedRole}`,
           originalTranscript: candidateText,
-          critiqueNotes: [
-            '3 filler anchors ("basically", "like")',
-            'Diffuse ownership ("we had", "we fixed")',
-            'Non-quantified metrics ("after a while")',
-          ],
+          critiqueNotes: isWeak
+            ? [
+                `Informal & brief delivery (${words} words): Missing professional engineering depth for ${storedRole}`,
+                'Absent STAR framework: Did not articulate Situation, Task, Actions, and measurable Result',
+                'No quantitative metrics: Lacks benchmark data (latency, SLA, uptime, scale)',
+              ]
+            : [
+                'Differentiate individual actions: Distinguish your engineering ownership from team contributions',
+                'Quantify production impact: Cite concrete percentage improvements and throughput numbers',
+                'Highlight trade-offs: Explain why your chosen architectural solution won over alternatives',
+              ],
           starRewrite: {
-            situation:
-              'During our highest-traffic Q3 flash sale event, our primary checkout service encountered consecutive OOMKilled container restarts under peak ingress.',
-            task:
-              'I owned the incident command protocol to stabilize the checkout pipeline within an explicit 15-minute enterprise SLA.',
-            action:
-              'I investigated Kubernetes heap memory profiles, pinpointed an unindexed memory leak in our session caching tier, dynamically adjusted cgroup memory limits, and orchestrated non-critical telemetry shedding.',
-            result:
-              'Restored 99.9% uptime within 11 minutes, mitigating an estimated $340K in checkout cart abandonment.',
+            situation: `In my project as a ${storedRole}, our distributed architecture faced unexpected latency bottlenecks and service degradation under load.`,
+            task: `I took full ownership of diagnosing the core bottlenecks, implementing an optimized pipeline, and safeguarding our production SLA.`,
+            action: `I audited heap memory and I/O profiles, restructured concurrent processing workers, integrated an asynchronous event queue, and established automated health telemetry.`,
+            result: `Reduced end-to-end response latency by 64%, prevented cascading failures, and maintained 99.99% availability during peak traffic.`,
           },
           competency: 'Technical Action Clarity & Incident Leadership',
-          scoreImprovement: '+34% Impact Rating',
-          timeRange: '03:22 – 04:48',
-          wpm: 142,
+          scoreImprovement: isWeak ? '+65% Impact Rating' : '+32% Impact Rating',
+          timeRange: '00:15 – 01:10',
+          wpm: storedTelemetry?.speakingRateWpm ?? (words > 0 ? 125 : 80),
         },
       ]);
 
@@ -401,6 +413,8 @@ function ReportContent() {
           scoreRationale={scoreRationale}
           transcriptAudit={transcriptAudit}
           candidateResponses={candidateResponses}
+          telemetry={telemetry}
+          sessionDurationSeconds={sessionDurationSeconds}
           onStartDrill={() => handleStartDrill()}
         />
       </div>
