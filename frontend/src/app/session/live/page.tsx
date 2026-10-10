@@ -463,7 +463,6 @@ function LiveInterviewContent() {
   // Resilient Local Turn Fallback
   const runLocalSessionFallback = useCallback(() => {
     setTurnState('processing');
-    setShowQuestionSubtitle(false);
     setCurrentQuestionText('');
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
     const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
