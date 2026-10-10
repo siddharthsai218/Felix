@@ -80,7 +80,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         ref={iframeRef}
         src={embedUrl}
         title="Beyond Presence AI Avatar"
-        allow="camera *; microphone *; autoplay *; display-capture *; encrypted-media *; fullscreen *;"
+        allow="autoplay *; display-capture *; encrypted-media *; fullscreen *;"
         allowFullScreen
         className="w-full h-full border-none object-cover"
       />
