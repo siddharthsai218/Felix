@@ -75,9 +75,6 @@ export default function SessionSetupPage() {
   const [pasteJd, setPasteJd] = useState<string>('');
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
-  const [questionCount, setQuestionCount] = useState<number>(3);
-  const [isUnlimited, setIsUnlimited] = useState<boolean>(false);
-  const [customCountInput, setCustomCountInput] = useState<string>('3');
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
 
   const getEffectiveRole = () => {
@@ -95,7 +92,7 @@ export default function SessionSetupPage() {
     const params = new URLSearchParams({
       role,
       difficulty,
-      questions: isUnlimited ? '0' : questionCount.toString(),
+      questions: '0',
       coach: coachModeEnabled.toString(),
       ...(pasteJd.trim() ? { jd: encodeURIComponent(pasteJd.trim().slice(0, 500)) } : {}),
     });
@@ -260,82 +257,7 @@ export default function SessionSetupPage() {
         </section>
 
         {/* 3. Session Controls */}
-        <section className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Question count */}
-          <div className="p-4 rounded-2xl border border-gray-800/80 bg-gray-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="font-semibold text-sm">Number of Questions</h4>
-              <p className="text-xs text-gray-400">
-                {isUnlimited
-                  ? 'Open-ended (continuous practice until you wrap up)'
-                  : `${questionCount} practice question${questionCount === 1 ? '' : 's'}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 bg-gray-950 p-1 rounded-xl border border-gray-800">
-              {[3, 5, 10].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => {
-                    setIsUnlimited(false);
-                    setQuestionCount(num);
-                    setCustomCountInput(num.toString());
-                  }}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    !isUnlimited && questionCount === num
-                      ? 'bg-violet-600 text-white shadow-md'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsUnlimited(true);
-                  setQuestionCount(0);
-                }}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
-                  isUnlimited
-                    ? 'bg-violet-600 text-white shadow-md'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Continuous mode - ask questions until you finish"
-              >
-                <span>∞</span>
-                <span className="text-[10px]">Any</span>
-              </button>
-
-              {/* Custom number input */}
-              <div className="flex items-center pl-1 border-l border-gray-800">
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  placeholder="Custom"
-                  value={isUnlimited ? '' : (![3, 5, 10].includes(questionCount) ? customCountInput : '')}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCustomCountInput(val);
-                    const parsed = parseInt(val, 10);
-                    if (!isNaN(parsed) && parsed > 0) {
-                      setIsUnlimited(false);
-                      setQuestionCount(parsed);
-                    }
-                  }}
-                  className={`w-16 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-900 border text-center transition-all focus:outline-none ${
-                    !isUnlimited && ![3, 5, 10].includes(questionCount)
-                      ? 'border-violet-500 text-white bg-violet-950/40'
-                      : 'border-gray-800 text-gray-300 placeholder-gray-500'
-                  }`}
-                  title="Enter any custom number of questions"
-                />
-              </div>
-            </div>
-          </div>
-
+        <section className="mb-10 max-w-2xl mx-auto w-full">
           {/* Coach mode toggle */}
           <div className="p-4 rounded-2xl border border-gray-800/80 bg-gray-900/50 flex items-center justify-between">
             <div>
@@ -345,7 +267,7 @@ export default function SessionSetupPage() {
                   STAR
                 </span>
               </div>
-              <p className="text-xs text-gray-400">On-demand formative coaching</p>
+              <p className="text-xs text-gray-400">On-demand formative coaching hints during live turns</p>
             </div>
             <button
               type="button"

@@ -27,7 +27,7 @@ function LiveInterviewContent() {
   // Session Config from URL
   const targetRole = searchParams.get('role') || 'Software Engineer';
   const difficulty = (searchParams.get('difficulty') as any) || 'intermediate';
-  const questionCount = parseInt(searchParams.get('questions') || '3', 10);
+  const questionCount = parseInt(searchParams.get('questions') || '0', 10);
   const isUnlimited = questionCount <= 0;
   const coachModeEnabled = searchParams.get('coach') !== 'false';
 
@@ -560,7 +560,7 @@ function LiveInterviewContent() {
           {/* Question Index Pill */}
           <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-bold text-violet-300">
             {isUnlimited
-              ? `Question ${currentQuestionIndex} (Open Practice)`
+              ? `Question ${currentQuestionIndex}`
               : `Question ${currentQuestionIndex} of ${questionCount}`}
           </div>
 
