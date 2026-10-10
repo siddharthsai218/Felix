@@ -345,6 +345,10 @@ function LiveInterviewContent() {
 
     // Save response record to sessionStorage for instant, rich report generation
     const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+    const now = Date.now();
+    const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 30000;
+    const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
+
     const newRecord: SessionResponseRecord = {
       sessionId,
       learnerId: 'learner_1',
@@ -353,9 +357,9 @@ function LiveInterviewContent() {
       questionType: turnState === 'drill' ? 'drill' : 'behavioral',
       transcript: finalAnswer,
       timestamps: currentTimestampsRef.current,
-      startedAt: new Date(Date.now() - 30000).toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 30000,
+      startedAt: turnStartIso,
+      endedAt: new Date(now).toISOString(),
+      durationMs: actualDurationMs,
       rescueModeTriggered: false,
       coachModeUsed: false,
       isDrill: turnState === 'drill',
@@ -365,6 +369,17 @@ function LiveInterviewContent() {
         const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
         stored.push(newRecord);
         sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+
+        // Sync signals to backend API
+        const rawTelem = sessionStorage.getItem('felix_session_telemetry');
+        if (rawTelem) {
+          const telemObj = JSON.parse(rawTelem);
+          fetch(`/api/sessions/${sessionId}/signals/${currentQuestionIndex - 1}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(telemObj),
+          }).catch(() => {});
+        }
       } catch (e) {}
     }
 
@@ -407,6 +422,10 @@ function LiveInterviewContent() {
     if (learnerTranscript || partialTranscript) {
       const finalAnswer = learnerTranscript || partialTranscript;
       const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+      const now = Date.now();
+      const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 25000;
+      const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
+
       const record: SessionResponseRecord = {
         sessionId,
         learnerId: 'learner_1',
@@ -415,9 +434,9 @@ function LiveInterviewContent() {
         questionType: 'behavioral',
         transcript: finalAnswer,
         timestamps: currentTimestampsRef.current,
-        startedAt: new Date(Date.now() - 25000).toISOString(),
-        endedAt: new Date().toISOString(),
-        durationMs: 25000,
+        startedAt: turnStartIso,
+        endedAt: new Date(now).toISOString(),
+        durationMs: actualDurationMs,
         rescueModeTriggered: false,
         coachModeUsed: false,
         isDrill: false,
@@ -427,6 +446,17 @@ function LiveInterviewContent() {
           const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
           stored.push(record);
           sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+
+          // Sync signals to backend API
+          const rawTelem = sessionStorage.getItem('felix_session_telemetry');
+          if (rawTelem) {
+            const telemObj = JSON.parse(rawTelem);
+            fetch(`/api/sessions/${sessionId}/signals/${currentQuestionIndex - 1}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(telemObj),
+            }).catch(() => {});
+          }
         } catch (e) {}
       }
     }
@@ -502,6 +532,9 @@ function LiveInterviewContent() {
           switch (msg.type) {
             case 'session:started':
               setSessionId(msg.sessionId);
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('felix_session_responses', '[]');
+              }
               break;
 
             case 'turn:state':

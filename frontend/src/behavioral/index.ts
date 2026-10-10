@@ -8,3 +8,4 @@ export * from './GazeChart';
 export * from './ExpressionChart';
 export * from './AnomalyTimeline';
 export * from './BehavioralDashboard';
+export * from './signalBuilder';

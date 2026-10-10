@@ -18,6 +18,13 @@ interface BehavioralDashboardProps {
 export const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
   record = mockSignalRecord,
 }) => {
+  const durationS = Math.max(
+    12,
+    Math.round(
+      (new Date(record.response_end_ts).getTime() - new Date(record.response_start_ts).getTime()) / 1000
+    ) || (record.prosody.pitch_contour.length > 0 ? record.prosody.pitch_contour[record.prosody.pitch_contour.length - 1].time_s : 35.0)
+  );
+
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4">
       {/* Header */}
@@ -36,39 +43,47 @@ export const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
           label="Speaking Rate"
           value={`${record.prosody.speaking_rate_wpm.toFixed(0)} WPM`}
           subtext="Target: 130–160 WPM"
-          trend="optimal"
+          trend={record.prosody.speaking_rate_wpm >= 120 && record.prosody.speaking_rate_wpm <= 165 ? 'optimal' : 'attention'}
         />
         <StatCard
           label="Camera Eye Contact"
           value={`${record.gaze.eye_contact_pct.toFixed(0)}%`}
           subtext="MediaPipe tracking"
-          trend={record.gaze.eye_contact_pct >= 50 ? 'optimal' : 'attention'}
+          trend={record.gaze.eye_contact_pct >= 55 ? 'optimal' : 'attention'}
         />
         <StatCard
           label="Vocal Jitter"
           value={`${record.prosody.jitter_percent.toFixed(2)}%`}
           subtext="Parselmouth perturbation"
-          trend={record.prosody.jitter_percent < 2.0 ? 'optimal' : 'attention'}
+          trend={record.prosody.jitter_percent < 1.8 ? 'optimal' : 'attention'}
         />
         <StatCard
           label="Total Pauses"
           value={`${record.prosody.pause_segments.length}`}
           subtext={`${record.prosody.total_pause_duration_s.toFixed(1)}s total hesitation`}
-          trend="neutral"
+          trend={record.prosody.pause_segments.length <= 3 ? 'optimal' : 'attention'}
         />
         <StatCard
           label="Dominant Expression"
           value={record.facial.dominant_expression}
           subtext="Py-feat emotion model"
-          trend="neutral"
+          trend={
+            record.facial.dominant_expression.toLowerCase().includes('away') ||
+            record.facial.dominant_expression.toLowerCase().includes('not detected') ||
+            record.facial.dominant_expression.toLowerCase().includes('hesitant')
+              ? 'attention'
+              : 'optimal'
+          }
         />
       </div>
 
       {/* Primary Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpeakingRateChart
+          prosody={record.prosody}
           speakingRateWpm={record.prosody.speaking_rate_wpm}
           pauseSegments={record.prosody.pause_segments}
+          durationS={durationS}
         />
         <PitchContourChart
           pitchContour={record.prosody.pitch_contour}
@@ -81,7 +96,7 @@ export const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
       {/* Full Width Pause Track */}
       <PauseTimeline
         pauseSegments={record.prosody.pause_segments}
-        totalResponseDurationS={30.0}
+        totalResponseDurationS={durationS}
       />
 
       {/* Gaze & Facial Analytics */}
