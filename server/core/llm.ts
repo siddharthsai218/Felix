@@ -33,6 +33,7 @@ class LlmClient {
   async generate(prompt: string, options: LlmOptions = {}): Promise<string> {
     const generationConfig = this.buildConfig(options);
     const candidateModels = [
+      'gemini-3.1-flash-lite',
       'gemini-3.8-flash',
       config.geminiModel,
       'gemini-3.5-flash-lite',
@@ -69,6 +70,7 @@ class LlmClient {
   async *generateStream(prompt: string, options: LlmOptions = {}): AsyncIterable<string> {
     const generationConfig = this.buildConfig(options);
     const candidateModels = [
+      'gemini-3.1-flash-lite',
       'gemini-3.8-flash',
       config.geminiModel,
       'gemini-3.5-flash-lite',

@@ -169,7 +169,7 @@ Return ONLY a valid JSON object matching this schema:
 }`;
 
     // Try Gemini models in priority order
-    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+    const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
     let lastError: any = null;
 
     for (const model of candidateModels) {

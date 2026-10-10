@@ -30,7 +30,7 @@ export const config = {
   maxTurnLatencyMs: 1500,       // < 1.5s latency budget (P0)
 
   // LLM
-  geminiModel: 'gemini-3.8-flash',
+  geminiModel: 'gemini-3.1-flash-lite',
   defaultTemperature: 0.7,
   defaultMaxTokens: 2048,
 } as const;

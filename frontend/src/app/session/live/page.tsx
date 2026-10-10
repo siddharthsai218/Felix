@@ -675,6 +675,32 @@ function LiveInterviewContent() {
             isSpeaking={isAvatarSpeaking}
           />
 
+          {/* Current Question Subtitle / Captions (Always readable when Felix is asking or learner is answering) */}
+          {currentQuestionText && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-2xl w-[90%] z-20 pointer-events-none">
+              <div className="bg-gray-950/85 backdrop-blur-md border border-violet-500/30 px-5 py-3 rounded-2xl shadow-2xl text-center">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-violet-400 block mb-1">
+                  {turnState === 'speaking' ? '🗣️ Felix is Asking:' : '💡 Current Question:'}
+                </span>
+                <p className="text-xs sm:text-sm text-gray-100 font-medium leading-relaxed">
+                  {currentQuestionText}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* User Gesture Audio Unlock Badge (if autoplay blocked) */}
+          {!audioUnlocked && (
+            <div
+              onClick={unlockAudioAndPlay}
+              className="absolute top-20 left-1/2 -translate-x-1/2 z-30 cursor-pointer pointer-events-auto"
+            >
+              <div className="bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-full text-xs font-bold text-white shadow-lg flex items-center gap-2 animate-bounce">
+                <span>🔊 Click anywhere to enable sound</span>
+              </div>
+            </div>
+          )}
+
           {/* Live Behavioral Telemetry HUD (MediaPipe Gaze, Py-feat Emotion, Parselmouth Prosody) */}
           <div className="absolute bottom-36 sm:bottom-48 right-4 sm:right-6 w-52 sm:w-64 z-30 shadow-2xl transition-all">
             <LiveTelemetryHud
