@@ -63,7 +63,7 @@
 > **Do last.** Per AGENTS.md § Sequencing & risk patches, nothing in the 60-second demo depends on these items — drop them before any P0/P1 item if time runs short.
 
 - [ ] Haveloc (demonstration & deployment) `[3]`
-- [ ] Upstream GitHub/portfolio MCP — feed student repo context into question generation `[3]`
+- [x] Upstream GitHub/portfolio MCP — feed student repo context into question generation `[3]`
 - [ ] Downstream LMS MCP — Canvas / Google Classroom / Notion rubric export + drill assignment `[3]`
 
 ## 60-second demo checklist (acceptance test for the loop — integration point, run together)
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-10 [1+3] — Enabled GitHub portfolio grounding: connected candidate GitHub profile/repo from session setup to live turn engine over WebSocket. Updated GitHub context extraction in `server/session/github-service.ts` to support usernames, profile pages, and repository README extraction without hitting GitHub rate limits. Updated Gemini Flash-Lite model configuration (`gemini-2.5-flash-lite`) to dynamically generate targeted questions challenging the candidate on their actual projects, libraries, and architecture decisions.
 - 2026-10-10 [1] — Refined live turn subtitles: subtitles now remain hidden prior to the interviewer speaking and dynamically appear only when speech audio starts and the question is asked.
 - 2026-10-10 [1] — Streamlined session setup: removed number-of-questions selector and Coach Mode asking toggle. Sessions run open-ended by default with Coach Mode active on-demand during live turns. Server turn engine dynamically generates questions on the fly.
 - 2026-10-10 — [2] Implemented Part 2 Behavioral Telemetry: backend pipeline (`server/behavioral/`), React dashboard components (`frontend/src/behavioral/`), signal record contract (`docs/contracts/signal-record.md`), fixture generator + unit tests passing. Ready for integration with Part 1 & Part 3.

@@ -607,6 +607,14 @@ function LiveInterviewContent() {
             <span className="text-gray-500">•</span>
             <span className="text-gray-400 capitalize">{difficulty}</span>
           </div>
+          {githubUrl && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-950/70 border border-indigo-700/60 text-[11px] text-indigo-300 shadow-sm" title={`Grounded in GitHub: ${githubUrl}`}>
+              <span>🐙</span>
+              <span className="font-mono truncate max-w-[130px]">
+                {githubUrl.replace(/^https?:\/\/(?:www\.)?github\.com\//, '').replace(/\/$/, '')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Status Indicators */}

@@ -1,162 +1,163 @@
 import { llmClient } from '../../core/llm.js';
 import type { GeneratedQuestion } from '../../core/types.js';
+import { fetchGithubContext } from '../github-service.js';
+
+export interface QuestionContext {
+  githubUrl?: string;
+  resumeText?: string;
+  jobDescription?: string;
+}
 
 const QUESTION_SYSTEM_PROMPT = `You are Felix, an adaptive interview coaching AI. You generate realistic interview questions for practice sessions.
 
-You are an EDUCATIONAL TOOL, not a hiring screen. Your questions help learners practice and improve.
+You are an EDUCATIONAL TOOL, not a hiring screen. Your questions help learners practice, demonstrate structured thinking, and improve.
 
-Rules:
-- Generate questions appropriate for the target role and difficulty level
-- Mix behavioral, technical, and situational question types
-- Each question should target a specific competency
-- Questions should be conversational and natural, as a real interviewer would ask them
-- Keep questions concise (1-2 sentences)
-- For behavioral questions, use "Tell me about a time..." format
-- For technical questions, ask about concepts and their application
-- For situational questions, present realistic scenarios`;
+CRITICAL REQUIREMENTS:
+1. ROLE-SPECIFIC GROUNDING: Every question MUST be strictly and explicitly focused on the target role. Never ask questions outside the domain of the selected role.
+2. CANDIDATE EXPERIENCE GROUNDING: If the learner provided a GitHub profile/repo or resume text, you MUST directly reference their real projects, architecture decisions, tools, and technical claims in your questions.
+3. CONVERSATIONAL & NATURAL: Formulate questions as an expert technical interviewer or hiring manager would ask them in a live conversation.
+4. VARIETY: Mix technical architecture/implementation, situational problem-solving, and behavioral STAR questions.`;
 
-const QUESTION_PROMPT_TEMPLATE = `Generate {{count}} interview questions for a {{role}} position at {{difficulty}} difficulty level.
+const QUESTION_PROMPT_TEMPLATE = `Generate {{count}} interview questions for a candidate practicing for the target role: "{{role}}" at {{difficulty}} difficulty level.
+
+{{candidateContext}}
+
+STRICT INSTRUCTIONS:
+- Every question MUST be directly relevant to {{role}}.
+- If GitHub projects or Resume details are provided above, craft questions that specifically challenge the candidate on those actual projects, libraries, design decisions, and claims!
+- For behavioral questions, use "Tell me about a time..." format, connecting to their field.
+- For technical questions, probe deep architectural trade-offs, debugging, or system design in {{role}}.
 
 Return a JSON array of objects with these fields:
 - text: the question text (string)
 - type: "behavioral" | "technical" | "situational" (string)
-- targetCompetency: the competency being assessed, e.g. "problem-solving", "communication", "technical-knowledge", "leadership", "teamwork" (string)
+- targetCompetency: the competency being assessed, e.g. "technical-depth", "architecture-tradeoffs", "problem-solving", "communication", "leadership" (string)
 - difficulty: "{{difficulty}}" (string)
-- followUpHints: array of 2-3 possible follow-up angles (string[])
+- followUpHints: array of 2-3 possible follow-up probing angles (string[])
 
-Return ONLY the JSON array. No explanation.`;
+Return ONLY the JSON array. No markdown formatting, no explanation.`;
 
 export async function generateQuestions(
   targetRole: string,
   difficulty: 'beginner' | 'intermediate' | 'advanced',
   count: number,
+  context?: QuestionContext,
 ): Promise<GeneratedQuestion[]> {
   const effectiveCount = count <= 0 ? 5 : count;
-  // Keep individual prompt generation batch <= 10 to ensure fast Gemini latency and reliable JSON
-  const batchCount = Math.min(effectiveCount, 10);
+  const batchCount = Math.min(effectiveCount, 8);
+
+  // Fetch upstream GitHub MCP/portfolio context if URL is provided
+  let githubContext = '';
+  if (context?.githubUrl?.trim()) {
+    try {
+      githubContext = await fetchGithubContext(context.githubUrl.trim());
+    } catch (err) {
+      console.warn('Failed to fetch GitHub context, proceeding with resume and role:', err);
+    }
+  }
+
+  let candidateContext = '';
+  if (githubContext) {
+    candidateContext += `\nCANDIDATE GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext}\n`;
+  }
+  if (context?.resumeText?.trim()) {
+    candidateContext += `\nCANDIDATE RESUME / EXPERIENCE SUMMARY:\n"""\n${context.resumeText.trim().slice(0, 3000)}\n"""\n`;
+  }
+  if (context?.jobDescription?.trim()) {
+    candidateContext += `\nTARGET JOB REQUIREMENTS:\n"""\n${context.jobDescription.trim().slice(0, 1000)}\n"""\n`;
+  }
+
   const prompt = QUESTION_PROMPT_TEMPLATE
     .replace(/\{\{count\}\}/g, String(batchCount))
     .replace(/\{\{role\}\}/g, targetRole)
-    .replace(/\{\{difficulty\}\}/g, difficulty);
+    .replace(/\{\{difficulty\}\}/g, difficulty)
+    .replace(/\{\{candidateContext\}\}/g, candidateContext);
 
   try {
     const questions = await llmClient.generateJSON<GeneratedQuestion[]>(prompt, {
       systemInstruction: QUESTION_SYSTEM_PROMPT,
-      temperature: 0.8, // Some variety in questions
+      temperature: 0.75,
     });
 
     if (Array.isArray(questions) && questions.length > 0) {
       return questions;
     }
-    return getFallbackQuestions(targetRole, difficulty, effectiveCount);
+    return getFallbackQuestions(targetRole, difficulty, effectiveCount, context);
   } catch (error) {
-    console.error('Failed to generate questions, using fallback:', error);
-    return getFallbackQuestions(targetRole, difficulty, effectiveCount);
+    console.error('Failed to generate LLM questions, using role-specialized fallback:', error);
+    return getFallbackQuestions(targetRole, difficulty, effectiveCount, context);
   }
 }
 
 /**
- * Fallback questions in case the LLM call fails.
- * Comprehensive bank covering multiple competencies that dynamically expands to any count.
+ * Fallback questions strictly tailored to the specified role and candidate context.
  */
 function getFallbackQuestions(
   role: string,
   difficulty: string,
   count: number,
+  context?: QuestionContext,
 ): GeneratedQuestion[] {
   const diff = difficulty as 'beginner' | 'intermediate' | 'advanced';
-  const baseQuestions: GeneratedQuestion[] = [
-    {
-      text: `Tell me about a challenging project you worked on recently in ${role}. What was your specific role, and what was the outcome?`,
-      type: 'behavioral',
-      targetCompetency: 'problem-solving',
-      difficulty: diff,
-      followUpHints: ['What was the biggest obstacle?', 'How did you measure success?'],
-    },
-    {
-      text: 'How would you explain a complex technical concept or architecture to someone without a technical background?',
-      type: 'situational',
-      targetCompetency: 'communication',
-      difficulty: diff,
-      followUpHints: ['Can you give a specific example?', 'What if they still didn\'t understand?'],
-    },
-    {
-      text: 'Describe a time when you had to work with a difficult team member or conflicting project requirements. How did you handle it?',
-      type: 'behavioral',
-      targetCompetency: 'teamwork',
-      difficulty: diff,
-      followUpHints: ['What did you learn from it?', 'Would you handle it differently now?'],
-    },
-    {
-      text: 'Walk me through how you approach debugging a high-stakes issue in production when logs are sparse.',
+  const hasGithub = Boolean(context?.githubUrl?.trim());
+  const hasResume = Boolean(context?.resumeText?.trim());
+
+  const baseQuestions: GeneratedQuestion[] = [];
+
+  // Ground question 1 in candidate's project or GitHub if provided
+  if (hasGithub || hasResume) {
+    baseQuestions.push({
+      text: `In the projects listed on your ${hasGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most technically demanding architectural decision you made for ${role}? What trade-offs were involved?`,
       type: 'technical',
-      targetCompetency: 'technical-knowledge',
+      targetCompetency: 'architecture-tradeoffs',
       difficulty: diff,
-      followUpHints: ['What tools do you use?', 'How do you prioritize when multiple issues arise?'],
-    },
-    {
-      text: 'Tell me about a time you had to learn something completely new in a very short timeframe. How did you approach it?',
+      followUpHints: ['Why did you choose that particular tech stack?', 'How did it scale under load?'],
+    });
+  } else {
+    baseQuestions.push({
+      text: `Can you walk me through a challenging production project you built as a ${role}? What was your specific architectural contribution and the outcome?`,
       type: 'behavioral',
-      targetCompetency: 'adaptability',
+      targetCompetency: 'technical-depth',
       difficulty: diff,
-      followUpHints: ['What resources did you use?', 'How did you know you had learned enough?'],
-    },
+      followUpHints: ['What was the biggest technical bottleneck?', 'How did you measure success?'],
+    });
+  }
+
+  baseQuestions.push(
     {
-      text: 'Can you describe a technical decision or trade-off you made that you later regretted or refactored? What did you learn?',
+      text: `When designing a scalable solution in ${role}, how do you evaluate performance bottlenecks and optimize latency under heavy traffic?`,
       type: 'technical',
       targetCompetency: 'system-design',
       difficulty: diff,
-      followUpHints: ['What trade-offs were evaluated?', 'How did it affect the team?'],
+      followUpHints: ['What profiling or monitoring tools do you use?', 'How do you prevent regressions?'],
     },
     {
-      text: 'How do you balance high-velocity feature delivery with code quality, test coverage, and tech debt reduction?',
+      text: `Describe a scenario in your work as a ${role} where requirements were ambiguous or conflicting. How did you align technical execution with stakeholder needs?`,
       type: 'situational',
-      targetCompetency: 'engineering-practices',
+      targetCompetency: 'communication',
       difficulty: diff,
-      followUpHints: ['How do you communicate tech debt to product managers?'],
+      followUpHints: ['How did you prioritize competing features?', 'How did you communicate trade-offs?'],
     },
     {
-      text: 'Tell me about a time you took the initiative to improve a team workflow, system reliability, or developer experience without being asked.',
-      type: 'behavioral',
-      targetCompetency: 'leadership',
-      difficulty: diff,
-      followUpHints: ['How did you gain team alignment?', 'What was the long-term impact?'],
-    },
-    {
-      text: 'Imagine your service experiences an unexpected spike in latency or error rates. What is your step-by-step triage workflow?',
+      text: `Walk me through your step-by-step triage workflow when an unexpected high-severity incident or defect occurs in a ${role} workflow.`,
       type: 'technical',
       targetCompetency: 'troubleshooting',
       difficulty: diff,
-      followUpHints: ['Where in the stack do you look first?', 'What metrics do you monitor?'],
+      followUpHints: ['Where in the stack do you start looking?', 'How do you communicate during an outage?'],
     },
     {
-      text: 'Describe a situation where a project you owned fell behind schedule. How did you handle scope, stakeholders, and delivery?',
-      type: 'situational',
-      targetCompetency: 'time-management',
-      difficulty: diff,
-      followUpHints: ['What trade-offs were made?', 'How was feedback received?'],
-    },
-    {
-      text: 'How do you ensure data integrity, security, and edge-case resilience when building core application workflows?',
-      type: 'technical',
-      targetCompetency: 'security-design',
-      difficulty: diff,
-      followUpHints: ['How do you validate inputs?', 'What about authentication boundaries?'],
-    },
-    {
-      text: 'Tell me about a time you received constructive feedback that was difficult to hear. How did you respond and improve?',
+      text: `Tell me about a time in ${role} where you identified significant technical debt or inefficiency. How did you advocate for and implement the refactor?`,
       type: 'behavioral',
-      targetCompetency: 'growth-mindset',
+      targetCompetency: 'engineering-practices',
       difficulty: diff,
-      followUpHints: ['Did your daily habits change?', 'How did you follow up?'],
+      followUpHints: ['How did you measure the return on investment?', 'Did it affect deployment velocity?'],
     },
-  ];
+  );
 
   if (count <= baseQuestions.length) {
     return baseQuestions.slice(0, count);
   }
 
-  // If count exceeds base question list, scale dynamically by synthesizing variations
   const scaled: GeneratedQuestion[] = [...baseQuestions];
   let cycle = 1;
   while (scaled.length < count) {
@@ -164,7 +165,7 @@ function getFallbackQuestions(
       if (scaled.length >= count) break;
       scaled.push({
         ...q,
-        text: `Follow-up deep-dive (${cycle + 1}): In the context of ${role}, ${q.text.charAt(0).toLowerCase() + q.text.slice(1)}`,
+        text: `Follow-up deep-dive (${cycle + 1}) for ${role}: ${q.text.charAt(0).toLowerCase() + q.text.slice(1)}`,
         targetCompetency: q.targetCompetency,
       });
     }

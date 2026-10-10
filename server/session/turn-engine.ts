@@ -59,10 +59,16 @@ export class TurnEngine {
       const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
       // Generate initial questions: batch of 5 for unlimited, or up to configured count
       const countToGen = isUnlimited ? 5 : Math.min(this.session.config.questionCount, 8);
+      const questionContext = {
+        githubUrl: this.session.config.githubUrl,
+        resumeText: this.session.config.resumeText,
+        jobDescription: this.session.config.jobDescription,
+      };
       const questions = await generateQuestions(
         this.session.config.targetRole,
         this.session.config.difficulty,
         countToGen,
+        questionContext,
       );
       this.session.questions = questions;
 
@@ -94,6 +100,11 @@ export class TurnEngine {
           this.session.config.targetRole,
           this.session.config.difficulty,
           batchSize,
+          {
+            githubUrl: this.session.config.githubUrl,
+            resumeText: this.session.config.resumeText,
+            jobDescription: this.session.config.jobDescription,
+          },
         );
         this.session.questions.push(...additionalQuestions);
         question = this.session.questions[index];

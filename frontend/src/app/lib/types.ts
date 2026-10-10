@@ -70,6 +70,9 @@ export interface SessionConfig {
   questionCount: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   coachModeEnabled: boolean;
+  githubUrl?: string;
+  resumeText?: string;
+  jobDescription?: string;
 }
 
 export type ClientMessage =
