@@ -18,9 +18,6 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="hidden sm:inline-block text-xs text-gray-400 bg-gray-900 border border-gray-800 px-3.5 py-1.5 rounded-full">
-            Techashy Hackathon · EdTech Track
-          </span>
           <Link
             href="/session/setup"
             className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white shadow-md shadow-violet-500/25 transition-all"
@@ -118,7 +115,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="max-w-6xl mx-auto w-full px-6 py-6 border-t border-gray-900 text-center text-xs text-gray-600">
-        Felix — Adaptive Interview-Skills Coach · Techashy Hackathon
+        Felix — Adaptive Interview-Skills Coach
       </footer>
     </main>
   );
