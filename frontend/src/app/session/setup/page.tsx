@@ -90,7 +90,8 @@ export default function SessionSetupPage() {
   const [pasteJd, setPasteJd] = useState<string>('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string>('');
 
   // Restore saved setup from previous practice if available
   useEffect(() => {
@@ -112,7 +113,10 @@ export default function SessionSetupPage() {
     setActivePreset(preset.id);
   };
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+    setSyncStatus('Configuring Beyond Presence Avatar with your role...');
     const finalRole = roleTitle.trim() || 'Software Engineer';
 
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
@@ -123,12 +127,47 @@ export default function SessionSetupPage() {
       sessionStorage.setItem('felix_session_jd', pasteJd.trim());
     }
 
+    try {
+      if (githubUrl.trim()) {
+        setSyncStatus(`Analyzing GitHub @${githubUrl.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '')} & configuring avatar...`);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch('/api/avatar/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetRole: finalRole,
+          difficulty,
+          githubUrl: githubUrl.trim(),
+          resumeText: resumeText.trim(),
+          jobDescription: pasteJd.trim(),
+        }),
+        signal: controller.signal,
+      }).catch((e) => {
+        console.warn('Avatar sync timeout or error:', e);
+        return null;
+      });
+
+      clearTimeout(timeoutId);
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+        console.log('Avatar successfully synced:', data);
+      }
+    } catch (err) {
+      console.warn('Avatar sync failed, proceeding to session:', err);
+    }
+
+    const sessionId = `felix-${Date.now()}`;
     const params = new URLSearchParams({
       role: finalRole,
       difficulty,
       questions: '0', // 0 = continuous adaptive learning loop
       coach: coachModeEnabled.toString(),
       ...(githubUrl.trim() ? { github: encodeURIComponent(githubUrl.trim()) } : {}),
+      session: sessionId,
     });
 
     router.push(`/session/live?${params.toString()}`);
@@ -339,11 +378,21 @@ export default function SessionSetupPage() {
         <div className="mb-12">
           <button
             type="button"
+            disabled={isStarting}
             onClick={handleStartSession}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-violet-500/30 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3"
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-violet-500/30 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-80 disabled:cursor-wait"
           >
-            <span>Launch Live Interview for {roleTitle || 'Selected Role'}</span>
-            <span className="text-lg">→</span>
+            {isStarting ? (
+              <>
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="truncate max-w-[90%]">{syncStatus || 'Configuring AI Interviewer...'}</span>
+              </>
+            ) : (
+              <>
+                <span>Launch Live Interview for {roleTitle || 'Selected Role'}</span>
+                <span className="text-lg">→</span>
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -103,17 +103,23 @@ async function scrapeUserRepositories(owner: string): Promise<{ bio?: string; re
 
     if (res.ok) {
       const html = await res.text();
-      // Match repositories in the repositories tab list
-      const regex = /<a href="\/[^\/]+\/([^\"]+)" itemprop="name codeRepository"[^>]*>\s*([^\s<]+)[\s\S]*?(?:itemprop="description">\s*([\s\S]*?)\s*<\/p>)?[\s\S]*?(?:itemprop="programmingLanguage">([^<]+)<\/span>)?/g;
-      let m;
-      while ((m = regex.exec(html)) !== null && repos.length < 6) {
-        const name = m[1].trim();
-        if (name.toLowerCase() !== owner.toLowerCase() && !repos.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
-          repos.push({
-            name,
-            desc: m[3] ? m[3].replace(/<[^>]+>/g, '').trim() : undefined,
-            lang: m[4] ? m[4].trim() : undefined,
-          });
+      // Match repositories in the repositories tab list using robust block splitting
+      const repoBlocks = html.split(/itemprop="name codeRepository"/);
+      for (let i = 1; i < repoBlocks.length && repos.length < 8; i++) {
+        const block = repoBlocks[i];
+        const nameMatch = block.match(/>\s*([a-zA-Z0-9_.-]+)\s*<\/a>/);
+        const descMatch = block.match(/itemprop="description">\s*([\s\S]*?)\s*<\/p>/);
+        const langMatch = block.match(/itemprop="programmingLanguage">([^<]+)<\/span>/);
+
+        if (nameMatch) {
+          const name = nameMatch[1].trim();
+          if (name.toLowerCase() !== owner.toLowerCase() && !repos.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+            repos.push({
+              name,
+              desc: descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : undefined,
+              lang: langMatch ? langMatch[1].trim() : undefined,
+            });
+          }
         }
       }
     }

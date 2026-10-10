@@ -50,7 +50,8 @@ function LiveInterviewContent() {
     }
   }, [githubUrl]);
 
-  const [sessionId, setSessionId] = useState<string>('local-session');
+  const sessionParam = searchParams.get('session');
+  const [sessionId, setSessionId] = useState<string>(sessionParam || `felix-${Date.now()}`);
   const [turnState, setTurnState] = useState<TurnState>('idle');
   const [currentQuestionText, setCurrentQuestionText] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -667,6 +668,7 @@ function LiveInterviewContent() {
             isSpeaking={isAvatarSpeaking}
             audioLevel={avatarVolume}
             captionText={showQuestionSubtitle ? currentQuestionText : undefined}
+            sessionId={sessionId}
           />
 
 

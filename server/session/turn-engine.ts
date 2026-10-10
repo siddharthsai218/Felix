@@ -5,8 +5,10 @@ import { config } from '../core/config.js';
 import { sessionManager, type ActiveSession } from './session-manager.js';
 import { generateQuestions } from './prompts/question.js';
 import { generateFollowUp } from './prompts/followup.js';
-import { generateRescueResponse } from './prompts/rescue.js';
 import { generateCoachHint } from './prompts/coach.js';
+import { generateRescueResponse } from './prompts/rescue.js';
+import { syncBeyondPresenceAgent } from './beyond-presence-sync.js';
+import { fetchGithubContext } from './github-service.js';
 import type {
   ServerMessage,
   SessionResponseRecord,
@@ -64,6 +66,15 @@ export class TurnEngine {
         resumeText: this.session.config.resumeText,
         jobDescription: this.session.config.jobDescription,
       };
+      let githubContext = '';
+      if (this.session.config.githubUrl?.trim()) {
+        try {
+          githubContext = await fetchGithubContext(this.session.config.githubUrl.trim());
+        } catch (err) {
+          console.warn('Failed to pre-fetch GitHub context for avatar sync:', err);
+        }
+      }
+
       const questions = await generateQuestions(
         this.session.config.targetRole,
         this.session.config.difficulty,
@@ -71,6 +82,15 @@ export class TurnEngine {
         questionContext,
       );
       this.session.questions = questions;
+
+      // Sync Beyond Presence avatar prompt & greeting with role, GitHub projects, and question 1
+      syncBeyondPresenceAgent({
+        targetRole: this.session.config.targetRole,
+        difficulty: this.session.config.difficulty,
+        githubContext,
+        resumeText: this.session.config.resumeText,
+        firstQuestion: questions[0]?.text,
+      }).catch((err) => console.warn('Beyond Presence avatar sync error:', err));
 
       // Ask the first question
       await this.askQuestion(0);

@@ -11,6 +11,7 @@ interface AvatarProps {
   themeColor?: string;
   beyondPresenceAgentId?: string;
   beyondPresenceUrl?: string;
+  sessionId?: string;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
@@ -20,6 +21,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   captionText,
   beyondPresenceAgentId,
   beyondPresenceUrl,
+  sessionId,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isJoined, setIsJoined] = useState(false);
@@ -35,9 +37,10 @@ export const Avatar: React.FC<AvatarProps> = ({
     process.env.NEXT_PUBLIC_BEYOND_PRESENCE_URL ||
     '';
 
+  const sessionParam = sessionId ? `&sid=${encodeURIComponent(sessionId)}` : '';
   const embedUrl = customUrl
     ? customUrl
-    : `https://bey.chat/${agentId}?transparent=1`;
+    : `https://bey.chat/${agentId}?transparent=1${sessionParam}`;
 
   // Listen to postMessage from bey.chat for lifecycle events
   useEffect(() => {
