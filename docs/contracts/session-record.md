@@ -46,7 +46,7 @@ interface SessionRecord {
   totalDurationMs: number;
   responses: SessionResponseRecord[];
   sessionConfig: {
-    questionCount: number;
+    questionCount: number;          // 0 for unlimited / continuous practice, or any positive integer (1..N)
     difficulty: 'beginner' | 'intermediate' | 'advanced';
     coachModeEnabled: boolean;
   };

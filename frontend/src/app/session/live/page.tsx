@@ -559,8 +559,20 @@ function LiveInterviewContent() {
 
           {/* Question Index Pill */}
           <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-bold text-violet-300">
-            Question {currentQuestionIndex} of {questionCount}
+            {isUnlimited
+              ? `Question ${currentQuestionIndex} (Open Practice)`
+              : `Question ${currentQuestionIndex} of ${questionCount}`}
           </div>
+
+          {/* Finish & View Report Button */}
+          <button
+            onClick={handleFinishInterview}
+            className="px-3 py-1 rounded-full bg-violet-600 hover:bg-violet-500 text-xs font-bold text-white transition-all shadow-md shadow-violet-500/20 flex items-center gap-1.5"
+            title="Conclude interview and generate comprehensive evaluation report"
+          >
+            <span>Finish Interview</span>
+            <span>✓</span>
+          </button>
 
           <Link
             href="/session/setup"
