@@ -22,6 +22,9 @@ function ReportContent() {
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
   const [behavioralInsights, setBehavioralInsights] = useState<BehavioralInsightItem[]>([]);
   const [transformations, setTransformations] = useState<StarResponseTransformation[]>([]);
+  const [scoreRationale, setScoreRationale] = useState<any>(null);
+  const [transcriptAudit, setTranscriptAudit] = useState<any[]>([]);
+  const [candidateResponses, setCandidateResponses] = useState<any[]>([]);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
   const [candidateResponsesCount, setCandidateResponsesCount] = useState<number>(0);
 
@@ -48,6 +51,7 @@ function ReportContent() {
 
     setRoleTitle(storedRole);
     setGithubUrl(storedGithub);
+    setCandidateResponses(storedResponses);
     setCandidateResponsesCount(storedResponses.length);
 
     // Call real Gemini Flash evaluation API
@@ -68,6 +72,12 @@ function ReportContent() {
           const data = await res.json();
           if (data && data.success) {
             setOverallScore(data.overallScore || 3.5);
+            if (data.scoreRationale) {
+              setScoreRationale(data.scoreRationale);
+            }
+            if (Array.isArray(data.transcriptAudit) && data.transcriptAudit.length > 0) {
+              setTranscriptAudit(data.transcriptAudit);
+            }
             if (Array.isArray(data.rubricScores) && data.rubricScores.length > 0) {
               setRubricScores(data.rubricScores);
             }
@@ -203,6 +213,62 @@ function ReportContent() {
         },
       ]);
 
+      setScoreRationale({
+        overallScore: isWeak ? 2.3 : 3.8,
+        ratingLabel: isWeak ? 'Needs Practice / Growth Required' : 'Career-Ready',
+        scoringFormula: '35% Technical Depth + 25% STAR Framework + 20% Communication Pacing + 20% Behavioral Presence',
+        summary: isWeak
+          ? `Your overall score of 2.3 reflects brief, informal responses ("${candidateText.slice(0, 60)}..."). The evaluation rubric requires structured technical depth and quantifiable results.`
+          : `Your overall score of 3.8 reflects solid technical competence for ${storedRole}. Elevated performance requires specific benchmark metrics and STAR delivery.`,
+        strengthsExplanation: isWeak
+          ? 'Completed the interview questions and vocal audio was captured.'
+          : `Clear articulation of technical concepts and relevant domain logic for ${storedRole}.`,
+        deductionsExplanation: isWeak
+          ? `Deductions applied due to informal delivery, lack of STAR framing, and missing technical specifics.`
+          : 'Minor deductions applied for unquantified results and missing engineering trade-off comparisons.',
+      });
+
+      setTranscriptAudit(
+        (storedResponses.length > 0 ? storedResponses : [{ questionAsked: `Technical question for ${storedRole}`, transcript: candidateText, durationMs: 25000 }]).map((r: any, i: number) => {
+          const tWords = (r.transcript || '').split(/\s+/).filter(Boolean);
+          const tWeak = tWords.length < 20 || (r.transcript || '').toLowerCase().includes('sleep') || (r.transcript || '').toLowerCase().includes('tired');
+          return {
+            turnNumber: i + 1,
+            question: r.questionAsked || `Question ${i + 1} for ${storedRole}`,
+            transcript: r.transcript || 'Spoken response captured.',
+            turnScore: tWeak ? 2.1 : 3.9,
+            durationFormatted: `${Math.round((r.durationMs || 25000) / 1000)}s`,
+            wordCount: tWords.length,
+            scoringJustification: tWeak
+              ? `Spoken response was brief (${tWords.length} words) and conversational. Missing STAR structure and architectural specifics.`
+              : `Demonstrated technical clarity for ${storedRole} with relevant domain reasoning.`,
+            positiveEvidence: tWeak
+              ? []
+              : [
+                  {
+                    quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 85)),
+                    impact: `Directly addressed technical topics relevant to ${storedRole}.`,
+                  },
+                ],
+            deductionEvidence: tWeak
+              ? [
+                  {
+                    quote: (r.transcript || '').slice(0, Math.min((r.transcript || '').length, 80)),
+                    critique: `Informal phrasing without measurable results or architecture details.`,
+                    recommendation: `State Situation, Task, Action, and measurable Result with specific engineering tools.`,
+                  },
+                ]
+              : [
+                  {
+                    quote: (r.transcript || '').slice(Math.min((r.transcript || '').length, 40), Math.min((r.transcript || '').length, 120)) || r.transcript,
+                    critique: `Missing quantitative benchmark metrics (e.g. latency, throughput).`,
+                    recommendation: `Cite concrete numbers and performance metrics.`,
+                  },
+                ],
+          };
+        })
+      );
+
       setActiveDrill({
         drillId: 'p0-drill-star-1',
         sessionId,
@@ -311,6 +377,9 @@ function ReportContent() {
           rubricScores={rubricScores}
           behavioralInsights={behavioralInsights}
           transformations={transformations}
+          scoreRationale={scoreRationale}
+          transcriptAudit={transcriptAudit}
+          candidateResponses={candidateResponses}
           onStartDrill={() => handleStartDrill()}
         />
       </div>

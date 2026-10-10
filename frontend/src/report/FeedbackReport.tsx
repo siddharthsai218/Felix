@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { ScoreIndicator } from './ScoreIndicator';
 import { DrillCard } from './DrillCard';
 import { AnswerTransformer, type StarResponseTransformation } from './AnswerTransformer';
+import {
+  TranscriptScoreAudit,
+  type ScoreRationaleData,
+  type TurnTranscriptAudit,
+} from './TranscriptScoreAudit';
 
 export interface RubricScoreItem {
   criterion: string;
@@ -37,6 +42,9 @@ export interface FeedbackReportProps {
   behavioralInsights?: BehavioralInsightItem[];
   remediationPlan?: RemediationPlanItem[];
   transformations?: StarResponseTransformation[];
+  scoreRationale?: ScoreRationaleData;
+  transcriptAudit?: TurnTranscriptAudit[];
+  candidateResponses?: Array<{ questionAsked: string; transcript: string }>;
   onStartDrill?: (question: string) => void;
 }
 
@@ -159,6 +167,9 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
       scoreImprovement: '+45% Clarity & Impact',
     },
   ],
+  scoreRationale,
+  transcriptAudit,
+  candidateResponses,
   onStartDrill,
 }) => {
   const effectiveRubricScores = rubricScores && rubricScores.length > 0 ? rubricScores : [
@@ -227,6 +238,14 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
       <AnswerTransformer
         transformations={effectiveTransformations}
         onPracticeDrill={onStartDrill}
+      />
+
+      {/* Transcript & Score Generation Audit (Full Grounding in Candidate's Actual Spoken Words) */}
+      <TranscriptScoreAudit
+        scoreRationale={scoreRationale}
+        transcriptAudit={transcriptAudit}
+        candidateResponses={candidateResponses}
+        roleTitle={roleTitle}
       />
 
       {/* Main Grid: Rubric Breakdown (Left) & Behavioral + Action Plan (Right) */}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ResumePdfUploader } from '../../components/ResumePdfUploader';
 
 interface PresetRole {
   id: string;
@@ -87,6 +88,7 @@ export default function SessionSetupPage() {
   const [roleTitle, setRoleTitle] = useState<string>('Software Engineer');
   const [githubUrl, setGithubUrl] = useState<string>('');
   const [resumeText, setResumeText] = useState<string>('');
+  const [resumeFileName, setResumeFileName] = useState<string>('');
   const [pasteJd, setPasteJd] = useState<string>('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
@@ -100,11 +102,13 @@ export default function SessionSetupPage() {
       const savedRole = sessionStorage.getItem('felix_session_role');
       const savedGithub = sessionStorage.getItem('felix_session_github');
       const savedResume = sessionStorage.getItem('felix_session_resume');
+      const savedResumeFile = sessionStorage.getItem('felix_session_resume_filename');
       const savedJd = sessionStorage.getItem('felix_session_jd');
 
       if (savedRole) setRoleTitle(savedRole);
       if (savedGithub) setGithubUrl(savedGithub);
       if (savedResume) setResumeText(savedResume);
+      if (savedResumeFile) setResumeFileName(savedResumeFile);
       if (savedJd) setPasteJd(savedJd);
     }
   }, []);
@@ -124,6 +128,7 @@ export default function SessionSetupPage() {
       sessionStorage.setItem('felix_session_role', finalRole);
       sessionStorage.setItem('felix_session_github', githubUrl.trim());
       sessionStorage.setItem('felix_session_resume', resumeText.trim());
+      sessionStorage.setItem('felix_session_resume_filename', resumeFileName.trim());
       sessionStorage.setItem('felix_session_jd', pasteJd.trim());
     }
 
@@ -282,21 +287,37 @@ export default function SessionSetupPage() {
               </span>
             </div>
 
-            {/* Resume / Experience Summary Field */}
+            {/* Resume PDF Upload (Required / Recommended instead of plain text) */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-                <span>📄</span>
-                <span>Resume / Experience Summary</span>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span>📄</span>
+                  <span>Resume (PDF Upload)</span>
+                </div>
+                <span className="text-[10px] text-violet-400 font-medium">PDF File Required</span>
               </label>
-              <textarea
-                rows={4}
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume text, key project bullet points, tools used, or previous work experience..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all resize-y"
+              <ResumePdfUploader
+                initialFileName={resumeFileName}
+                initialExtractedText={resumeText}
+                onParsed={(data) => {
+                  setResumeText(data.extractedText);
+                  setResumeFileName(data.fileName);
+                  if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('felix_session_resume', data.extractedText);
+                    sessionStorage.setItem('felix_session_resume_filename', data.fileName);
+                  }
+                }}
+                onRemove={() => {
+                  setResumeText('');
+                  setResumeFileName('');
+                  if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('felix_session_resume');
+                    sessionStorage.removeItem('felix_session_resume_filename');
+                  }
+                }}
               />
               <span className="text-[11px] text-gray-500 mt-1 block">
-                Felix will ask behavioral and technical questions referencing your specific accomplishments and tools.
+                Upload your PDF resume. Felix reads your real projects, tools, and technical experience from the PDF to grill you on your actual code and architecture.
               </span>
             </div>
 
