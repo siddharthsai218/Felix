@@ -93,3 +93,43 @@ sessionRouter.get('/:sessionId/signals', (req, res) => {
   }
   res.json((session as any).signals || {});
 });
+
+// POST /api/sessions/:sessionId/evaluate — Part 3 evaluates candidate transcript
+sessionRouter.post('/:sessionId/evaluate', async (req, res) => {
+  try {
+    const { llmClient } = await import('../core/llm.js');
+    const { roleTitle = 'Software Engineer', responses = [], telemetry = {} } = req.body;
+    
+    const prompt = `You are Felix, an EdTech interview coaching AI evaluating a candidate for ${roleTitle}.
+Candidate Spoken Responses:
+${JSON.stringify(responses, null, 2)}
+Telemetry:
+${JSON.stringify(telemetry, null, 2)}
+
+Provide an honest formative evaluation in JSON format:
+{
+  "overallScore": number (1.0 to 5.0),
+  "rubricScores": [
+    { "criterion": string, "score": number, "feedback": string, "quotes": [{ "text": string, "time": string }] }
+  ],
+  "behavioralInsights": [
+    { "icon": string, "title": string, "text": string, "metric": string, "status": "optimal" | "attention" }
+  ],
+  "transformations": [
+    {
+      "questionAsked": string,
+      "originalTranscript": string,
+      "critiqueNotes": string[],
+      "starRewrite": { "situation": string, "task": string, "action": string, "result": string },
+      "competency": string,
+      "scoreImprovement": string
+    }
+  ]
+}`;
+
+    const result = await llmClient.generateJSON(prompt);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Evaluation failed' });
+  }
+});

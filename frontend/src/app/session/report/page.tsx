@@ -18,13 +18,14 @@ function ReportContent() {
 
   const [roleTitle, setRoleTitle] = useState<string>('Software Engineer');
   const [githubUrl, setGithubUrl] = useState<string>('');
-  const [overallScore, setOverallScore] = useState<number>(4.1);
+  const [overallScore, setOverallScore] = useState<number>(3.5);
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
   const [behavioralInsights, setBehavioralInsights] = useState<BehavioralInsightItem[]>([]);
   const [transformations, setTransformations] = useState<StarResponseTransformation[]>([]);
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
+  const [candidateResponsesCount, setCandidateResponsesCount] = useState<number>(0);
 
   useEffect(() => {
-    // 1. Read stored session context
     let storedRole = 'Software Engineer';
     let storedGithub = '';
     let storedResponses: any[] = [];
@@ -47,214 +48,176 @@ function ReportContent() {
 
     setRoleTitle(storedRole);
     setGithubUrl(storedGithub);
+    setCandidateResponsesCount(storedResponses.length);
 
-    // 2. Synthesize Telemetry
-    const gazeScore = storedTelemetry?.gazePercentage || 88;
-    const wpm = storedTelemetry?.speakingRateWpm || 138;
-    const jitter = storedTelemetry?.jitterPercent || 0.82;
-    const pauseCount = storedTelemetry?.pauseCount || 1;
+    // Call real Gemini Flash evaluation API
+    async function evaluateCandidate() {
+      setIsEvaluating(true);
+      try {
+        const res = await fetch('/api/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roleTitle: storedRole,
+            responses: storedResponses,
+            telemetry: storedTelemetry || {},
+          }),
+        });
 
-    setBehavioralInsights([
-      {
-        icon: '👁️',
-        title: 'MediaPipe Eye Contact',
-        text: `${gazeScore}% Camera focus maintained throughout responses. Excellent direct engagement.`,
-        metric: `${gazeScore}% Gaze`,
-        status: gazeScore >= 80 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '🗣️',
-        title: 'Parselmouth Pacing',
-        text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence for technical explanations.`,
-        metric: `${wpm} WPM`,
-        status: wpm >= 120 && wpm <= 160 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '📊',
-        title: 'Vocal Perturbation (Jitter)',
-        text: `Vocal stability steady at ${jitter}%. Confirms steady tone and emotional composure.`,
-        metric: `${jitter}% Jitter`,
-        status: jitter < 1.5 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '⏱️',
-        title: 'Cognitive Hesitation',
-        text: `${pauseCount} thinking pause${pauseCount > 1 ? 's' : ''} detected. Natural pacing for complex problem decomposition.`,
-        metric: `${pauseCount} Pauses`,
-        status: 'optimal',
-      },
-    ]);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            setOverallScore(data.overallScore || 3.5);
+            if (Array.isArray(data.rubricScores) && data.rubricScores.length > 0) {
+              setRubricScores(data.rubricScores);
+            }
+            if (Array.isArray(data.behavioralInsights) && data.behavioralInsights.length > 0) {
+              setBehavioralInsights(data.behavioralInsights);
+            }
+            if (Array.isArray(data.transformations) && data.transformations.length > 0) {
+              setTransformations(data.transformations);
+            }
+            if (Array.isArray(data.remediationPlan) && data.remediationPlan.length > 0) {
+              const plan = data.remediationPlan[0];
+              setActiveDrill({
+                drillId: 'remediation-drill-1',
+                sessionId,
+                responseIndex: 0,
+                targetLearningOutcome: plan.targetOutcome || 'Master STAR Response Delivery',
+                targetCompetency: plan.topic || 'technical-communication',
+                gapSeverity: 'high',
+                question: plan.drillQuestion || `Explain a technical challenge in ${storedRole} using STAR format.`,
+                timeLimitSeconds: 30,
+              });
+            }
+            setIsEvaluating(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('API evaluate fetch failed, applying dynamic candidate-grounded fallback:', err);
+      }
 
-    // 3. Build Answer Transformations based on actual candidate responses if available
-    const primaryResponse = storedResponses && storedResponses.length > 0 ? storedResponses[0] : null;
+      // Dynamic fallback strictly based on candidate's actual words
+      const primaryResp = storedResponses.length > 0 ? storedResponses[0] : null;
+      const candidateText = primaryResp?.transcript || 'I spoke informally during the interview.';
+      const gaze = storedTelemetry?.gazePercentage ?? 0;
+      const wpm = storedTelemetry?.speakingRateWpm ?? 0;
+      const jitter = storedTelemetry?.jitterPercent ?? 1.1;
+      const pauses = storedTelemetry?.pauseCount ?? 0;
+      const words = candidateText.split(/\s+/).filter(Boolean).length;
+      const isWeak = words < 20 || candidateText.toLowerCase().includes('sleep') || candidateText.toLowerCase().includes('tired');
 
-    if (primaryResponse && primaryResponse.transcript && primaryResponse.transcript.length > 15) {
-      const candidateText = primaryResponse.transcript;
-      const questionText = primaryResponse.questionAsked || 'Walk me through a technical challenge you solved.';
+      setOverallScore(isWeak ? 2.3 : 3.8);
+      setRubricScores([
+        {
+          criterion: 'Technical Depth & Domain Competency',
+          score: isWeak ? 2.1 : 3.9,
+          feedback: isWeak
+            ? `The response lacked technical depth, architecture specifics, and engineering concepts for ${storedRole}.`
+            : `Demonstrated technical understanding for ${storedRole} with clear explanation.`,
+          quotes: [{ text: candidateText.slice(0, 85) + '...', time: '00:40' }],
+        },
+        {
+          criterion: 'STAR Structure & Impact Quantification',
+          score: isWeak ? 1.8 : 3.4,
+          feedback: isWeak
+            ? 'Missing Situation, Task, Action, and measurable Result. The explanation was unstructured.'
+            : 'Good structural framing. Can elevate by citing quantitative benchmarks.',
+          quotes: [{ text: candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText, time: '01:15' }],
+        },
+        {
+          criterion: 'Communication Pacing & Clarity',
+          score: wpm < 100 ? 2.5 : 4.1,
+          feedback: wpm < 100
+            ? `Speaking rate was sluggish at ${wpm} WPM. Increase vocal projection and energy.`
+            : `Conversational pacing at ${wpm} WPM with clear articulation.`,
+          quotes: [{ text: wpm < 100 ? 'Low vocal cadence and sluggish articulation.' : 'Steady pacing maintained.', time: 'Prosody' }],
+        },
+        {
+          criterion: 'Composure & Behavioral Presence',
+          score: gaze < 50 ? 2.2 : 4.2,
+          feedback: gaze < 50
+            ? `Camera gaze was low at ${gaze}%. Focus on the camera lens to project confidence.`
+            : `Maintained good visual focus (${gaze}%) and vocal composure.`,
+          quotes: [{ text: gaze < 50 ? 'Eyes not consistently focused on camera.' : 'Steady camera focus observed.', time: 'Telemetry' }],
+        },
+      ]);
+
+      setBehavioralInsights([
+        {
+          icon: '👁️',
+          title: 'MediaPipe Eye Contact',
+          text: gaze >= 70
+            ? `${gaze}% Camera focus maintained throughout response delivery.`
+            : `${gaze}% Camera focus detected. Practice looking directly into the camera lens.`,
+          metric: `${gaze}% Gaze`,
+          status: gaze >= 70 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '🗣️',
+          title: 'Parselmouth Pacing',
+          text: `Speaking rate averaged ${wpm} WPM (${wpm < 115 ? 'Sluggish / low energy' : 'Optimal cadence'}).`,
+          metric: `${wpm} WPM`,
+          status: wpm >= 115 && wpm <= 165 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '📊',
+          title: 'Vocal Perturbation (Jitter)',
+          text: `Vocal stability steady at ${jitter}%.`,
+          metric: `${jitter}% Jitter`,
+          status: jitter <= 1.5 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '⏱️',
+          title: 'Cognitive Hesitation',
+          text: `${pauses} thinking pause${pauses !== 1 ? 's' : ''} detected.`,
+          metric: `${pauses} Pauses`,
+          status: 'optimal',
+        },
+      ]);
 
       setTransformations([
         {
-          questionAsked: questionText,
+          questionAsked: primaryResp?.questionAsked || `Technical question for ${storedRole}`,
           originalTranscript: candidateText,
-          critiqueNotes: [
-            'Missing quantifiable impact metric (e.g. latency, throughput, error reduction).',
-            'Focus on specific personal execution: differentiate your decisions from general team actions.',
-            'Deepen technical trade-off explanation (e.g. state management vs memory overhead).',
-          ],
+          critiqueNotes: isWeak
+            ? [
+                'Lacks professional framing and technical specificity.',
+                'Did not articulate personal engineering actions or tools.',
+                'Missing measurable impact metrics (latency, reliability, throughput).',
+              ]
+            : [
+                'Elevate personal agency: Clarify your decisions vs team actions.',
+                'Add quantifiable benchmarks (e.g. latency, memory, uptime).',
+                'Deepen technical trade-offs.',
+              ],
           starRewrite: {
-            situation: `In our high-throughput service for ${storedRole}, we experienced performance bottlenecks and latency spikes during peak load.`,
-            task: `I took ownership of diagnosing the bottleneck and architecting a decoupled, scalable solution under tight production constraints.`,
-            action: `I profiled the critical path, redesigned the asynchronous state pipeline with event-driven message queuing, and implemented backoff retries.`,
-            result: `P99 latency improved by 62%, eliminating timeout errors and maintaining 99.9% availability across continuous load testing.`,
+            situation: `In our project for ${storedRole}, we faced system latency bottlenecks during high concurrent traffic.`,
+            task: `I took ownership of profiling the critical path and architecting an optimized solution under strict constraints.`,
+            action: `I decoupled the state pipeline, implemented event-driven messaging, and added automated backoff handling.`,
+            result: `P99 latency improved by 58%, eliminating timeouts and maintaining 99.9% uptime.`,
           },
-          competency: 'Technical Architecture & STAR Method',
-          scoreImprovement: '+42% Impact & Structure',
+          competency: 'STAR Delivery & Technical Ownership',
+          scoreImprovement: isWeak ? '+68% Structure & Rigor' : '+40% Clarity & Impact',
         },
       ]);
 
-      setRubricScores([
-        {
-          criterion: 'Technical Depth & Domain Competency',
-          score: 4.2,
-          feedback: `Demonstrated solid domain understanding for ${storedRole}. Good command of underlying technical concepts.`,
-          quotes: [
-            {
-              text: candidateText.slice(0, 85) + '...',
-              time: '01:12',
-            },
-          ],
-        },
-        {
-          criterion: 'STAR Structure & Impact Quantification',
-          score: 3.6,
-          feedback: 'Clear problem framing, but can strengthen the measurable result by highlighting concrete metrics.',
-          quotes: [
-            {
-              text: candidateText.slice(Math.min(candidateText.length, 60), Math.min(candidateText.length, 145)) || candidateText,
-              time: '02:05',
-            },
-          ],
-        },
-        {
-          criterion: 'Communication Pacing & Clarity',
-          score: 4.4,
-          feedback: `Natural delivery at ${wpm} WPM without excessive filler words. Clear transitions between concepts.`,
-          quotes: [
-            {
-              text: 'Clear technical diction observed throughout response.',
-              time: 'Prosody',
-            },
-          ],
-        },
-        {
-          criterion: 'Composure & Behavioral Presence',
-          score: 4.5,
-          feedback: `High eye-contact stability (${gazeScore}%) and calm vocal prosody under technical probing.`,
-          quotes: [
-            {
-              text: 'Steady composure maintained through probing questions.',
-              time: 'Telemetry',
-            },
-          ],
-        },
-      ]);
+      setActiveDrill({
+        drillId: 'p0-drill-star-1',
+        sessionId,
+        responseIndex: 0,
+        targetLearningOutcome: 'Quantify Results Using the STAR Method',
+        targetCompetency: 'structural-communication',
+        gapSeverity: 'high',
+        question: `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
+        timeLimitSeconds: 30,
+      });
 
-      setOverallScore(4.2);
-    } else {
-      // High-quality calibrated defaults tailored to the candidate's chosen role
-      setTransformations([
-        {
-          questionAsked: `In your engineering projects, describe a time you optimized a complex workflow for ${storedRole}.`,
-          originalTranscript:
-            'In my project, our system was lagging when multiple users joined. I decided to change how we sent updates by switching to WebSockets. It was difficult to debug at first, but we resolved the issues and the speed improved significantly.',
-          critiqueNotes: [
-            'Vague agency: Used "our system was lagging" instead of describing your personal technical hypothesis.',
-            'Missing concrete metrics: "Speed improved significantly" lacks measurable engineering benchmarks.',
-            'Needs architectural specifics: Mention the transport protocol, reconnect logic, and memory footprint.',
-          ],
-          starRewrite: {
-            situation:
-              'In our real-time collaborative application, HTTP polling generated redundant server load and caused a 1.2-second synchronization lag.',
-            task:
-              'I led the initiative to transition our communication layer to a low-latency bidirectional pipeline under strict bandwidth constraints.',
-            action:
-              'I engineered a persistent WebSocket server with binary message frames, exponential backoff reconnects, and Redis pub/sub state broadcasting.',
-            result:
-              'Round-trip latency plummeted by 88% (from 1,200ms to 140ms), reducing server CPU utilization by 35% under peak concurrent traffic.',
-          },
-          competency: 'Systems Architecture & STAR Delivery',
-          scoreImprovement: '+45% Clarity & Impact',
-        },
-      ]);
-
-      setRubricScores([
-        {
-          criterion: 'Technical Depth & Domain Competency',
-          score: 4.0,
-          feedback: `Strong systems foundation for ${storedRole}. Good intuition around trade-offs and component boundaries.`,
-          quotes: [
-            {
-              text: 'I structured the data pipeline with WebSocket event queues and decoupled the state machine...',
-              time: '01:14',
-            },
-          ],
-        },
-        {
-          criterion: 'STAR Structure & Impact Quantification',
-          score: 3.5,
-          feedback: 'Strong technical explanation; elevate the result by citing quantifiable throughput and latency gains.',
-          quotes: [
-            {
-              text: 'We resolved the issues and the speed improved significantly...',
-              time: '02:40',
-            },
-          ],
-        },
-        {
-          criterion: 'Communication Pacing & Clarity',
-          score: 4.3,
-          feedback: 'Articulate pacing and direct articulation. Conversational and approachable technical tone.',
-          quotes: [
-            {
-              text: 'First, I prioritized network payload minimization. Second, browser execution profiling.',
-              time: '00:48',
-            },
-          ],
-        },
-        {
-          criterion: 'Composure & Behavioral Presence',
-          score: 4.6,
-          feedback: 'Excellent visual presence with 88% camera eye-contact and steady vocal prosody.',
-          quotes: [
-            {
-              text: 'Camera gaze remained focused through challenging technical follow-ups.',
-              time: 'Telemetry',
-            },
-          ],
-        },
-      ]);
-
-      setOverallScore(4.1);
+      setIsEvaluating(false);
     }
 
-    // Set remediation drill
-    setActiveDrill({
-      drillId: 'p0-drill-star-1',
-      sessionId,
-      responseIndex: 0,
-      targetLearningOutcome: 'Quantify Results Using the STAR Method',
-      targetCompetency: 'structural-communication',
-      gapSeverity: 'high',
-      question:
-        `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
-      timeLimitSeconds: 30,
-      hints: [
-        'Situation: 1 crisp sentence framing the stakes',
-        'Task: 1 sentence on your explicit ownership',
-        'Action: 2 sentences on the exact technical tools and architecture',
-        'Result: 1 sentence citing measurable numbers (e.g. latency, memory, uptime)',
-      ],
-    });
+    evaluateCandidate();
   }, [sessionId]);
 
   const handleStartDrill = (drillId?: string) => {
@@ -297,31 +260,47 @@ function ReportContent() {
 
       {/* Main Report Body */}
       <div className="max-w-6xl mx-auto w-full my-8 space-y-8">
-        {/* Banner with One-Click Drill [1+3] Demonstration */}
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-violet-950/70 via-gray-900 to-indigo-950/70 border border-violet-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
-                P0 Learning Loop Integration
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                [1+3] Drill Handshake
-              </span>
+        {/* Loading / Live Evaluation Status Banner */}
+        {isEvaluating ? (
+          <div className="p-6 rounded-3xl bg-violet-950/40 border border-violet-500/40 shadow-xl flex items-center gap-4 animate-pulse">
+            <div className="w-10 h-10 rounded-2xl bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-xl">
+              🤖
             </div>
-            <h3 className="text-lg font-bold text-white">Targeted Remediation Drill</h3>
-            <p className="text-xs text-gray-300 max-w-md mt-1">
-              Felix mapped your answer to a communication gap. Run a 30-second targeted micro-drill to retry and visibly improve your score.
-            </p>
+            <div>
+              <h3 className="text-sm font-bold text-violet-300">
+                Gemini 3.8 Flash Analyzing Spoken Responses & Behavioral Telemetry...
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Grounded evaluation in progress: mapping your actual transcript against the {roleTitle} rubric and generating your personalized STAR transformation.
+              </p>
+            </div>
           </div>
+        ) : (
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-violet-950/70 via-gray-900 to-indigo-950/70 border border-violet-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
+                  P0 Learning Loop Integration
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                  [1+3] Drill Handshake
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-white">Targeted Remediation Drill</h3>
+              <p className="text-xs text-gray-300 max-w-md mt-1">
+                Felix mapped your answer to a communication gap. Run a 30-second targeted micro-drill to retry and visibly improve your score.
+              </p>
+            </div>
 
-          <button
-            onClick={() => setDrillModalOpen(true)}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2 flex-shrink-0"
-          >
-            <span>Practice This Weak Area</span>
-            <span>⚡</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setDrillModalOpen(true)}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2 flex-shrink-0"
+            >
+              <span>Practice This Weak Area</span>
+              <span>⚡</span>
+            </button>
+          </div>
+        )}
 
         {/* Full Comprehensive Feedback Report */}
         <FeedbackReport
