@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { BehavioralDashboard } from '../../../behavioral';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -36,24 +37,14 @@ function DashboardContent() {
         </div>
       </header>
 
-      {/* Route slot for Part 2 */}
-      <div className="max-w-4xl mx-auto w-full my-12 text-center">
-        <div className="p-8 rounded-3xl bg-gray-900/60 border border-gray-800 backdrop-blur-sm">
-          <div className="text-5xl mb-4">📈</div>
-          <h2 className="text-2xl font-bold mb-2">Behavioral Telemetry Dashboard</h2>
-          <p className="text-gray-400 text-sm max-w-lg mx-auto mb-6">
-            This route slot displays gaze estimation (MediaPipe), vocal jitter/shimmer and pause timelines (Parselmouth).
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs">
-            <span>Part 2 Integration Point:</span>
-            <code className="text-[11px] font-mono text-white">frontend/src/behavioral/</code>
-          </div>
+      {/* Live Behavioral Telemetry Dashboard (Part 2) */}
+      <div className="max-w-6xl mx-auto w-full my-8">
+        <div className="bg-slate-100 rounded-3xl p-4 sm:p-6 shadow-2xl border border-gray-800">
+          <BehavioralDashboard />
         </div>
       </div>
 
-      <footer className="max-w-5xl mx-auto w-full text-center text-xs text-gray-600 pt-6 border-t border-gray-900">
-        Felix EdTech Hackathon Architecture
-      </footer>
+      
     </main>
   );
 }

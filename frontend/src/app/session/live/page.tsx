@@ -8,6 +8,7 @@ import { MediaCapture } from '../../components/MediaCapture';
 import { AudioVisualizer } from '../../components/AudioVisualizer';
 import { CoachPanel } from '../../components/CoachPanel';
 import { DrillModal } from '../../components/DrillModal';
+import { LiveTelemetryHud } from '../../components/LiveTelemetryHud';
 import { captureEventBus } from '../../lib/event-bus';
 import type {
   TurnState,
@@ -336,6 +337,31 @@ function LiveInterviewContent() {
     setCurrentQuestionText('');
     turnStartTimeRef.current = Date.now();
 
+    // Save response record to sessionStorage for instant, rich report generation
+    const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+    const newRecord: SessionResponseRecord = {
+      sessionId,
+      learnerId: 'learner_1',
+      responseIndex: currentQuestionIndex - 1,
+      questionAsked: currentQ,
+      questionType: turnState === 'drill' ? 'drill' : 'behavioral',
+      transcript: finalAnswer,
+      timestamps: currentTimestampsRef.current,
+      startedAt: new Date(Date.now() - 30000).toISOString(),
+      endedAt: new Date().toISOString(),
+      durationMs: 30000,
+      rescueModeTriggered: false,
+      coachModeUsed: false,
+      isDrill: turnState === 'drill',
+    };
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
+        stored.push(newRecord);
+        sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+      } catch (e) {}
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
@@ -367,10 +393,38 @@ function LiveInterviewContent() {
         }, 1500);
       }
     }
-  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio]);
+  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio, currentQuestionText, turnState]);
 
   // Gracefully Finish Interview & View Report at any time
   const handleFinishInterview = useCallback(() => {
+    // If the learner has spoken in the current turn, preserve it for the report
+    if (learnerTranscript || partialTranscript) {
+      const finalAnswer = learnerTranscript || partialTranscript;
+      const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+      const record: SessionResponseRecord = {
+        sessionId,
+        learnerId: 'learner_1',
+        responseIndex: currentQuestionIndex - 1,
+        questionAsked: currentQ,
+        questionType: 'behavioral',
+        transcript: finalAnswer,
+        timestamps: currentTimestampsRef.current,
+        startedAt: new Date(Date.now() - 25000).toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 25000,
+        rescueModeTriggered: false,
+        coachModeUsed: false,
+        isDrill: false,
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
+          stored.push(record);
+          sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
+        } catch (e) {}
+      }
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'session:end' } as ClientMessage));
     } else {
@@ -379,7 +433,7 @@ function LiveInterviewContent() {
         router.push(`/session/report?sessionId=${sessionId}`);
       }, 1000);
     }
-  }, [sessionId, router]);
+  }, [sessionId, router, learnerTranscript, partialTranscript, currentQuestionText, currentQuestionIndex]);
 
   // Resilient Local Turn Fallback
   const runLocalSessionFallback = useCallback(() => {
@@ -681,6 +735,16 @@ function LiveInterviewContent() {
           )}
 
 
+
+          {/* Live Behavioral Telemetry HUD (MediaPipe Gaze, Py-feat Emotion, Parselmouth Prosody) */}
+          <div className="absolute bottom-36 sm:bottom-48 right-4 sm:right-6 w-52 sm:w-64 z-30 shadow-2xl transition-all">
+            <LiveTelemetryHud
+              isActive={true}
+              isListening={turnState === 'listening'}
+              transcript={learnerTranscript || partialTranscript}
+              audioStream={mediaStream}
+            />
+          </div>
 
           {/* Self-View Camera: Google Meet Bottom-Right Floating PiP */}
           <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-48 sm:w-60 md:w-72 aspect-video z-30 shadow-2xl transition-all">

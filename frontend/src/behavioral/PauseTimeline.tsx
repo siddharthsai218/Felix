@@ -13,7 +13,7 @@ export const PauseTimeline: React.FC<PauseTimelineProps> = ({
   pauseSegments = mockSignalRecord.prosody.pause_segments,
   totalResponseDurationS = 30.0,
 }) => {
-  const totalPauseDuration = pauseSegments.reduce((sum, p) => sum + p.duration_s, 0);
+  const totalPauseDuration = pauseSegments.reduce((sum: number, p: any) => sum + p.duration_s, 0);
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
@@ -31,7 +31,7 @@ export const PauseTimeline: React.FC<PauseTimelineProps> = ({
 
       {/* Progress track */}
       <div className="relative w-full h-8 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-        {pauseSegments.map((segment, idx) => {
+        {pauseSegments.map((segment: any, idx: number) => {
           const leftPct = (segment.start_s / totalResponseDurationS) * 100;
           const widthPct = (segment.duration_s / totalResponseDurationS) * 100;
           const isLong = segment.duration_s >= 3.0;

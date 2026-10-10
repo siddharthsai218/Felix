@@ -92,6 +92,7 @@ export default function SessionSetupPage() {
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>('');
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   // Restore saved setup from previous practice if available
   useEffect(() => {

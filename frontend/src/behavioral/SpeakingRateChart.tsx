@@ -21,6 +21,8 @@ import { MOCK_SIGNAL_RECORD } from './mockData';
 
 export interface SpeakingRateChartProps {
   prosody?: ProsodySignal;
+  speakingRateWpm?: number;
+  pauseSegments?: any[];
   /** Total response duration in seconds (derived from timestamps if omitted) */
   durationS?: number;
   className?: string;
@@ -35,6 +37,8 @@ const OPTIMAL_HIGH = 160;
 
 export default function SpeakingRateChart({
   prosody = MOCK_SIGNAL_RECORD.prosody,
+  speakingRateWpm,
+  pauseSegments,
   durationS,
   className = '',
 }: SpeakingRateChartProps) {
@@ -125,8 +129,8 @@ export default function SpeakingRateChart({
               border: '1px solid #e2e8f0',
               fontSize: 12,
             }}
-            labelFormatter={(v: number) => `${v}s`}
-            formatter={(value: number, name: string) => {
+            labelFormatter={(v: any) => `${v}s`}
+            formatter={(value: any, name: any) => {
               if (name === 'wpm') return [`${value} WPM`, 'Speaking Rate'];
               return [value, name];
             }}
@@ -199,3 +203,5 @@ export default function SpeakingRateChart({
     </div>
   );
 }
+
+export { SpeakingRateChart };

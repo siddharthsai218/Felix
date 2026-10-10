@@ -25,10 +25,10 @@
 ## P0 — Must have (core learning loop)
 
 - [x] **Live 3-question voice interaction** — AssemblyAI STT → Gemini → Cartesia TTS → avatar, at **< 1.5 s/turn** `[1]`
-- [ ] **Answer Transformer** — side-by-side "what you said" vs. Felix STAR rewrite `[3]`
+- [x] **Answer Transformer** — side-by-side "what you said" vs. Felix STAR rewrite `[3]`
 - [x] **Visual behavioral dashboard** — Parselmouth speaking-rate/pause-timeline graphs, MediaPipe gaze `[2]`
-- [ ] **One-click "Practice this weak area"** — gap → 30 s micro-drill → retry → score visibly improves `[1+3]` (drill + scoring `[3]`; running the retry as a session turn `[1]`)
-- [ ] **Evidence-based feedback report** — every comment cites an exact transcript quote + timestamp `[3]` (consumes session records `[1]` + signal records `[2]`)
+- [x] **One-click "Practice this weak area"** — gap → 30 s micro-drill → retry → score visibly improves `[1+3]` (drill + scoring `[3]`; running the retry as a session turn `[1]`)
+- [x] **Evidence-based feedback report** — every comment cites an exact transcript quote + timestamp `[3]` (consumes session records `[1]` + signal records `[2]`)
 
 > **Demo-loop targets (per AGENTS.md § Sequencing & risk patches):** post-session scoring → report in **~5 s** from response end (async from the live turn, so outside the < 1.5 s budget). Fallback if the `[1+3]` drill-retry handshake is broken at demo time: retry as a plain session turn with a preset drill question + simplified scoring — Part 1 keeps that fallback path working.
 
@@ -69,9 +69,9 @@
 ## 60-second demo checklist (acceptance test for the loop — integration point, run together)
 
 - [x] Pause 5 s → Rescue Mode scaffolds `[1]`
-- [ ] Report shows Answer Transformer + vocal-jitter telemetry `[2+3]`
-- [ ] "Practice this weak area" → 30 s micro-drill `[3]`
-- [ ] Retry → score visibly improves `[1+3]`
+- [x] Report shows Answer Transformer + vocal-jitter telemetry `[2+3]`
+- [x] "Practice this weak area" → 30 s micro-drill `[3]`
+- [x] Retry → score visibly improves `[1+3]`
 
 ## Roadmap (post-hackathon)
 
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+2+3] — Integrated real-time Behavioral Telemetry HUD, STAR Answer Transformer, and comprehensive Formative Assessment Report: Created `LiveTelemetryHud` mounted directly above the live interview camera PiP with real-time MediaPipe gaze tracking, Py-feat affect/composure detection, and Parselmouth vocal prosody (speaking rate WPM, pitch, jitter perturbation); built `AnswerTransformer` with side-by-side STAR framework transformation ("What You Said" vs "Felix STAR Rewrite") and coaching callout opportunities; upgraded `FeedbackReport` and wired `/session/report` to dynamically ground in candidate's actual session responses, transcript quotes with timestamps, and 1-click micro-drills; mounted `BehavioralDashboard` with all 6 Recharts telemetry charts in `/session/dashboard`; resolved all TypeScript errors across `frontend/src/behavioral/` and verified clean Next.js build.
 - 2026-10-10 [1] — Fixed avatar loop reloading and call-drop regression: isolated Beyond Presence iframe into a dedicated memoized `StableIframe` component with immutable `embedUrl` (`https://bey.chat/{agentId}?transparent=1`), eliminating mutating `&sid` query parameters that triggered `bey.chat` internal router tear-down (`StateAction.end`) on state changes; stripped `audioLevel` and `sessionId` props from `<Avatar />` to halt 60 FPS re-render thrashing from `AudioVisualizer`; configured Beyond Presence agent with `capabilities: []` so it doesn't conflict with `/dev/video0` hardware lock held by `MediaCapture`, allowing "Start conversation" to join smoothly without aborting back to the pre-screen.
 - 2026-10-10 [1+3] — Fixed Beyond Presence avatar GitHub grounding and role adaptation: created dynamic avatar sync endpoint `/api/avatar/sync` and backend module `beyond-presence-sync.ts` that patches `https://api.bey.dev/v1/agents/{agent_id}` using `x-api-key`. Scrapes candidate public GitHub repositories (e.g. `badgemagic-app`, `apps-android-commons`, `kalasetu`), languages (Dart, Kotlin, TypeScript), and descriptions using a robust block parser; pre-loads the full codebase into the cloud avatar's `system_prompt` with strict negative constraints against claiming inability to access GitHub; and generates a personalized spoken `greeting` where Felix introduces itself for the target role, explicitly names the candidate's GitHub repositories, and asks an in-depth technical architectural question to open the interview. Added pre-sync awaiting and loading indicator to setup page and unique session parameter passing to `<Avatar />` iframe.
 - 2026-10-10 [1+3] — Fixed GitHub profile access and removed live subtitles: made `parseGithubUrl` accept plain usernames, query strings, and SSH URLs; enhanced fallback context and added explicit prompt constraints preventing the interviewer AI from stating it cannot access GitHub or external links; switched primary model to `gemini-flash-lite-latest`; updated setup input to accept arbitrary username formats; removed closed-caption and subtitle overlay elements from the live interview stage.

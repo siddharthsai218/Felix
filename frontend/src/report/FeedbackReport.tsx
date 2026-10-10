@@ -1,123 +1,329 @@
+'use client';
+
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { ScoreIndicator } from './ScoreIndicator';
 import { DrillCard } from './DrillCard';
+import { AnswerTransformer, type StarResponseTransformation } from './AnswerTransformer';
 
-// Dummy data to simulate the backend payload
-const MOCK_REPORT_DATA = {
-  sessionId: 'sess_123',
-  date: new Date().toLocaleDateString(),
-  roleTitle: 'Backend Developer',
-  overallScore: 3.8,
-  rubricScores: [
+export interface RubricScoreItem {
+  criterion: string;
+  score: number;
+  feedback: string;
+  quotes: Array<{ text: string; time: string }>;
+}
+
+export interface BehavioralInsightItem {
+  icon: string;
+  title: string;
+  text: string;
+  metric?: string;
+  status?: 'optimal' | 'attention';
+}
+
+export interface RemediationPlanItem {
+  topic: string;
+  drillQuestion: string;
+  targetOutcome: string;
+}
+
+export interface FeedbackReportProps {
+  sessionId?: string;
+  date?: string;
+  roleTitle?: string;
+  githubUrl?: string;
+  overallScore?: number;
+  rubricScores?: RubricScoreItem[];
+  behavioralInsights?: BehavioralInsightItem[];
+  remediationPlan?: RemediationPlanItem[];
+  transformations?: StarResponseTransformation[];
+  onStartDrill?: (question: string) => void;
+}
+
+export const FeedbackReport: React.FC<FeedbackReportProps> = ({
+  sessionId = 'demo_session',
+  date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+  roleTitle = 'Software Engineer',
+  githubUrl = '',
+  overallScore = 4.1,
+  rubricScores = [
     {
-      criterion: 'Technical Depth',
+      criterion: 'Technical Depth & Architecture',
       score: 4,
-      feedback: 'You demonstrated strong knowledge of system design principles, particularly around database sharding.',
-      quotes: [{ text: "I would implement hash-based sharding to distribute the load evenly", time: "04:12" }]
+      feedback:
+        'Strong grasp of system design trade-offs, state management, and real-time event streaming.',
+      quotes: [
+        {
+          text: 'I structured the data pipeline with WebSocket event queues and decoupled the state machine...',
+          time: '01:14',
+        },
+      ],
     },
     {
-      criterion: 'Communication',
-      score: 3,
-      feedback: 'Clear explanations, but could be more concise when describing architecture tradeoffs.',
-      quotes: [{ text: "So basically, if we use a monolith... well, it's easier at first, but then, you know, scaling is hard...", time: "08:45" }]
+      criterion: 'STAR Method & Structural Delivery',
+      score: 3.5,
+      feedback:
+        'You communicated the core technical problem well, but the measurable business result was vague. Use quantifiable benchmarks.',
+      quotes: [
+        {
+          text: 'So basically we moved to optimistic UI updates which made the experience feel a lot faster...',
+          time: '02:40',
+        },
+      ],
     },
     {
-      criterion: 'Problem Solving',
-      score: 4,
-      feedback: 'Excellent structured approach to breaking down the problem.',
-      quotes: [{ text: "First, I'd define the core requirements. Second, capacity planning. Third, the high-level design.", time: "01:20" }]
-    }
-  ],
-  behavioralInsights: [
-    { icon: '🗣️', text: 'Pacing was excellent (140 wpm). Keep it up!' },
-    { icon: '🤔', text: 'You used a lot of filler words ("um", "like") during the technical deep dive.' }
-  ],
-  remediationPlan: [
+      criterion: 'Communication Clarity & Conciseness',
+      score: 4.2,
+      feedback:
+        'Articulate and structured pacing. Good balance of technical depth without unnecessary filler.',
+      quotes: [
+        {
+          text: 'First, I prioritized network payload minimization. Second, browser execution profiling.',
+          time: '00:48',
+        },
+      ],
+    },
     {
-      topic: 'Concise Technical Explanations',
-      drillQuestion: 'Explain the difference between a process and a thread in 30 seconds.',
-      targetOutcome: 'Deliver a clear, concise answer without filler words.'
-    }
-  ]
-};
-
-export const FeedbackReport: React.FC = () => {
-  const data = MOCK_REPORT_DATA;
-  const [activeDrill, setActiveDrill] = useState<number | null>(null);
-
+      criterion: 'Composure & Behavioral Presence',
+      score: 4.5,
+      feedback:
+        'Consistent eye contact with the camera (88%) and steady vocal prosody with natural pauses for thinking.',
+      quotes: [
+        {
+          text: 'Camera gaze remained focused through difficult architectural questions.',
+          time: 'Telemetry',
+        },
+      ],
+    },
+  ],
+  behavioralInsights = [
+    {
+      icon: '👁️',
+      title: 'MediaPipe Eye Contact',
+      text: '88% Camera focus maintained throughout response delivery. High visual engagement.',
+      metric: '88% Gaze',
+      status: 'optimal',
+    },
+    {
+      icon: '🗣️',
+      title: 'Parselmouth Pacing',
+      text: 'Speaking cadence averaged 138 WPM (Target: 120-160 WPM). Ideal conversational rhythm.',
+      metric: '138 WPM',
+      status: 'optimal',
+    },
+    {
+      icon: '📊',
+      title: 'Vocal Perturbation (Jitter)',
+      text: 'Vocal stability steady at 0.82%. Indicates calm composure under technical questioning.',
+      metric: '0.82% Jitter',
+      status: 'optimal',
+    },
+    {
+      icon: '⏱️',
+      title: 'Cognitive Hesitation',
+      text: 'One 3.2s pause during system scalability question. Good recovery using structured logic.',
+      metric: '1 Long Pause',
+      status: 'attention',
+    },
+  ],
+  remediationPlan = [
+    {
+      topic: 'Quantifying Architectural Results',
+      drillQuestion:
+        'Tell me about a time you had to debug a critical production latency issue. Use the STAR method with concrete numbers.',
+      targetOutcome: 'State exact latency drop (e.g. 800ms to 95ms) and business uptime impact.',
+    },
+  ],
+  transformations = [
+    {
+      questionAsked:
+        'Walk me through the most challenging architectural trade-off in your projects.',
+      originalTranscript:
+        'In my project, we had problems with live data lagging. So I decided to switch from standard REST polling to WebSockets. It was tricky because of reconnection drops, but we fixed it with a retry loop and it worked much better.',
+      critiqueNotes: [
+        'Vague agency: Used "we had problems" instead of defining your personal leadership role.',
+        'Missing quantifiable metric: "Worked much better" does not provide measurable engineering impact.',
+        'Thin technical architecture: Needs specific explanation of the heartbeat/backoff algorithm.',
+      ],
+      starRewrite: {
+        situation:
+          'In our live interview coaching platform, real-time audio telemetry suffered from a 1,200ms latency bottleneck due to HTTP polling.',
+        task:
+          'I took direct ownership of designing an ultra-low-latency bidirectional streaming architecture capable of sub-200ms round trips.',
+        action:
+          'I implemented a WebSocket pipeline with exponential backoff heartbeat reconnection, audio slice streaming, and client-side audio context synchronization.',
+        result:
+          'Turn latency dropped from 1,200ms to 140ms (<1.5s total loop), eliminating voice overlap and supporting 100% stable live coaching turns.',
+      },
+      competency: 'Architecture & STAR Structure',
+      scoreImprovement: '+45% Clarity & Impact',
+    },
+  ],
+  onStartDrill,
+}) => {
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-slate-50 min-h-screen font-sans text-slate-800">
-      
-      {/* Header */}
-      <header className="flex flex-col md:flex-row items-center justify-between bg-white p-8 rounded-2xl shadow-sm mb-8 border border-slate-100">
+    <div className="space-y-8 text-white">
+      {/* Executive Summary Header */}
+      <div className="rounded-3xl bg-gradient-to-r from-gray-900 via-gray-900/90 to-violet-950/50 border border-violet-500/30 p-6 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Interview Feedback</h1>
-          <div className="flex gap-4 text-slate-500 font-medium">
-            <span>{data.roleTitle}</span>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-3 py-1 rounded-full bg-violet-500/20 text-violet-300 text-xs font-bold border border-violet-500/30">
+              Formative Assessment Report
+            </span>
+            <span className="text-xs text-gray-400 font-mono">ID: {sessionId}</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Interview Performance Report
+          </h1>
+          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-400 mt-2">
+            <span className="font-semibold text-violet-300">{roleTitle}</span>
             <span>•</span>
-            <span>{data.date}</span>
+            <span>{date}</span>
+            {githubUrl && (
+              <>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1 text-indigo-300 font-mono bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-800/40">
+                  <span>🐙</span>
+                  <span>{githubUrl.replace(/^https?:\/\/(?:www\.)?github\.com\//, '')}</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
-        <div className="mt-6 md:mt-0">
-          <ScoreIndicator score={data.overallScore} size="lg" label="Overall Score" />
-        </div>
-      </header>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column: Rubric & Details */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <h2 className="text-xl font-bold text-slate-800 border-b pb-2">Rubric Breakdown</h2>
-          
-          {data.rubricScores.map((rubric, idx) => (
-            <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">{rubric.criterion}</h3>
-                <div className="w-32">
-                  <ScoreIndicator score={rubric.score} type="bar" />
-                </div>
-              </div>
-              <p className="text-slate-600 mb-4">{rubric.feedback}</p>
-              
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Evidence from Transcript</p>
-                {rubric.quotes.map((quote, qIdx) => (
-                  <div key={qIdx} className="flex gap-3 text-sm">
-                    <span className="text-blue-500 font-mono bg-blue-50 px-1.5 py-0.5 rounded shrink-0">{quote.time}</span>
-                    <span className="italic text-slate-600">"{quote.text}"</span>
-                  </div>
-                ))}
-              </div>
+        {/* Overall Score Badge */}
+        <div className="flex items-center gap-4 bg-gray-950/80 px-6 py-4 rounded-2xl border border-gray-800 shadow-inner">
+          <ScoreIndicator score={overallScore} size="lg" label="Overall Mastery" />
+          <div className="text-left">
+            <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              Career-Ready
             </div>
-          ))}
+            <div className="text-[11px] text-gray-400 max-w-[130px] leading-tight mt-0.5">
+              Strong technical reasoning with clear growth pathways.
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Right Column: Insights & Remediation */}
-        <div className="flex flex-col gap-6">
-          
-          {/* Behavioral Insights */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Behavioral Cues</h2>
-            <ul className="flex flex-col gap-4">
-              {data.behavioralInsights.map((insight, idx) => (
-                <li key={idx} className="flex gap-3 items-start">
-                  <span className="text-2xl">{insight.icon}</span>
-                  <span className="text-slate-600 text-sm">{insight.text}</span>
-                </li>
-              ))}
-            </ul>
+      {/* Answer Transformer Component (Core P0 Feature) */}
+      <AnswerTransformer
+        transformations={transformations}
+        onPracticeDrill={onStartDrill}
+      />
+
+      {/* Main Grid: Rubric Breakdown (Left) & Behavioral + Action Plan (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column (2 Cols): Formative Rubric Evaluation */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-800">
+            <div>
+              <h2 className="text-xl font-bold text-white">Criterion Rubric Breakdown</h2>
+              <p className="text-xs text-gray-400">
+                Evaluation grounded in specific timestamps and transcript evidence.
+              </p>
+            </div>
+            <span className="text-xs text-violet-400 font-medium">4 Core Dimensions</span>
           </div>
 
-          {/* Remediation Plan */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-t-4 border-t-blue-500">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Action Plan</h2>
-            <p className="text-sm text-slate-500 mb-4">Targeted drills to improve your weak areas.</p>
-            
-            <div className="flex flex-col gap-4">
-              {data.remediationPlan.map((plan, idx) => (
+          <div className="space-y-4">
+            {rubricScores.map((rubric, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl bg-gray-900/70 border border-gray-800 p-5 shadow-lg transition-all hover:border-gray-700"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-sm text-gray-100">{rubric.criterion}</h3>
+                  <div className="w-28">
+                    <ScoreIndicator score={rubric.score} type="bar" />
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed mb-4">
+                  {rubric.feedback}
+                </p>
+
+                {/* Evidence quotes */}
+                {rubric.quotes && rubric.quotes.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800/80 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                      Transcript Evidence
+                    </span>
+                    {rubric.quotes.map((quote, qIdx) => (
+                      <div key={qIdx} className="flex items-start gap-2.5 text-xs">
+                        <span className="px-2 py-0.5 rounded bg-violet-950 text-violet-300 font-mono text-[10px] font-bold border border-violet-800/50 shrink-0">
+                          {quote.time}
+                        </span>
+                        <span className="italic text-gray-300">"{quote.text}"</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column: Behavioral Telemetry & Action Plan */}
+        <div className="space-y-6">
+          {/* Behavioral Telemetry Summary */}
+          <div className="rounded-2xl bg-gray-900/70 border border-gray-800 p-5 shadow-lg space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-800">
+              <h2 className="font-bold text-base text-white">Behavioral Telemetry</h2>
+              <Link
+                href={`/session/dashboard?sessionId=${sessionId}`}
+                className="text-[11px] font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+              >
+                <span>Deep Dive Graphs</span>
+                <span>→</span>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {behavioralInsights.map((insight, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-950/60 border border-gray-800/80"
+                >
+                  <span className="text-xl">{insight.icon}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-200">{insight.title}</span>
+                      {insight.metric && (
+                        <span className="text-[10px] font-mono font-bold text-emerald-400">
+                          {insight.metric}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">{insight.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href={`/session/dashboard?sessionId=${sessionId}`}
+              className="block w-full py-2.5 rounded-xl bg-gray-800 hover:bg-gray-750 text-center text-xs font-semibold text-gray-200 border border-gray-700 transition-colors"
+            >
+              Open Full Telemetry Dashboard (6 Charts) →
+            </Link>
+          </div>
+
+          {/* Action Plan & Remediation Micro-Drill */}
+          <div className="rounded-2xl bg-gradient-to-b from-gray-900 to-indigo-950/40 border border-indigo-500/30 p-5 shadow-lg space-y-4">
+            <div className="pb-2 border-b border-gray-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">
+                Targeted Remediation
+              </span>
+              <h2 className="font-bold text-base text-white">Remediation Micro-Drills</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Retry weak competencies in 30-second focused sprints to visibly improve your score.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {remediationPlan.map((plan, idx) => (
                 <div key={idx}>
-                  <DrillCard 
+                  <DrillCard
                     question={plan.drillQuestion}
                     targetOutcome={plan.targetOutcome}
                   />
@@ -125,7 +331,6 @@ export const FeedbackReport: React.FC = () => {
               ))}
             </div>
           </div>
-          
         </div>
       </div>
     </div>

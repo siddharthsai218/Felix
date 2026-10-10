@@ -213,3 +213,5 @@ export const MOCK_SIGNAL_RECORD: BehavioralSignalRecord = {
     },
   ],
 };
+
+export const mockSignalRecord = MOCK_SIGNAL_RECORD;

@@ -38,7 +38,7 @@ export const AnomalyTimeline: React.FC<AnomalyTimelineProps> = ({
       </div>
 
       <div className="space-y-3">
-        {anomalies.map((item, index) => (
+        {anomalies.map((item: Anomaly, index: number) => (
           <div
             key={index}
             className="flex items-start gap-3.5 p-3.5 rounded-lg border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition-colors"

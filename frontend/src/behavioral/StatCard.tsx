@@ -12,12 +12,14 @@ export interface StatCardProps {
   value: string | number;
   /** Optional unit shown after the value */
   unit?: string;
+  /** Optional subtext */
+  subtext?: string;
   /** Emoji or icon character shown to the left */
   icon?: string;
   /** Optional coaching tooltip shown on hover */
   coachingTip?: string;
   /** Trend direction indicator */
-  trend?: 'up' | 'down' | 'neutral';
+  trend?: 'up' | 'down' | 'neutral' | 'optimal' | 'attention';
   /** Optional label next to the trend arrow */
   trendLabel?: string;
   /** Additional Tailwind classes */
@@ -26,16 +28,18 @@ export interface StatCardProps {
 
 // ─── Trend Arrow ────────────────────────────────────────────────────
 
-function TrendIndicator({ trend, label }: { trend: 'up' | 'down' | 'neutral'; label?: string }) {
-  const arrows: Record<string, string> = { up: '↑', down: '↓', neutral: '→' };
+function TrendIndicator({ trend, label }: { trend: 'up' | 'down' | 'neutral' | 'optimal' | 'attention'; label?: string }) {
+  const arrows: Record<string, string> = { up: '↑', down: '↓', neutral: '→', optimal: '✓', attention: '!' };
   const colors: Record<string, string> = {
     up: 'text-emerald-500',
+    optimal: 'text-emerald-500',
     down: 'text-amber-500',
+    attention: 'text-amber-500',
     neutral: 'text-slate-400',
   };
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${colors[trend]}`}>
-      <span className="text-sm">{arrows[trend]}</span>
+      <span className="text-sm font-bold">{arrows[trend]}</span>
       {label && <span>{label}</span>}
     </span>
   );
@@ -47,6 +51,7 @@ export default function StatCard({
   label,
   value,
   unit,
+  subtext,
   icon,
   coachingTip,
   trend,
@@ -74,6 +79,9 @@ export default function StatCard({
         {unit && <span className="mb-0.5 text-sm font-medium text-slate-400">{unit}</span>}
       </div>
 
+      {/* Subtext */}
+      {subtext && <p className="mt-1 text-xs text-slate-500">{subtext}</p>}
+
       {/* Trend */}
       {trend && (
         <div className="mt-1.5">
@@ -92,6 +100,8 @@ export default function StatCard({
     </div>
   );
 }
+
+export { StatCard };
 
 // ─── Convenience helper ─────────────────────────────────────────────
 

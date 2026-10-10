@@ -12,9 +12,9 @@ interface ExpressionChartProps {
 export const ExpressionChart: React.FC<ExpressionChartProps> = ({
   facial = mockSignalRecord.facial,
 }) => {
-  const chartData = Object.entries(facial.expression_distribution).map(([expr, frac]) => ({
+  const chartData = Object.entries(facial.expression_distribution).map(([expr, frac]: [string, any]) => ({
     expression: expr.charAt(0).toUpperCase() + expr.slice(1),
-    percentage: Math.round(frac * 100),
+    percentage: Math.round(Number(frac) * 100),
   }));
 
   return (
@@ -36,7 +36,7 @@ export const ExpressionChart: React.FC<ExpressionChartProps> = ({
             <XAxis type="number" unit="%" domain={[0, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} />
             <YAxis type="category" dataKey="expression" tick={{ fontSize: 11, fill: '#475569' }} />
             <Tooltip
-              formatter={(val) => [`${val}%`, 'Time Active']}
+              formatter={(val: any) => [`${val}%`, 'Time Active']}
               contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
             />
             <Bar dataKey="percentage" fill="#14b8a6" radius={[0, 4, 4, 0]} />

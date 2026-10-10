@@ -22,7 +22,7 @@ export const GazeChart: React.FC<GazeChartProps> = ({
 }) => {
   // Aggregate gaze timeline directions
   const directionCounts: Record<string, number> = {};
-  gaze.gaze_direction_timeline.forEach((pt) => {
+  gaze.gaze_direction_timeline.forEach((pt: any) => {
     directionCounts[pt.direction] = (directionCounts[pt.direction] || 0) + 1;
   });
 
