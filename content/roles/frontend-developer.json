@@ -1,0 +1,117 @@
+{
+  "id": "frontend-developer",
+  "title": "Frontend Developer",
+  "description": "Frontend Developer responsible for user interfaces, performance, and accessibility.",
+  "skills": ["React", "TypeScript", "CSS", "Performance", "Accessibility", "State Management"],
+  "competencies": ["Technical Knowledge", "Problem Solving", "UI/UX Thinking", "Code Quality", "Communication"],
+  "questionBank": [
+    {
+      "id": "fd-1",
+      "question": "Explain how React's Virtual DOM works.",
+      "type": "technical",
+      "difficulty": 2,
+      "competency": "Technical Knowledge",
+      "followUpQuestions": ["Why is it faster than real DOM manipulation?", "When might the Virtual DOM be a bottleneck?"],
+      "expectedLearningOutcomes": ["Understand framework internals", "Performance trade-offs"]
+    },
+    {
+      "id": "fd-2",
+      "question": "Tell me about a time you had to optimize the performance of a web application.",
+      "type": "behavioral",
+      "difficulty": 3,
+      "competency": "Problem Solving",
+      "followUpQuestions": ["What metrics did you target?", "What tools did you use for profiling?"],
+      "expectedLearningOutcomes": ["Performance optimization", "Analytical thinking"]
+    },
+    {
+      "id": "fd-3",
+      "question": "How do you ensure a web application is fully accessible?",
+      "type": "technical",
+      "difficulty": 3,
+      "competency": "UI/UX Thinking",
+      "followUpQuestions": ["What ARIA attributes do you commonly use?", "How do you test for keyboard navigation?"],
+      "expectedLearningOutcomes": ["Accessibility standards", "Empathy for users"]
+    },
+    {
+      "id": "fd-4",
+      "question": "A designer provides a mockup that is extremely difficult to implement. How do you handle this?",
+      "type": "situational",
+      "difficulty": 3,
+      "competency": "Communication",
+      "followUpQuestions": ["How do you explain technical constraints to non-technical people?", "How do you propose alternatives?"],
+      "expectedLearningOutcomes": ["Collaboration", "Constructive feedback"]
+    },
+    {
+      "id": "fd-5",
+      "question": "Compare Redux, Context API, and Zustand for state management.",
+      "type": "technical",
+      "difficulty": 3,
+      "competency": "Technical Knowledge",
+      "followUpQuestions": ["When would you choose each one?", "What are the performance implications of Context API?"],
+      "expectedLearningOutcomes": ["Ecosystem knowledge", "Architecture decisions"]
+    },
+    {
+      "id": "fd-6",
+      "question": "Tell me about a time you had a conflict with a backend developer over an API contract.",
+      "type": "behavioral",
+      "difficulty": 2,
+      "competency": "Communication",
+      "followUpQuestions": ["How did you resolve it?", "What steps did you take to prevent it happening again?"],
+      "expectedLearningOutcomes": ["Conflict resolution", "Cross-functional teamwork"]
+    },
+    {
+      "id": "fd-7",
+      "question": "How do you handle CSS architecture in a large-scale React application?",
+      "type": "technical",
+      "difficulty": 3,
+      "competency": "Code Quality",
+      "followUpQuestions": ["What are the pros and cons of CSS-in-JS vs CSS Modules?", "How do you avoid specificity wars?"],
+      "expectedLearningOutcomes": ["Maintainability", "Styling strategies"]
+    },
+    {
+      "id": "fd-8",
+      "question": "The application is crashing on load for only a small subset of users. How do you debug it?",
+      "type": "situational",
+      "difficulty": 4,
+      "competency": "Problem Solving",
+      "followUpQuestions": ["What tracking tools would you rely on?", "How do you handle unhandled promise rejections?"],
+      "expectedLearningOutcomes": ["Debugging edge cases", "Error monitoring"]
+    },
+    {
+      "id": "fd-9",
+      "question": "Explain closure in JavaScript and provide a practical use case.",
+      "type": "technical",
+      "difficulty": 2,
+      "competency": "Technical Knowledge",
+      "followUpQuestions": ["How do closures relate to memory leaks?", "How are they used in React hooks?"],
+      "expectedLearningOutcomes": ["Core language concepts", "Functional programming"]
+    },
+    {
+      "id": "fd-10",
+      "question": "Tell me about the most challenging UI component you've ever built.",
+      "type": "behavioral",
+      "difficulty": 4,
+      "competency": "UI/UX Thinking",
+      "followUpQuestions": ["What made it challenging?", "How did you ensure it was reusable?"],
+      "expectedLearningOutcomes": ["Complex UI implementation", "Component design"]
+    },
+    {
+      "id": "fd-11",
+      "question": "How would you implement infinite scrolling on a list of 10,000 items?",
+      "type": "technical",
+      "difficulty": 4,
+      "competency": "Problem Solving",
+      "followUpQuestions": ["How do you handle DOM recycling?", "What libraries might you use?"],
+      "expectedLearningOutcomes": ["Performance techniques", "Advanced rendering"]
+    },
+    {
+      "id": "fd-12",
+      "question": "You inherited a legacy codebase with no tests. How do you start improving it?",
+      "type": "situational",
+      "difficulty": 3,
+      "competency": "Code Quality",
+      "followUpQuestions": ["What types of tests would you prioritize?", "How do you convince management to allocate time for this?"],
+      "expectedLearningOutcomes": ["Testing strategy", "Technical debt management"]
+    }
+  ]
+}

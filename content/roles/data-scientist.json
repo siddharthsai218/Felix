@@ -1,0 +1,36 @@
+{
+  "id": "data-scientist",
+  "title": "Data Scientist",
+  "description": "Data Scientist responsible for ML models, statistics, and data analysis.",
+  "skills": ["Python", "ML/DL", "Statistics", "SQL", "Data Visualization", "Feature Engineering"],
+  "competencies": ["Analytical Thinking", "Technical Knowledge", "Problem Solving", "Communication", "Business Acumen"],
+  "questionBank": [
+    {
+      "id": "ds-1",
+      "question": "Explain the bias-variance tradeoff.",
+      "type": "technical",
+      "difficulty": 2,
+      "competency": "Technical Knowledge",
+      "followUpQuestions": ["How does model complexity affect it?", "How do you detect overfitting?"],
+      "expectedLearningOutcomes": ["ML fundamentals", "Model evaluation"]
+    },
+    {
+      "id": "ds-2",
+      "question": "Tell me about a time your model performed well offline but failed in production.",
+      "type": "behavioral",
+      "difficulty": 4,
+      "competency": "Problem Solving",
+      "followUpQuestions": ["What was the root cause?", "How did you monitor it?"],
+      "expectedLearningOutcomes": ["Production ML experience", "Debugging models"]
+    },
+    {
+      "id": "ds-3",
+      "question": "The marketing team wants to use your predictive model, but they don't understand how it works. How do you explain it?",
+      "type": "situational",
+      "difficulty": 3,
+      "competency": "Communication",
+      "followUpQuestions": ["What analogies would you use?", "How do you build trust in the model?"],
+      "expectedLearningOutcomes": ["Stakeholder communication", "Explainable AI"]
+    }
+  ]
+}

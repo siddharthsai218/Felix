@@ -1,0 +1,93 @@
+[
+  {
+    "responseId": "resp_001",
+    "timestamp": "2026-10-10T10:00:25Z",
+    "speakingRate": 135,
+    "pauseSegments": [
+      {"start": 3.0, "end": 3.2, "duration": 0.2},
+      {"start": 7.5, "end": 8.0, "duration": 0.5},
+      {"start": 8.5, "end": 8.8, "duration": 0.3},
+      {"start": 15.6, "end": 16.0, "duration": 0.4}
+    ],
+    "pitchStats": {
+      "min": 100,
+      "max": 150,
+      "avg": 125
+    },
+    "jitter": 0.02,
+    "shimmer": 0.03,
+    "gazeStats": {
+      "lookingAtCameraPct": 85,
+      "awaySegments": [
+        {"start": 8.0, "end": 8.8, "duration": 0.8}
+      ]
+    },
+    "expressionStats": {
+      "dominantExpression": "neutral",
+      "confidenceScore": 7.5,
+      "engagementScore": 8.0
+    }
+  },
+  {
+    "responseId": "resp_002",
+    "timestamp": "2026-10-10T10:05:20Z",
+    "speakingRate": 115,
+    "pauseSegments": [
+      {"start": 1.0, "end": 1.2, "duration": 0.2},
+      {"start": 1.8, "end": 2.0, "duration": 0.2},
+      {"start": 3.8, "end": 4.5, "duration": 0.7},
+      {"start": 8.1, "end": 8.5, "duration": 0.4},
+      {"start": 9.5, "end": 9.8, "duration": 0.3},
+      {"start": 11.8, "end": 12.0, "duration": 0.2},
+      {"start": 13.6, "end": 13.8, "duration": 0.2}
+    ],
+    "pitchStats": {
+      "min": 105,
+      "max": 140,
+      "avg": 120
+    },
+    "jitter": 0.03,
+    "shimmer": 0.04,
+    "gazeStats": {
+      "lookingAtCameraPct": 65,
+      "awaySegments": [
+        {"start": 1.0, "end": 3.0, "duration": 2.0},
+        {"start": 8.0, "end": 9.5, "duration": 1.5}
+      ]
+    },
+    "expressionStats": {
+      "dominantExpression": "nervous",
+      "confidenceScore": 4.5,
+      "engagementScore": 5.0
+    }
+  },
+  {
+    "responseId": "resp_003",
+    "timestamp": "2026-10-10T10:10:25Z",
+    "speakingRate": 145,
+    "pauseSegments": [
+      {"start": 0.6, "end": 1.0, "duration": 0.4},
+      {"start": 3.4, "end": 4.0, "duration": 0.6},
+      {"start": 11.6, "end": 12.0, "duration": 0.4},
+      {"start": 14.5, "end": 15.0, "duration": 0.5}
+    ],
+    "pitchStats": {
+      "min": 110,
+      "max": 160,
+      "avg": 130
+    },
+    "jitter": 0.01,
+    "shimmer": 0.02,
+    "gazeStats": {
+      "lookingAtCameraPct": 92,
+      "awaySegments": [
+        {"start": 3.4, "end": 4.0, "duration": 0.6}
+      ]
+    },
+    "expressionStats": {
+      "dominantExpression": "confident",
+      "confidenceScore": 9.0,
+      "engagementScore": 8.5
+    }
+  }
+]
