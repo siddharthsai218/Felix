@@ -290,6 +290,13 @@ For the hackathon, **one fast LLM runs all text reasoning** — this is delibera
 | Avatar | SadTalker / MuseTalk / Wav2Lip (GPU) | Beyond Presence
 | Gaze / Facial / Prosody | MediaPipe · Py-feat · Parselmouth (already free & open-source) |
 
+### Model Pinning & Fallback
+
+- **Pin the exact stable endpoint** in the `server/core/` LLM wrapper: `gemini-3.1-flash-lite`. Always use the stable string — the `-preview` variant (`gemini-3.1-flash-lite-preview`) is **shut down** and returns an error.
+- **Newer Flash-Lite option:** `gemini-3.5-flash-lite` (stable) is Google's currently recommended Flash-Lite for new projects. It is a drop-in swap via the same key — re-verify the free tier and rate limits before switching, since predictable free-tier access is the whole point of the one-LLM decision.
+- **Gemini-native audio as a fallback only:** Google now offers STT (`gemini-3.5-transcribe`, word-level timestamps), TTS (`gemini-3.8-flash-lite-tts`), and a Live API (`gemini-3.8-live`). These overlap with AssemblyAI/Cartesia, so they are **not** part of the pipeline — but they run on the same Google key and are a viable emergency fallback if a paid service's key or rate limit fails at demo time. Note that `gemini-3.1-flash-lite` does **not** support the Live API.
+- **Latency rule still applies:** any LLM swap must keep the live turn **< 1.5 s**; validate against the budget before adopting.
+
 ---
 
 ## ✅ Functional Requirements
