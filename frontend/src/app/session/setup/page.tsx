@@ -90,9 +90,6 @@ export default function SessionSetupPage() {
   const [pasteJd, setPasteJd] = useState<string>('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
-  const [beyondPresenceAgentId, setBeyondPresenceAgentId] = useState<string>(
-    process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf'
-  );
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>('');
 
@@ -103,19 +100,16 @@ export default function SessionSetupPage() {
       const savedGithub = sessionStorage.getItem('felix_session_github');
       const savedResume = sessionStorage.getItem('felix_session_resume');
       const savedJd = sessionStorage.getItem('felix_session_jd');
-      const savedAgent = sessionStorage.getItem('felix_agent_id');
 
       if (savedRole) setRoleTitle(savedRole);
       if (savedGithub) setGithubUrl(savedGithub);
       if (savedResume) setResumeText(savedResume);
       if (savedJd) setPasteJd(savedJd);
-      if (savedAgent) setBeyondPresenceAgentId(savedAgent);
     }
   }, []);
 
   const handleSelectPreset = (preset: PresetRole) => {
     setRoleTitle(preset.name);
-    setActivePreset(preset.id);
   };
 
   const handleStartSession = async () => {
@@ -123,7 +117,6 @@ export default function SessionSetupPage() {
     setIsStarting(true);
     setSyncStatus('Configuring Beyond Presence Avatar with your role...');
     const finalRole = roleTitle.trim() || 'Software Engineer';
-    const finalAgentId = beyondPresenceAgentId.trim() || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
     if (typeof window !== 'undefined') {
@@ -131,7 +124,6 @@ export default function SessionSetupPage() {
       sessionStorage.setItem('felix_session_github', githubUrl.trim());
       sessionStorage.setItem('felix_session_resume', resumeText.trim());
       sessionStorage.setItem('felix_session_jd', pasteJd.trim());
-      sessionStorage.setItem('felix_agent_id', finalAgentId);
     }
 
     try {
@@ -151,7 +143,6 @@ export default function SessionSetupPage() {
           githubUrl: githubUrl.trim(),
           resumeText: resumeText.trim(),
           jobDescription: pasteJd.trim(),
-          agentId: finalAgentId,
         }),
         signal: controller.signal,
       }).catch((e) => {
@@ -175,7 +166,6 @@ export default function SessionSetupPage() {
       questions: '0', // 0 = continuous adaptive learning loop
       coach: coachModeEnabled.toString(),
       ...(githubUrl.trim() ? { github: encodeURIComponent(githubUrl.trim()) } : {}),
-      agentId: finalAgentId,
       session: sessionId,
     });
 
@@ -355,28 +345,7 @@ export default function SessionSetupPage() {
           </div>
         </section>
 
-        {/* 4. Beyond Presence Avatar Agent ID */}
-        <section className="mb-8 p-6 rounded-2xl bg-gray-900/60 border border-gray-800 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-semibold uppercase tracking-wider text-violet-400 flex items-center gap-2">
-              <span>👤</span>
-              <span>4. Beyond Presence Avatar Agent ID</span>
-            </label>
-            <span className="text-[11px] text-gray-500 font-mono">bey.chat/{"{agent_id}"}</span>
-          </div>
-          <p className="text-xs text-gray-400 mb-3 leading-relaxed">
-            Connect any Beyond Presence AI Avatar. You can paste a custom agent ID here anytime.
-          </p>
-          <input
-            type="text"
-            value={beyondPresenceAgentId}
-            onChange={(e) => setBeyondPresenceAgentId(e.target.value)}
-            placeholder="e.g. d6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-mono"
-          />
-        </section>
-
-        {/* 5. Coach Mode Toggle */}
+        {/* 4. Coach Mode Toggle */}
         <section className="mb-10 max-w-2xl mx-auto w-full">
           <div className="p-4 rounded-2xl border border-gray-800/80 bg-gray-900/50 flex items-center justify-between">
             <div>

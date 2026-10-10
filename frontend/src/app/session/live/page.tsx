@@ -38,22 +38,17 @@ function LiveInterviewContent() {
   const [resumeText, setResumeText] = useState<string>('');
   const [jobDescription, setJobDescription] = useState<string>('');
 
-  const rawAgentId = searchParams.get('agentId') || searchParams.get('agent') || '';
-  const [agentId, setAgentId] = useState<string>(rawAgentId);
-
   // Load saved context from sessionStorage if available
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedGithub = sessionStorage.getItem('felix_session_github') || '';
       const storedResume = sessionStorage.getItem('felix_session_resume') || '';
       const storedJd = sessionStorage.getItem('felix_session_jd') || '';
-      const storedAgent = sessionStorage.getItem('felix_agent_id') || '';
       if (!githubUrl && storedGithub) setGithubUrl(storedGithub);
       if (storedResume) setResumeText(storedResume);
       if (storedJd) setJobDescription(storedJd);
-      if (!agentId && storedAgent) setAgentId(storedAgent);
     }
-  }, [githubUrl, agentId]);
+  }, [githubUrl]);
 
   const sessionParam = searchParams.get('session');
   const [sessionId, setSessionId] = useState<string>(sessionParam || `felix-${Date.now()}`);
@@ -671,7 +666,6 @@ function LiveInterviewContent() {
           <Avatar
             state={turnState}
             isSpeaking={isAvatarSpeaking}
-            beyondPresenceAgentId={agentId || undefined}
           />
 
 

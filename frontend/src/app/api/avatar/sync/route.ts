@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     const { targetRole, difficulty, githubUrl, resumeText, jobDescription, agentId: customAgentId } = body;
 
     const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
-    const agentId = customAgentId || process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
+    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || customAgentId || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
     let githubContext = '';
     let repoNames: string[] = [];

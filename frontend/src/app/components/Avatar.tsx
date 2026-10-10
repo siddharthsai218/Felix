@@ -39,11 +39,10 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
 }) => {
   const [isJoined, setIsJoined] = useState(false);
 
-  // Beyond Presence agent ID or custom URL from props, session, or env
+  // Beyond Presence agent ID strictly configured via environment
   const agentId =
-    beyondPresenceAgentId ||
-    (typeof window !== 'undefined' ? sessionStorage.getItem('felix_agent_id') || '' : '') ||
     process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID ||
+    beyondPresenceAgentId ||
     'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
   const customUrl =
