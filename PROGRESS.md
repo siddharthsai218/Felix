@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1] — Removed Floating Felix Prompt & Speech Subtitle Banner: Removed the floating overlay banner (`FELIX PROMPT #...` and question text box) from the live session stage in `frontend/src/app/session/live/page.tsx`, keeping the avatar video stage clean and completely unobstructed.
 - 2026-10-11 [1+3] — Added 1-Click Formative PDF Coaching Portfolio Export:
   - Engineered client-side PDF document generation engine `frontend/src/app/lib/pdf-exporter.ts` formatting standard A4/Letter print documents for university career counseling and mentorship portfolios.
   - Generates comprehensive, high-contrast debrief reports including: University Career Services letterhead, session metadata, overall rubric mastery badge with longitudinal growth deltas, on-device telemetry summary badges (MediaPipe gaze %, Parselmouth WPM, autocorrelation jitter %), scored Rubric Matrix with verbatim transcript citations, side-by-side Answer Transformer (spoken response vs. Felix STAR rewrite), question-by-question spoken transcripts, and candidate/counselor certification signature lines.

@@ -768,49 +768,6 @@ function LiveInterviewContent() {
             isSpeaking={isAvatarSpeaking}
           />
 
-          {/* Sleek Floating Prompt & Live Speech Banner */}
-          {currentQuestionText && (
-            <div className="absolute top-3 left-3 right-3 z-10 flex flex-col items-center pointer-events-none">
-              <div className="max-w-xl w-full bg-slate-950/85 backdrop-blur-md border border-violet-500/30 rounded-xl px-4 py-2.5 shadow-2xl pointer-events-auto">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-violet-400 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                    FELIX PROMPT {currentQuestionIndex > 0 ? `#${currentQuestionIndex}` : ''}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-300">
-                    {turnState === 'listening' ? (
-                      <span className="text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        YOUR TURN (RECORDING)
-                      </span>
-                    ) : (
-                      <span className="text-cyan-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                        AI INTERVIEWER SPEAKING
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm font-medium text-slate-100 leading-snug">
-                  {currentQuestionText}
-                </p>
-
-                {/* Real-time Candidate Spoken Transcript Preview */}
-                {turnState === 'listening' && (
-                  <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1 shrink-0" />
-                    <p className="text-[11px] font-mono text-emerald-300 italic line-clamp-2">
-                      {learnerTranscript || partialTranscript ? (
-                        <span>"{learnerTranscript} <span className="opacity-75">{partialTranscript}</span>"</span>
-                      ) : (
-                        <span className="text-slate-400 not-italic">Listening... Speak your response clearly. Words are being captured live.</span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right Sidebar: Camera PiP + Live Behavioral Telemetry HUD (Clean Stack, Zero Overlap) */}
