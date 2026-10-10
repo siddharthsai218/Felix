@@ -1,0 +1,30 @@
+{
+  "name": "felix-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch core/index.ts",
+    "build": "tsc",
+    "start": "node dist/core/index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "assemblyai": "^4.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.0",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
