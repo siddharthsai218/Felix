@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Robust GitHub HTML parser to extract public repositories, descriptions, and languages
- * without hitting GitHub unauthenticated REST API rate limits.
+ * Robust GitHub repository extractor that:
+ * 1. Scrapes `tab=repositories` HTML with block parsing
+ * 2. Falls back to pinned items on profile page
+ * 3. Falls back to GitHub Public REST API
  */
 async function scrapeRepositories(owner: string): Promise<Array<{ name: string; desc: string; lang: string }>> {
   const repos: Array<{ name: string; desc: string; lang: string }> = [];
 
+  // Strategy 1: tab=repositories HTML scrape
   try {
     const ghRes = await fetch(`https://github.com/${owner}?tab=repositories`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Felix-Interview-Coach/1.0)',
         'Accept': 'text/html',
       },
-      signal: AbortSignal.timeout(4500),
+      signal: AbortSignal.timeout(3500),
     });
 
     if (ghRes.ok) {
@@ -41,7 +44,7 @@ async function scrapeRepositories(owner: string): Promise<Array<{ name: string; 
     console.warn(`Scraping repositories for @${owner} failed:`, e);
   }
 
-  // Fallback: If tab=repositories gave nothing, try profile page pinned items
+  // Strategy 2: Profile page pinned items
   if (repos.length === 0) {
     try {
       const profileRes = await fetch(`https://github.com/${owner}`, {
@@ -49,7 +52,7 @@ async function scrapeRepositories(owner: string): Promise<Array<{ name: string; 
           'User-Agent': 'Mozilla/5.0 (Felix-Interview-Coach/1.0)',
           'Accept': 'text/html',
         },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(3000),
       });
       if (profileRes.ok) {
         const html = await profileRes.text();
@@ -65,72 +68,119 @@ async function scrapeRepositories(owner: string): Promise<Array<{ name: string; 
     } catch {}
   }
 
-  return repos;
-}
-
-/**
- * Fetch raw README excerpt directly from raw.githubusercontent.com
- */
-async function fetchReadmeExcerpt(owner: string, repo: string): Promise<string> {
-  const branches = ['main', 'master', 'HEAD'];
-  for (const branch of branches) {
+  // Strategy 3: GitHub REST API fallback
+  if (repos.length === 0) {
     try {
-      const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/README.md`, {
+      const apiRes = await fetch(`https://api.github.com/users/${owner}/repos?sort=updated&per_page=6`, {
+        headers: {
+          'User-Agent': 'Felix-Interview-Coach/1.0',
+          'Accept': 'application/vnd.github.v3+json',
+        },
         signal: AbortSignal.timeout(3000),
       });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.length > 30) {
-          return text.slice(0, 600).replace(/\n+/g, ' ').trim();
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (Array.isArray(data)) {
+          for (const item of data) {
+            if (repos.length < 6) {
+              repos.push({
+                name: item.name,
+                desc: item.description || '',
+                lang: item.language || '',
+              });
+            }
+          }
         }
       }
     } catch {}
   }
-  return '';
+
+  return repos;
+}
+
+/**
+ * Fetch raw README excerpt in parallel with fast timeout
+ */
+async function fetchReadmeExcerpt(owner: string, repo: string): Promise<string> {
+  try {
+    const urls = [
+      `https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`,
+      `https://raw.githubusercontent.com/${owner}/${repo}/master/README.md`,
+      `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/README.md`,
+    ];
+    const fetchPromises = urls.map((url) =>
+      fetch(url, { signal: AbortSignal.timeout(2000) }).then(async (res) => {
+        if (!res.ok) throw new Error();
+        const text = await res.text();
+        if (text && text.trim().length > 30) return text;
+        throw new Error();
+      })
+    );
+    const text = await Promise.any(fetchPromises);
+    return text.slice(0, 500).replace(/\n+/g, ' ').trim();
+  } catch {
+    return '';
+  }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { targetRole, difficulty, githubUrl, resumeText, jobDescription } = body;
+    const { targetRole, difficulty, githubUrl, resumeText, jobDescription, agentId: customAgentId } = body;
 
-    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-wIOWAXQIVIaJsmmArCmyHNKm6Tzd2LQAxftBJG9Nfgk';
-    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || 'bb8ad996-52ca-4039-98ff-8c5ec31e0ccc';
+    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
+    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || customAgentId || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
     let githubContext = '';
     let repoNames: string[] = [];
     let owner = '';
+    let targetRepo = '';
 
     if (githubUrl?.trim()) {
-      // Clean owner from githubUrl or username
       let clean = githubUrl.trim().replace(/^@+/, '').split('?')[0].split('#')[0].replace(/\/+$/, '');
-      const match = clean.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)/);
-      owner = match ? match[1] : clean.split('/')[0];
+      const match = clean.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_.-]+))?/);
+      if (match) {
+        owner = match[1];
+        targetRepo = match[2] ? match[2].replace(/\.git$/, '') : '';
+      } else if (clean.includes('/')) {
+        const parts = clean.split('/');
+        owner = parts[0];
+        targetRepo = parts[1] ? parts[1].replace(/\.git$/, '') : '';
+      } else {
+        owner = clean;
+      }
 
       if (owner) {
-        const repos = await scrapeRepositories(owner);
-        repoNames = repos.map((r) => r.name);
-
-        if (repos.length > 0) {
-          const repoLines: string[] = [];
-          for (let i = 0; i < repos.length; i++) {
-            const r = repos[i];
-            let line = `- Project "${r.name}"`;
-            if (r.lang) line += ` (${r.lang})`;
-            if (r.desc) line += `: ${r.desc}`;
-            
-            // For top 2 repos, get a quick README excerpt
-            if (i < 2) {
-              const excerpt = await fetchReadmeExcerpt(owner, r.name);
-              if (excerpt) {
-                line += `\n  Overview: "${excerpt.slice(0, 250)}..."`;
-              }
-            }
-            repoLines.push(line);
-          }
-          githubContext = `Candidate GitHub: @${owner}\nVerified Public Projects:\n` + repoLines.join('\n');
+        if (targetRepo) {
+          // A specific repository was provided (e.g., github.com/owner/project)
+          repoNames = [targetRepo];
+          const excerpt = await fetchReadmeExcerpt(owner, targetRepo);
+          githubContext = `Candidate GitHub: @${owner}\nSpecific Target Project: "${targetRepo}"\n${excerpt ? `Project Overview:\n"""\n${excerpt}\n"""` : ''}`;
         } else {
-          githubContext = `Candidate GitHub Account: @${owner} (active software developer on GitHub).`;
+          // A user profile was provided (e.g., github.com/owner or username)
+          const repos = await scrapeRepositories(owner);
+          repoNames = repos.map((r) => r.name);
+
+          if (repos.length > 0) {
+            const repoLines: string[] = [];
+            for (let i = 0; i < repos.length; i++) {
+              const r = repos[i];
+              let line = `- Project "${r.name}"`;
+              if (r.lang) line += ` (${r.lang})`;
+              if (r.desc) line += `: ${r.desc}`;
+              repoLines.push(line);
+            }
+
+            // Fetch README for the first repository if available
+            const topExcerpt = await fetchReadmeExcerpt(owner, repos[0].name);
+            if (topExcerpt) {
+              repoLines[0] += `\n  Overview: "${topExcerpt.slice(0, 250)}..."`;
+            }
+
+            githubContext = `Candidate GitHub: @${owner}\nVerified Public Projects:\n` + repoLines.join('\n');
+          } else {
+            githubContext = `Candidate GitHub Account: @${owner} (active software developer on GitHub).`;
+          }
         }
       }
     }
@@ -179,6 +229,7 @@ ${githubContext ? `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${gi
       status: res.status,
       agentId,
       owner,
+      targetRepo,
       repos: repoNames,
       greeting,
     });

@@ -111,7 +111,6 @@ export default function SessionSetupPage() {
 
   const handleSelectPreset = (preset: PresetRole) => {
     setRoleTitle(preset.name);
-    setActivePreset(preset.id);
   };
 
   const handleStartSession = async () => {

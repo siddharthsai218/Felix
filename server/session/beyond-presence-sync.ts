@@ -13,8 +13,8 @@ interface SyncAgentOptions {
  * GitHub projects context, and custom interview greeting.
  */
 export async function syncBeyondPresenceAgent(options: SyncAgentOptions): Promise<boolean> {
-  const apiKey = config.beyondPresenceApiKey || 'sk-wIOWAXQIVIaJsmmArCmyHNKm6Tzd2LQAxftBJG9Nfgk';
-  const agentId = config.beyondPresenceAvatarId || 'bb8ad996-52ca-4039-98ff-8c5ec31e0ccc';
+  const apiKey = config.beyondPresenceApiKey || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
+  const agentId = config.beyondPresenceAvatarId || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
   if (!apiKey) {
     console.warn('⚠️ Beyond Presence API key not set, skipping agent prompt sync.');

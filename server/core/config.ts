@@ -12,8 +12,8 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   assemblyAiApiKey: process.env.ASSEMBLYAI_API_KEY || '',
   cartesiaApiKey: process.env.CARTESIA_API_KEY || '',
-  beyondPresenceApiKey: process.env.BEYOND_PRESENCE_API_KEY || '',
-  beyondPresenceAvatarId: process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || '',
+  beyondPresenceApiKey: process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM',
+  beyondPresenceAvatarId: process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf',
 
   // Server
   port: parseInt(process.env.PORT || '3001', 10),
