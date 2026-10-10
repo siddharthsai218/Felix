@@ -360,9 +360,10 @@ function LiveInterviewContent() {
     const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
     turnStartTimeRef.current = now;
 
+    const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
     const newRecord: SessionResponseRecord = {
       sessionId,
-      learnerId: 'learner_1',
+      learnerId: currentLearner,
       responseIndex: currentQuestionIndex - 1,
       questionAsked: currentQ,
       questionType: turnState === 'drill' ? 'drill' : 'behavioral',
@@ -446,10 +447,10 @@ function LiveInterviewContent() {
       const now = Date.now();
       const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 25000;
       const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
-
+      const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
       const record: SessionResponseRecord = {
         sessionId,
-        learnerId: 'learner_1',
+        learnerId: currentLearner,
         responseIndex: currentQuestionIndex - 1,
         questionAsked: currentQ,
         questionType: 'behavioral',

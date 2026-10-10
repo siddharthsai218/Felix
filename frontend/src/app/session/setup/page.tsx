@@ -86,6 +86,7 @@ export default function SessionSetupPage() {
   const router = useRouter();
 
   const [roleTitle, setRoleTitle] = useState<string>('Senior Systems & Frontend Architect');
+  const [learnerName, setLearnerName] = useState<string>('Siddharth');
   const [githubUrl, setGithubUrl] = useState<string>('');
   const [resumeText, setResumeText] = useState<string>('');
   const [resumeFileName, setResumeFileName] = useState<string>('');
@@ -103,12 +104,14 @@ export default function SessionSetupPage() {
       const savedResume = sessionStorage.getItem('felix_session_resume');
       const savedResumeFile = sessionStorage.getItem('felix_session_resume_filename');
       const savedJd = sessionStorage.getItem('felix_session_jd');
+      const savedLearner = localStorage.getItem('felix_learner_name') || sessionStorage.getItem('felix_learner_name');
 
       if (savedRole) setRoleTitle(savedRole);
       if (savedGithub) setGithubUrl(savedGithub);
       if (savedResume) setResumeText(savedResume);
       if (savedResumeFile) setResumeFileName(savedResumeFile);
       if (savedJd) setPasteJd(savedJd);
+      if (savedLearner) setLearnerName(savedLearner);
     }
   }, []);
 
@@ -121,6 +124,7 @@ export default function SessionSetupPage() {
     setIsStarting(true);
     setSyncStatus('Configuring Beyond Presence Avatar with your role...');
     const finalRole = roleTitle.trim() || 'Senior Systems & Frontend Architect';
+    const finalLearner = learnerName.trim() || 'Siddharth';
 
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
     if (typeof window !== 'undefined') {
@@ -144,6 +148,9 @@ export default function SessionSetupPage() {
       } else {
         sessionStorage.removeItem('felix_session_jd');
       }
+
+      sessionStorage.setItem('felix_learner_name', finalLearner);
+      localStorage.setItem('felix_learner_name', finalLearner);
     }
 
     try {
@@ -213,6 +220,13 @@ export default function SessionSetupPage() {
               CONFIG SUITE v2.4
             </span>
             <Link
+              href="/session/history"
+              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span>📜</span>
+              <span>History</span>
+            </Link>
+            <Link
               href="/session/report"
               className="text-slate-400 hover:text-white transition-colors"
             >
@@ -248,6 +262,38 @@ export default function SessionSetupPage() {
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
             Felix generates high-rigor, role-specific prompts grounded in your public GitHub codebase, system architecture trade-offs, and resume accomplishments.
           </p>
+        </div>
+
+        {/* Learner Profile Selector (Lightweight Profile Management) */}
+        <div className="p-4 rounded-xl bg-[#0d131f] border border-slate-800/90 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-sm text-violet-300">
+              👤
+            </div>
+            <div>
+              <label className="text-xs font-mono font-bold text-slate-200 block">
+                Learner Profile
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Sessions are tagged & filtered under this name in Interview History
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={learnerName}
+              onChange={(e) => setLearnerName(e.target.value)}
+              placeholder="e.g. Siddharth"
+              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all w-36 sm:w-44"
+            />
+            <Link
+              href="/session/history"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 border border-slate-700 transition-colors shrink-0"
+            >
+              Past Sessions 📜
+            </Link>
+          </div>
         </div>
 
         {/* 1. Target Role Field */}
