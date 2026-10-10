@@ -1,0 +1,41 @@
+{
+  "session_id": "sess_demo_123",
+  "learner_id": "learner_456",
+  "response_id": "resp_001",
+  "response_start_ts": "2026-10-10T15:00:00Z",
+  "response_end_ts": "2026-10-10T15:00:03Z",
+  "audio_path": "/home/harsha/Desktop/opensource/Felix/server/behavioral/fixtures/sample_response.wav",
+  "video_frames_dir": null,
+  "stt_words": [
+    {
+      "word": "When",
+      "start_s": 0.1,
+      "end_s": 0.4,
+      "confidence": 0.98
+    },
+    {
+      "word": "the",
+      "start_s": 0.45,
+      "end_s": 0.6,
+      "confidence": 0.99
+    },
+    {
+      "word": "database",
+      "start_s": 0.65,
+      "end_s": 0.95,
+      "confidence": 0.95
+    },
+    {
+      "word": "crashed",
+      "start_s": 1.9,
+      "end_s": 2.4,
+      "confidence": 0.96
+    },
+    {
+      "word": "yesterday",
+      "start_s": 2.45,
+      "end_s": 2.9,
+      "confidence": 0.97
+    }
+  ]
+}
