@@ -16,15 +16,15 @@
 
 ## Setup
 
-- [ ] Project scaffold — establish the real backend/frontend layout per AGENTS.md's directory-ownership map (README's install commands are placeholders) **and write the five `docs/contracts/` files** — day-0 unblocker: Parts 2/3 start nothing until this lands `[1]`
+- [x] Project scaffold — establish the real backend/frontend layout per AGENTS.md's directory-ownership map (README's install commands are placeholders) **and write the five `docs/contracts/` files** — day-0 unblocker: Parts 2/3 start nothing until this lands `[1]`
 - [ ] Contract fixtures for parallel start — sample WAV/video clip `[2]`, fake session-record JSON `[3]`; start as soon as the contracts land, don't wait for the real capture pipeline `[2+3]`
-- [ ] Environment variables wired: `GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `CARTESIA_API_KEY` (others request keys via Log) `[1]`
-- [ ] Avatar platform chosen (README leaves it as `_[Avatar platform]_`) `[1]`
-- [ ] Mic + camera capture working in the browser `[1]`
+- [x] Environment variables wired: `GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `CARTESIA_API_KEY` (others request keys via Log) `[1]`
+- [x] Avatar platform chosen (README leaves it as `_[Avatar platform]_`) `[1]`
+- [x] Mic + camera capture working in the browser `[1]`
 
 ## P0 — Must have (core learning loop)
 
-- [ ] **Live 3-question voice interaction** — AssemblyAI STT → Gemini → Cartesia TTS → avatar, at **< 1.5 s/turn** `[1]`
+- [x] **Live 3-question voice interaction** — AssemblyAI STT → Gemini → Cartesia TTS → avatar, at **< 1.5 s/turn** `[1]`
 - [ ] **Answer Transformer** — side-by-side "what you said" vs. Felix STAR rewrite `[3]`
 - [ ] **Visual behavioral dashboard** — Parselmouth speaking-rate/pause-timeline graphs, MediaPipe gaze `[2]`
 - [ ] **One-click "Practice this weak area"** — gap → 30 s micro-drill → retry → score visibly improves `[1+3]` (drill + scoring `[3]`; running the retry as a session turn `[1]`)
@@ -49,9 +49,9 @@
 
 ## P1 — High value
 
-- [ ] **Rescue Mode** — silence > 5 s or hesitation → avatar scaffolds the learner out loud `[1]`
-- [ ] Coach Mode — hints and model answers on demand `[1]`
-- [ ] Avatar lip-sync (only if it doesn't add lag to the audio loop) `[1]`
+- [x] **Rescue Mode** — silence > 5 s or hesitation → avatar scaffolds the learner out loud `[1]`
+- [x] Coach Mode — hints and model answers on demand `[1]`
+- [x] Avatar lip-sync (only if it doesn't add lag to the audio loop) `[1]`
 
 ## P2 — Cut for hackathon
 
@@ -68,7 +68,7 @@
 
 ## 60-second demo checklist (acceptance test for the loop — integration point, run together)
 
-- [ ] Pause 5 s → Rescue Mode scaffolds `[1]`
+- [x] Pause 5 s → Rescue Mode scaffolds `[1]`
 - [ ] Report shows Answer Transformer + vocal-jitter telemetry `[2+3]`
 - [ ] "Practice this weak area" → 30 s micro-drill `[3]`
 - [ ] Retry → score visibly improves `[1+3]`
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-10 [1] — Completed Part 1 (Live Session & Interface): Project scaffold established with strict directory ownership; all 5 `docs/contracts/` authored; single Gemini Flash-Lite client wrapper in `server/core/`; real-time WebSocket turn engine with live prompts (question, follow-up, rescue, coach) and AssemblyAI/Cartesia pipeline with resilient fallbacks; Next.js 14 frontend with low-latency interactive avatar, synchronized lip-sync, live audio visualizer, mic+camera MediaCapture with event bus streaming to Part 2, Rescue Mode (>5s scaffolding), Coach Mode hints, and 30s micro-drill retry loop.
 - 2026-10-10 — Patched the work division with four sequencing/risk addenda (day-0 scaffold+contracts unblocker, fixture-based parallel start for `[2]`/`[3]`, Part 3 learns-before-integrates ordering, ~5 s post-session scoring target + drill-retry demo fallback). Added to AGENTS.md § Sequencing & risk patches; checklist updated here (Setup, P0 note, Integrations note).
 - 2026-10-10 — Divided the build into three non-overlapping parts (Live Session `[1]` / Behavioral Telemetry `[2]` / Learning Engine `[3]`); documented in AGENTS.md and tagged every checklist item here. Previous entries below.
 - 2026-10-10 — Pulled spec updates (Answer Transformer, Rescue Mode, MCP). Created `AGENTS.md` and `PROGRESS.md`. No code yet.
