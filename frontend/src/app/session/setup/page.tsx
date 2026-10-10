@@ -187,9 +187,6 @@ export default function SessionSetupPage() {
             <p className="text-[11px] text-gray-500">Adaptive Interview-Skills Coach</p>
           </div>
         </Link>
-        <span className="text-xs text-gray-400 bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-full">
-          EdTech Hackathon
-        </span>
       </header>
 
       {/* Main Form Body */}
@@ -345,34 +342,6 @@ export default function SessionSetupPage() {
           </div>
         </section>
 
-        {/* 4. Coach Mode Toggle */}
-        <section className="mb-10 max-w-2xl mx-auto w-full">
-          <div className="p-4 rounded-2xl border border-gray-800/80 bg-gray-900/50 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h4 className="font-semibold text-sm">Coach Mode Hints</h4>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-bold">
-                  STAR
-                </span>
-              </div>
-              <p className="text-xs text-gray-400">On-demand formative coaching hints during live turns</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCoachModeEnabled(!coachModeEnabled)}
-              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
-                coachModeEnabled ? 'bg-violet-600' : 'bg-gray-800'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                  coachModeEnabled ? 'translate-x-6' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-        </section>
-
         {/* Start Button */}
         <div className="mb-12">
           <button
@@ -398,7 +367,7 @@ export default function SessionSetupPage() {
 
       {/* Footer Notice */}
       <footer className="max-w-3xl mx-auto w-full text-center text-xs text-gray-500 pt-6 border-t border-gray-900">
-        Felix is an EdTech career-readiness learning tool. All questions adapt directly to your chosen role, portfolio, and resume.
+        All questions adapt directly to your chosen role, portfolio, and resume.
       </footer>
     </main>
   );

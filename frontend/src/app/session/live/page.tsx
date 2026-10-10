@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { Avatar } from '../../components/Avatar';
 import { MediaCapture } from '../../components/MediaCapture';
 import { AudioVisualizer } from '../../components/AudioVisualizer';
-import { CoachPanel } from '../../components/CoachPanel';
-import { DrillModal } from '../../components/DrillModal';
 import { captureEventBus } from '../../lib/event-bus';
 import type {
   TurnState,
@@ -61,19 +59,27 @@ function LiveInterviewContent() {
   const [partialTranscript, setPartialTranscript] = useState<string>('');
   const [turnLatencyMs, setTurnLatencyMs] = useState<number>(0);
   const [rescueActive, setRescueActive] = useState<boolean>(false);
-  const [rescueMessage, setRescueMessage] = useState<string>('');
-  const [coachOpen, setCoachOpen] = useState<boolean>(false);
-  const [coachHint, setCoachHint] = useState<string | null>(null);
-  const [isCoachLoading, setIsCoachLoading] = useState<boolean>(false);
-  const [drillModalOpen, setDrillModalOpen] = useState<boolean>(false);
-  const [activeDrill, setActiveDrill] = useState<DrillSpec | null>(null);
-  const [drillCountdown, setDrillCountdown] = useState<number>(30);
   const [responsesCompleted, setResponsesCompleted] = useState<SessionResponseRecord[]>([]);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
   const [lastAudioPayload, setLastAudioPayload] = useState<string>('');
   const [showQuestionSubtitle, setShowQuestionSubtitle] = useState<boolean>(false);
+
+  // Active call duration timer
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatElapsed = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+    const secs = (totalSecs % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
 
   // References
   const wsRef = useRef<WebSocket | null>(null);
@@ -485,10 +491,7 @@ function LiveInterviewContent() {
               // Suppressed per user request
               break;
 
-            case 'coach:hint':
-              setCoachHint(msg.hint);
-              setIsCoachLoading(false);
-              break;
+
 
             case 'response:complete':
               setResponsesCompleted((prev) => [...prev, msg.record]);
@@ -531,22 +534,6 @@ function LiveInterviewContent() {
     };
   }, [targetRole, difficulty, questionCount, coachModeEnabled, playAudio, resetSilenceTimer, setupSpeechRecognition, runLocalSessionFallback, router]);
 
-  // Coach Mode Hint Request
-  const handleRequestCoachHint = () => {
-    setCoachOpen(true);
-    setIsCoachLoading(true);
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'coach:request' } as ClientMessage));
-    } else {
-      setTimeout(() => {
-        setCoachHint(
-          `Apply the STAR method:\n• Situation: Outline the project context in 1 sentence.\n• Task: State your specific responsibility.\n• Action: Emphasize the core decision or technical fix YOU implemented.\n• Result: Conclude with a measurable metric or uptime percentage.`
-        );
-        setIsCoachLoading(false);
-      }, 600);
-    }
-  };
 
   // Micro-Drill Start
   const handleStartDrill = (drillId: string) => {
@@ -585,7 +572,7 @@ function LiveInterviewContent() {
       }}
       className="h-screen w-screen bg-gray-950 text-white flex flex-col justify-between p-2 sm:p-4 select-none overflow-hidden"
     >
-      {/* Google Meet Top Bar */}
+      {/* Top Bar */}
       <header className="w-full flex items-center justify-between px-3 py-1.5 z-20">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
@@ -612,25 +599,12 @@ function LiveInterviewContent() {
           )}
         </div>
 
-        {/* Status Indicators */}
+        {/* Status Indicators & Navigation */}
         <div className="flex items-center gap-3">
-          {!audioUnlocked && (
-            <button
-              onClick={unlockAudioAndPlay}
-              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold animate-pulse shadow-md flex items-center gap-1.5"
-            >
-              <span>🔊</span>
-              <span>Enable Sound</span>
-            </button>
-          )}
-
-          {/* Latency Tracker */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 border border-gray-800 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-gray-400">Latency:</span>
-            <span className="font-mono font-bold text-emerald-300">
-              {turnLatencyMs ? `${turnLatencyMs}ms` : '< 1.5s'}
-            </span>
+          {/* Active Call Duration Timer */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs font-mono text-gray-300 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{formatElapsed(elapsedSeconds)}</span>
           </div>
 
           {/* Question Index Pill */}
@@ -650,39 +624,26 @@ function LiveInterviewContent() {
             <span>✓</span>
           </button>
 
+          {/* Leave Button */}
           <Link
             href="/session/setup"
-            className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-gray-900/60 border border-gray-800 transition-colors"
+            className="text-xs text-gray-300 hover:text-white px-3 py-1 rounded-lg bg-gray-900/80 hover:bg-gray-800 border border-gray-800 transition-colors"
           >
             Leave
           </Link>
         </div>
       </header>
 
-      {/* Main Google Meet Video Stage */}
+      {/* Main Video Stage */}
       <div className="w-full flex-1 relative flex items-center justify-center p-1 sm:p-2 overflow-hidden">
-        {/* Large Stage: The Avatar (Pinned Speaker in Google Meet) */}
+        {/* Large Stage: The Avatar (Pinned Speaker) */}
         <div className="w-full h-full relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900/90 border border-gray-800/80 shadow-2xl flex items-center justify-center">
           <Avatar
             state={turnState}
             isSpeaking={isAvatarSpeaking}
           />
 
-
-
-          {/* Drill Mode Countdown Pill (if active) */}
-          {turnState === 'drill' && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 px-4 py-2 rounded-2xl bg-purple-950/90 border border-purple-500/50 flex items-center gap-3 shadow-xl backdrop-blur-md">
-              <span className="font-bold text-xs text-purple-200">⚡ 30s Micro-Drill Sprint</span>
-              <span className="font-mono text-sm font-extrabold text-amber-300">
-                00:{drillCountdown.toString().padStart(2, '0')}
-              </span>
-            </div>
-          )}
-
-
-
-          {/* Self-View Camera: Google Meet Bottom-Right Floating PiP */}
+          {/* Self-View Camera: Bottom-Right Floating PiP */}
           <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-48 sm:w-60 md:w-72 aspect-video z-30 shadow-2xl transition-all">
             <MediaCapture
               sessionId={sessionId}
@@ -694,23 +655,10 @@ function LiveInterviewContent() {
               className="w-full h-full"
             />
           </div>
-
-          {/* Coach Panel Flyout (if opened) */}
-          {coachModeEnabled && (
-            <div className="absolute top-4 left-4 z-30 max-w-xs">
-              <CoachPanel
-                isOpen={coachOpen}
-                hint={coachHint}
-                isLoading={isCoachLoading}
-                onRequestHint={handleRequestCoachHint}
-                onClose={() => setCoachOpen(false)}
-              />
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Google Meet Bottom Controls Bar */}
+      {/* Bottom Controls Bar */}
       <footer className="w-full flex items-center justify-between px-3 py-2 z-20">
         {/* Left: Meeting Info & Live Audio Wave */}
         <div className="flex items-center gap-3">
@@ -728,53 +676,8 @@ function LiveInterviewContent() {
           </div>
         </div>
 
-        {/* Center: Google Meet Action Pills */}
+        {/* Center: Call Controls */}
         <div className="flex items-center gap-2 sm:gap-3 bg-gray-900/90 border border-gray-800/90 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md">
-
-
-          {/* Coach Hint Button */}
-          {coachModeEnabled && (
-            <button
-              onClick={handleRequestCoachHint}
-              type="button"
-              className="px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-semibold transition-all flex items-center gap-1.5"
-              title="Request STAR coach hint"
-            >
-              <span>💡</span>
-              <span className="hidden sm:inline">Coach Hint</span>
-            </button>
-          )}
-
-          {/* Micro-Drill Practice Button */}
-          <button
-            onClick={() => {
-              setActiveDrill({
-                drillId: 'demo-drill-1',
-                sessionId,
-                responseIndex: currentQuestionIndex - 1,
-                targetLearningOutcome: 'Apply the STAR method to behavioral questions',
-                targetCompetency: 'communication',
-                gapSeverity: 'high',
-                question:
-                  'Tell me about a time you had to debug a critical production issue under pressure. Use the STAR method.',
-                timeLimitSeconds: 30,
-                hints: [
-                  'Situation: Set the scene in 1 sentence',
-                  'Task: What was your direct responsibility?',
-                  'Action: What tools or code changes did YOU make?',
-                  'Result: What was the measurable uptime result?',
-                ],
-              });
-              setDrillModalOpen(true);
-            }}
-            type="button"
-            className="px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold transition-all flex items-center gap-1.5"
-            title="Start 30s micro-drill"
-          >
-            <span>⚡</span>
-            <span className="hidden sm:inline">Drill</span>
-          </button>
-
           {/* Done Speaking Button (When listening) */}
           {turnState === 'listening' ? (
             <button
@@ -800,33 +703,9 @@ function LiveInterviewContent() {
           </Link>
         </div>
 
-        {/* Right: Sound Re-Test / Help */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (currentQuestionText) {
-                playAudio(currentQuestionText);
-              } else {
-                playAudio('Hello! Welcome to your Felix interview practice session.');
-              }
-            }}
-            type="button"
-            className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-gray-900 border border-gray-800 transition-colors flex items-center gap-1"
-            title="Test audio output"
-          >
-            <span>🔊</span>
-            <span className="hidden sm:inline">Test Audio</span>
-          </button>
-        </div>
+        {/* Right: Clean alignment spacer */}
+        <div className="w-16 hidden sm:block" />
       </footer>
-
-      {/* 30s Micro-Drill Modal */}
-      <DrillModal
-        isOpen={drillModalOpen}
-        drill={activeDrill}
-        onStartDrill={handleStartDrill}
-        onCancel={() => setDrillModalOpen(false)}
-      />
     </main>
   );
 }
