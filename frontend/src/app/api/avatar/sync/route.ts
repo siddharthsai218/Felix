@@ -126,10 +126,10 @@ async function fetchReadmeExcerpt(owner: string, repo: string): Promise<string> 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { targetRole, difficulty, githubUrl, resumeText, jobDescription } = body;
+    const { targetRole, difficulty, githubUrl, resumeText, jobDescription, agentId: customAgentId } = body;
 
-    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-wIOWAXQIVIaJsmmArCmyHNKm6Tzd2LQAxftBJG9Nfgk';
-    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || 'bb8ad996-52ca-4039-98ff-8c5ec31e0ccc';
+    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
+    const agentId = customAgentId || process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
 
     let githubContext = '';
     let repoNames: string[] = [];
