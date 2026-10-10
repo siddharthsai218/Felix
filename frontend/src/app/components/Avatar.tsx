@@ -38,6 +38,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     '';
 
   const hasLiveBeyondPresenceFeed = Boolean(agentId || customUrl);
+  const [viewMode, setViewMode] = useState<'native' | 'beyond'>('native');
 
   const computedEmbedUrl = customUrl
     ? customUrl
@@ -140,8 +141,8 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden">
-      {/* Beyond Presence Live Feed (if configured via env/props) */}
-      {hasLiveBeyondPresenceFeed && computedEmbedUrl ? (
+      {/* Beyond Presence Live Feed (if toggled by user) */}
+      {hasLiveBeyondPresenceFeed && computedEmbedUrl && viewMode === 'beyond' ? (
         <div className="w-full h-full relative rounded-2xl overflow-hidden bg-black flex items-center justify-center">
           <iframe
             src={computedEmbedUrl}
@@ -150,12 +151,15 @@ export const Avatar: React.FC<AvatarProps> = ({
             className="w-full h-full border-none object-cover"
           />
 
-          {/* Top-Right Beyond Presence Watermark */}
+          {/* Top-Right Toggle back to Native Avatar */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Beyond Presence Stream
-            </span>
+            <button
+              onClick={() => setViewMode('native')}
+              className="px-3 py-1.5 rounded-full bg-violet-950/90 hover:bg-violet-900 border border-violet-500/50 text-xs font-semibold text-violet-200 flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all"
+            >
+              <span>🎓</span>
+              <span>Switch to Interactive Avatar</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -322,12 +326,23 @@ export const Avatar: React.FC<AvatarProps> = ({
             </svg>
           </div>
 
-          {/* Top-Right Beyond Presence Permanent Tag */}
+          {/* Top-Right Tag & Optional Beyond Presence Toggle */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Beyond Presence Avatar
-            </span>
+            {hasLiveBeyondPresenceFeed && computedEmbedUrl ? (
+              <button
+                onClick={() => setViewMode('beyond')}
+                className="px-3 py-1 rounded-full bg-gray-900/90 hover:bg-gray-800 border border-gray-700/80 text-[11px] font-semibold text-gray-200 hover:text-white flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all"
+                title="Switch to Beyond Presence video stream"
+              >
+                <span>🎥</span>
+                <span>Beyond Presence Stream</span>
+              </button>
+            ) : (
+              <span className="px-3 py-1 rounded-full bg-violet-950/80 border border-violet-500/40 text-[11px] font-semibold text-violet-300 flex items-center gap-1.5 backdrop-blur-md shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                AI Interview Coach
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-10 [1] — Fixed avatar presence & audio playback: updated Cartesia TTS model from sunsetted 'sonic-english' to 'sonic-3.6' (resolving HTTP 400 failure); prioritized native interactive interviewer avatar so Felix is immediately visible and joined in the call; added toggle for Beyond Presence stream; added one-click 'Join Call with Sound' gesture unlock overlay to satisfy browser autoplay policies.
 - 2026-10-10 [1+3] — Enabled GitHub portfolio grounding: connected candidate GitHub profile/repo from session setup to live turn engine over WebSocket. Updated GitHub context extraction in `server/session/github-service.ts` to support usernames, profile pages, and repository README extraction without hitting GitHub rate limits. Updated Gemini Flash-Lite model configuration (`gemini-2.5-flash-lite`) to dynamically generate targeted questions challenging the candidate on their actual projects, libraries, and architecture decisions.
 - 2026-10-10 [1] — Refined live turn subtitles: subtitles now remain hidden prior to the interviewer speaking and dynamically appear only when speech audio starts and the question is asked.
 - 2026-10-10 [1] — Streamlined session setup: removed number-of-questions selector and Coach Mode asking toggle. Sessions run open-ended by default with Coach Mode active on-demand during live turns. Server turn engine dynamically generates questions on the fly.

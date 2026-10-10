@@ -586,7 +586,7 @@ function LiveInterviewContent() {
   return (
     <main
       onClick={() => {
-        if (!audioUnlocked) setAudioUnlocked(true);
+        if (!audioUnlocked) unlockAudioAndPlay();
       }}
       className="h-screen w-screen bg-gray-950 text-white flex flex-col justify-between p-2 sm:p-4 select-none overflow-hidden"
     >
@@ -674,6 +674,36 @@ function LiveInterviewContent() {
             audioLevel={avatarVolume}
             captionText={showQuestionSubtitle ? currentQuestionText : undefined}
           />
+
+          {/* Join Call with Audio Overlay (Solves browser autoplay gesture requirement) */}
+          {!audioUnlocked && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                unlockAudioAndPlay();
+              }}
+              className="absolute inset-0 z-40 bg-gray-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 cursor-pointer select-none animate-in fade-in duration-300"
+            >
+              <div className="max-w-sm w-full p-6 rounded-3xl bg-gray-900/95 border border-violet-500/40 shadow-2xl flex flex-col items-center text-center gap-3">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-emerald-500 flex items-center justify-center text-3xl shadow-lg shadow-violet-500/30 animate-pulse">
+                  🔊
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white mb-1">Felix is Ready to Speak</h3>
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    Click anywhere to join the call and enable interviewer sound.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
+                >
+                  <span>Join Call with Sound</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Rescue Mode Scaffolding Overlay Banner */}
           <RescueScaffold

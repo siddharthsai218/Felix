@@ -394,7 +394,7 @@ export class TurnEngine {
         },
         body: JSON.stringify({
           transcript: text,
-          model_id: 'sonic-english',
+          model_id: 'sonic-3.6',
           voice: {
             mode: 'id',
             id: 'a0e99841-438c-4a64-b679-ae501e7d6091', // Professional male voice
