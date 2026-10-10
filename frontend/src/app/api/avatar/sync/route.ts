@@ -169,6 +169,7 @@ ${githubContext ? `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${gi
       body: JSON.stringify({
         system_prompt: systemPrompt,
         greeting,
+        capabilities: [],
       }),
     });
 

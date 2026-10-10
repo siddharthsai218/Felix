@@ -666,9 +666,6 @@ function LiveInterviewContent() {
           <Avatar
             state={turnState}
             isSpeaking={isAvatarSpeaking}
-            audioLevel={avatarVolume}
-            captionText={showQuestionSubtitle ? currentQuestionText : undefined}
-            sessionId={sessionId}
           />
 
 

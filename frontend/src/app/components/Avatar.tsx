@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import type { TurnState } from '../lib/types';
 
 interface AvatarProps {
@@ -14,16 +14,29 @@ interface AvatarProps {
   sessionId?: string;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({
+/**
+ * Isolated, memoized iframe component that NEVER re-renders or updates its DOM node.
+ * This ensures Beyond Presence WebRTC connection is never torn down or reloaded by parent state updates.
+ */
+const StableIframe = React.memo<{ url: string }>(({ url }) => {
+  return (
+    <iframe
+      src={url}
+      title="Beyond Presence AI Avatar"
+      allow="camera; microphone; autoplay; display-capture; encrypted-media; fullscreen; speaker-selection; camera *; microphone *;"
+      allowFullScreen
+      className="w-full h-full border-none object-cover pointer-events-auto"
+    />
+  );
+});
+StableIframe.displayName = 'StableIframe';
+
+export const Avatar: React.FC<AvatarProps> = React.memo(({
   state,
   isSpeaking,
-  audioLevel = 0,
-  captionText,
   beyondPresenceAgentId,
   beyondPresenceUrl,
-  sessionId,
 }) => {
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isJoined, setIsJoined] = useState(false);
 
   // Beyond Presence agent ID or custom URL from props or env
@@ -37,10 +50,10 @@ export const Avatar: React.FC<AvatarProps> = ({
     process.env.NEXT_PUBLIC_BEYOND_PRESENCE_URL ||
     '';
 
-  const sessionParam = sessionId ? `&sid=${encodeURIComponent(sessionId)}` : '';
-  const embedUrl = customUrl
-    ? customUrl
-    : `https://bey.chat/${agentId}?transparent=1${sessionParam}`;
+  // Completely stable URL with no mutating parameters so iframe never reloads
+  const embedUrl = useMemo(() => {
+    return customUrl || `https://bey.chat/${agentId}?transparent=1`;
+  }, [agentId, customUrl]);
 
   // Listen to postMessage from bey.chat for lifecycle events
   useEffect(() => {
@@ -78,15 +91,8 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none overflow-hidden bg-black rounded-2xl sm:rounded-3xl">
-      {/* Beyond Presence Video Agent Iframe */}
-      <iframe
-        ref={iframeRef}
-        src={embedUrl}
-        title="Beyond Presence AI Avatar"
-        allow="camera *; microphone *; autoplay *; display-capture *; encrypted-media *; fullscreen *; speaker-selection *;"
-        allowFullScreen
-        className="w-full h-full border-none object-cover"
-      />
+      {/* Beyond Presence Video Agent Iframe (Stable & Isolated) */}
+      <StableIframe url={embedUrl} />
 
       {/* Top-Right Permanent Beyond Presence Badge */}
       <div className="absolute top-4 right-4 z-10 pointer-events-none flex items-center gap-2">
@@ -114,4 +120,6 @@ export const Avatar: React.FC<AvatarProps> = ({
       </div>
     </div>
   );
-};
+});
+
+Avatar.displayName = 'Avatar';

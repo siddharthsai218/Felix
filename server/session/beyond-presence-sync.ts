@@ -68,6 +68,7 @@ export async function syncBeyondPresenceAgent(options: SyncAgentOptions): Promis
       body: JSON.stringify({
         system_prompt: prompt,
         greeting,
+        capabilities: [],
       }),
     });
 
