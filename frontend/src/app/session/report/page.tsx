@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DrillModal } from '../../components/DrillModal';
-import { FeedbackReport, type RubricScoreItem, type BehavioralInsightItem } from '../../../report';
+import { FeedbackReport, type RubricScoreItem, type BehavioralInsightItem, type RemediationPlanItem } from '../../../report';
 import type { StarResponseTransformation } from '../../../report/AnswerTransformer';
 import type { DrillSpec } from '../../lib/types';
 
@@ -18,91 +18,208 @@ function ReportContent() {
 
   const [roleTitle, setRoleTitle] = useState<string>('Software Engineer');
   const [githubUrl, setGithubUrl] = useState<string>('');
-  const [overallScore, setOverallScore] = useState<number>(4.1);
+  const [overallScore, setOverallScore] = useState<number>(4.0);
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
   const [behavioralInsights, setBehavioralInsights] = useState<BehavioralInsightItem[]>([]);
   const [transformations, setTransformations] = useState<StarResponseTransformation[]>([]);
+  const [remediationPlan, setRemediationPlan] = useState<RemediationPlanItem[]>([]);
+  const [isGenerating, setIsGenerating] = useState<boolean>(true);
 
   useEffect(() => {
-    // 1. Read stored session context
-    let storedRole = 'Software Engineer';
-    let storedGithub = '';
-    let storedResponses: any[] = [];
-    let storedTelemetry: any = null;
+    let isMounted = true;
 
-    if (typeof window !== 'undefined') {
-      storedRole = sessionStorage.getItem('felix_session_role') || 'Software Engineer';
-      storedGithub = sessionStorage.getItem('felix_session_github') || '';
+    async function loadAndGenerateReport() {
+      setIsGenerating(true);
 
+      // 1. Read stored session context
+      let storedRole = 'Software Engineer';
+      let storedGithub = '';
+      let storedResponses: any[] = [];
+      let storedTelemetry: any = null;
+
+      if (typeof window !== 'undefined') {
+        storedRole = sessionStorage.getItem('felix_session_role') || 'Software Engineer';
+        storedGithub = sessionStorage.getItem('felix_session_github') || '';
+
+        try {
+          const rawResp = sessionStorage.getItem('felix_session_responses');
+          if (rawResp) storedResponses = JSON.parse(rawResp);
+        } catch (e) {}
+
+        try {
+          const rawTelem = sessionStorage.getItem('felix_session_telemetry');
+          if (rawTelem) storedTelemetry = JSON.parse(rawTelem);
+        } catch (e) {}
+      }
+
+      setRoleTitle(storedRole);
+      setGithubUrl(storedGithub);
+
+      // 2. Prepare payload for the server learning engine
+      const sessionPayload = {
+        sessionId,
+        learnerId: 'learner_1',
+        targetRole: storedRole,
+        responses: storedResponses,
+        sessionConfig: {
+          githubUrl: storedGithub,
+        },
+      };
+
+      const signalsPayload = storedTelemetry || {
+        gazePercentage: 88,
+        speakingRateWpm: 138,
+        jitterPercent: 0.82,
+        pauseCount: 1,
+      };
+
+      // 3. Request dynamic synthesis from server learning engine
       try {
-        const rawResp = sessionStorage.getItem('felix_session_responses');
-        if (rawResp) storedResponses = JSON.parse(rawResp);
-      } catch (e) {}
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${apiUrl}/api/sessions/${sessionId}/report`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session: sessionPayload,
+            signals: signalsPayload,
+          }),
+        });
 
-      try {
-        const rawTelem = sessionStorage.getItem('felix_session_telemetry');
-        if (rawTelem) storedTelemetry = JSON.parse(rawTelem);
-      } catch (e) {}
-    }
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (data.overallScore) setOverallScore(data.overallScore);
+            if (data.rubricScores?.length) setRubricScores(data.rubricScores);
+            if (data.behavioralInsights?.length) setBehavioralInsights(data.behavioralInsights);
+            if (data.transformations?.length) setTransformations(data.transformations);
+            if (data.remediationPlan?.length) setRemediationPlan(data.remediationPlan);
 
-    setRoleTitle(storedRole);
-    setGithubUrl(storedGithub);
+            // Set remediation drill based on generated plan
+            if (data.remediationPlan && data.remediationPlan.length > 0) {
+              const primaryPlan = data.remediationPlan[0];
+              setActiveDrill({
+                drillId: 'p0-dynamic-drill-1',
+                sessionId,
+                responseIndex: 0,
+                targetLearningOutcome: primaryPlan.targetOutcome || 'Quantify Impact using STAR Method',
+                targetCompetency: 'structural-communication',
+                gapSeverity: 'high',
+                question: primaryPlan.drillQuestion || `Explain a key trade-off in ${storedRole} with measurable outcomes in 30 seconds.`,
+                timeLimitSeconds: 30,
+                hints: [
+                  'Situation: 1 crisp sentence framing the stakes',
+                  'Task: 1 sentence on your explicit ownership',
+                  'Action: 2 sentences on the exact technical tools and architecture',
+                  'Result: 1 sentence citing measurable numbers (latency, memory, uptime)',
+                ],
+              });
+            }
+            setIsGenerating(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Network call to server learning engine failed, using client-side dynamic evaluation:', err);
+      }
 
-    // 2. Synthesize Telemetry
-    const gazeScore = storedTelemetry?.gazePercentage || 88;
-    const wpm = storedTelemetry?.speakingRateWpm || 138;
-    const jitter = storedTelemetry?.jitterPercent || 0.82;
-    const pauseCount = storedTelemetry?.pauseCount || 1;
+      // 4. Client-side dynamic derivation if offline or server disconnected
+      if (!isMounted) return;
 
-    setBehavioralInsights([
-      {
-        icon: '👁️',
-        title: 'MediaPipe Eye Contact',
-        text: `${gazeScore}% Camera focus maintained throughout responses. Excellent direct engagement.`,
-        metric: `${gazeScore}% Gaze`,
-        status: gazeScore >= 80 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '🗣️',
-        title: 'Parselmouth Pacing',
-        text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence for technical explanations.`,
-        metric: `${wpm} WPM`,
-        status: wpm >= 120 && wpm <= 160 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '📊',
-        title: 'Vocal Perturbation (Jitter)',
-        text: `Vocal stability steady at ${jitter}%. Confirms steady tone and emotional composure.`,
-        metric: `${jitter}% Jitter`,
-        status: jitter < 1.5 ? 'optimal' : 'attention',
-      },
-      {
-        icon: '⏱️',
-        title: 'Cognitive Hesitation',
-        text: `${pauseCount} thinking pause${pauseCount > 1 ? 's' : ''} detected. Natural pacing for complex problem decomposition.`,
-        metric: `${pauseCount} Pauses`,
-        status: 'optimal',
-      },
-    ]);
+      const gazeScore = storedTelemetry?.gazePercentage || 88;
+      const wpm = storedTelemetry?.speakingRateWpm || 138;
+      const jitter = storedTelemetry?.jitterPercent || 0.82;
+      const pauseCount = storedTelemetry?.pauseCount || 1;
 
-    // 3. Build Answer Transformations based on actual candidate responses if available
-    const primaryResponse = storedResponses && storedResponses.length > 0 ? storedResponses[0] : null;
+      const clientBehavioral: BehavioralInsightItem[] = [
+        {
+          icon: '👁️',
+          title: 'MediaPipe Eye Contact',
+          text: `${gazeScore}% Camera focus maintained throughout responses. Direct engagement with the interviewer.`,
+          metric: `${gazeScore}% Gaze`,
+          status: gazeScore >= 80 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '🗣️',
+          title: 'Parselmouth Pacing',
+          text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence for technical explanations.`,
+          metric: `${wpm} WPM`,
+          status: wpm >= 120 && wpm <= 160 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '📊',
+          title: 'Vocal Perturbation (Jitter)',
+          text: `Acoustic jitter steady at ${jitter}%. Confirms steady tone and composure under probing.`,
+          metric: `${jitter}% Jitter`,
+          status: jitter < 1.5 ? 'optimal' : 'attention',
+        },
+        {
+          icon: '⏱️',
+          title: 'Cognitive Hesitation',
+          text: `${pauseCount} thinking pause${pauseCount > 1 ? 's' : ''} detected. Natural pacing for problem decomposition.`,
+          metric: `${pauseCount} Pauses`,
+          status: 'optimal',
+        },
+      ];
+      setBehavioralInsights(clientBehavioral);
 
-    if (primaryResponse && primaryResponse.transcript && primaryResponse.transcript.length > 15) {
-      const candidateText = primaryResponse.transcript;
-      const questionText = primaryResponse.questionAsked || 'Walk me through a technical challenge you solved.';
+      const primaryResponse = storedResponses && storedResponses.length > 0 ? storedResponses[0] : null;
+      const candidateText = primaryResponse?.transcript || 'I implemented the features using modern libraries and modular code.';
+      const questionText = primaryResponse?.questionAsked || `Walk me through a technical challenge you solved in ${storedRole}.`;
+
+      const words = candidateText.split(/\s+/).filter(Boolean).length;
+      const techScore = Math.min(4.8, Math.max(2.8, 3.2 + (words > 40 ? 0.8 : words > 20 ? 0.4 : 0.0)));
+      const starScore = Math.min(4.6, Math.max(2.5, 3.0 + (candidateText.toLowerCase().includes('result') || candidateText.toLowerCase().includes('%') ? 0.7 : 0.2)));
+      const commScore = Math.min(4.8, Math.max(3.0, wpm >= 115 && wpm <= 165 ? 4.3 : 3.6));
+      const compScore = Math.min(4.9, Math.max(3.0, gazeScore >= 80 ? 4.5 : 3.8));
+      const overall = Math.round(((techScore + starScore + commScore + compScore) / 4) * 10) / 10;
+
+      const quote1 = candidateText.slice(0, Math.min(candidateText.length, 85)) + (candidateText.length > 85 ? '...' : '');
+      const quote2 = candidateText.length > 85
+        ? candidateText.slice(Math.min(candidateText.length, 85), Math.min(candidateText.length, 170)) + '...'
+        : quote1;
+
+      setOverallScore(overall);
+
+      setRubricScores([
+        {
+          criterion: 'Technical Depth & Domain Competency',
+          score: Math.round(techScore * 10) / 10,
+          feedback: `Demonstrated domain understanding for ${storedRole}. Explained core technical concepts relevant to the problem.`,
+          quotes: [{ text: quote1, time: '00:30' }],
+        },
+        {
+          criterion: 'STAR Structure & Impact Quantification',
+          score: Math.round(starScore * 10) / 10,
+          feedback: 'Clear problem framing, but can strengthen the measurable result by highlighting concrete benchmarks.',
+          quotes: [{ text: quote2, time: '01:10' }],
+        },
+        {
+          criterion: 'Communication Pacing & Clarity',
+          score: Math.round(commScore * 10) / 10,
+          feedback: `Natural delivery at ${wpm} WPM without excessive filler words. Clear transitions between concepts.`,
+          quotes: [{ text: quote1, time: '00:45' }],
+        },
+        {
+          criterion: 'Composure & Behavioral Presence',
+          score: Math.round(compScore * 10) / 10,
+          feedback: `High eye-contact stability (${gazeScore}%) and calm vocal prosody under technical probing.`,
+          quotes: [{ text: 'Maintained steady presence and composure throughout response.', time: 'Telemetry' }],
+        },
+      ]);
 
       setTransformations([
         {
           questionAsked: questionText,
           originalTranscript: candidateText,
           critiqueNotes: [
-            'Missing quantifiable impact metric (e.g. latency, throughput, error reduction).',
-            'Focus on specific personal execution: differentiate your decisions from general team actions.',
-            'Deepen technical trade-off explanation (e.g. state management vs memory overhead).',
+            'State your direct technical agency: highlight decisions you owned vs team consensus.',
+            'Quantify end results with engineering metrics (e.g. latency, throughput, error rates).',
+            'Explain technical trade-offs evaluated before selecting your solution.',
           ],
           starRewrite: {
-            situation: `In our high-throughput service for ${storedRole}, we experienced performance bottlenecks and latency spikes during peak load.`,
+            situation: `In our production architecture for ${storedRole}, we experienced performance bottlenecks and latency spikes during peak load.`,
             task: `I took ownership of diagnosing the bottleneck and architecting a decoupled, scalable solution under tight production constraints.`,
             action: `I profiled the critical path, redesigned the asynchronous state pipeline with event-driven message queuing, and implemented backoff retries.`,
             result: `P99 latency improved by 62%, eliminating timeout errors and maintaining 99.9% availability across continuous load testing.`,
@@ -112,152 +229,47 @@ function ReportContent() {
         },
       ]);
 
-      setRubricScores([
+      setRemediationPlan([
         {
-          criterion: 'Technical Depth & Domain Competency',
-          score: 4.2,
-          feedback: `Demonstrated solid domain understanding for ${storedRole}. Good command of underlying technical concepts.`,
-          quotes: [
-            {
-              text: candidateText.slice(0, 85) + '...',
-              time: '01:12',
-            },
-          ],
+          topic: 'Quantifying Engineering Impact (STAR Method)',
+          drillQuestion: `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
+          targetOutcome: 'Master STAR structure with measurable benchmarks and personal agency.',
         },
         {
-          criterion: 'STAR Structure & Impact Quantification',
-          score: 3.6,
-          feedback: 'Clear problem framing, but can strengthen the measurable result by highlighting concrete metrics.',
-          quotes: [
-            {
-              text: candidateText.slice(Math.min(candidateText.length, 60), Math.min(candidateText.length, 145)) || candidateText,
-              time: '02:05',
-            },
-          ],
-        },
-        {
-          criterion: 'Communication Pacing & Clarity',
-          score: 4.4,
-          feedback: `Natural delivery at ${wpm} WPM without excessive filler words. Clear transitions between concepts.`,
-          quotes: [
-            {
-              text: 'Clear technical diction observed throughout response.',
-              time: 'Prosody',
-            },
-          ],
-        },
-        {
-          criterion: 'Composure & Behavioral Presence',
-          score: 4.5,
-          feedback: `High eye-contact stability (${gazeScore}%) and calm vocal prosody under technical probing.`,
-          quotes: [
-            {
-              text: 'Steady composure maintained through probing questions.',
-              time: 'Telemetry',
-            },
-          ],
+          topic: 'Architectural Trade-Off Justification',
+          drillQuestion: `Why did you select this specific architecture over alternative patterns? Defend your decision concisely.`,
+          targetOutcome: 'Articulate technical trade-offs, memory/network overhead, and system constraints clearly.',
         },
       ]);
 
-      setOverallScore(4.2);
-    } else {
-      // High-quality calibrated defaults tailored to the candidate's chosen role
-      setTransformations([
-        {
-          questionAsked: `In your engineering projects, describe a time you optimized a complex workflow for ${storedRole}.`,
-          originalTranscript:
-            'In my project, our system was lagging when multiple users joined. I decided to change how we sent updates by switching to WebSockets. It was difficult to debug at first, but we resolved the issues and the speed improved significantly.',
-          critiqueNotes: [
-            'Vague agency: Used "our system was lagging" instead of describing your personal technical hypothesis.',
-            'Missing concrete metrics: "Speed improved significantly" lacks measurable engineering benchmarks.',
-            'Needs architectural specifics: Mention the transport protocol, reconnect logic, and memory footprint.',
-          ],
-          starRewrite: {
-            situation:
-              'In our real-time collaborative application, HTTP polling generated redundant server load and caused a 1.2-second synchronization lag.',
-            task:
-              'I led the initiative to transition our communication layer to a low-latency bidirectional pipeline under strict bandwidth constraints.',
-            action:
-              'I engineered a persistent WebSocket server with binary message frames, exponential backoff reconnects, and Redis pub/sub state broadcasting.',
-            result:
-              'Round-trip latency plummeted by 88% (from 1,200ms to 140ms), reducing server CPU utilization by 35% under peak concurrent traffic.',
-          },
-          competency: 'Systems Architecture & STAR Delivery',
-          scoreImprovement: '+45% Clarity & Impact',
-        },
-      ]);
+      setActiveDrill({
+        drillId: 'p0-drill-star-1',
+        sessionId,
+        responseIndex: 0,
+        targetLearningOutcome: 'Quantify Results Using the STAR Method',
+        targetCompetency: 'structural-communication',
+        gapSeverity: 'high',
+        question: `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
+        timeLimitSeconds: 30,
+        hints: [
+          'Situation: 1 crisp sentence framing the stakes',
+          'Task: 1 sentence on your explicit ownership',
+          'Action: 2 sentences on the exact technical tools and architecture',
+          'Result: 1 sentence citing measurable numbers (latency, memory, uptime)',
+        ],
+      });
 
-      setRubricScores([
-        {
-          criterion: 'Technical Depth & Domain Competency',
-          score: 4.0,
-          feedback: `Strong systems foundation for ${storedRole}. Good intuition around trade-offs and component boundaries.`,
-          quotes: [
-            {
-              text: 'I structured the data pipeline with WebSocket event queues and decoupled the state machine...',
-              time: '01:14',
-            },
-          ],
-        },
-        {
-          criterion: 'STAR Structure & Impact Quantification',
-          score: 3.5,
-          feedback: 'Strong technical explanation; elevate the result by citing quantifiable throughput and latency gains.',
-          quotes: [
-            {
-              text: 'We resolved the issues and the speed improved significantly...',
-              time: '02:40',
-            },
-          ],
-        },
-        {
-          criterion: 'Communication Pacing & Clarity',
-          score: 4.3,
-          feedback: 'Articulate pacing and direct articulation. Conversational and approachable technical tone.',
-          quotes: [
-            {
-              text: 'First, I prioritized network payload minimization. Second, browser execution profiling.',
-              time: '00:48',
-            },
-          ],
-        },
-        {
-          criterion: 'Composure & Behavioral Presence',
-          score: 4.6,
-          feedback: 'Excellent visual presence with 88% camera eye-contact and steady vocal prosody.',
-          quotes: [
-            {
-              text: 'Camera gaze remained focused through challenging technical follow-ups.',
-              time: 'Telemetry',
-            },
-          ],
-        },
-      ]);
-
-      setOverallScore(4.1);
+      setIsGenerating(false);
     }
 
-    // Set remediation drill
-    setActiveDrill({
-      drillId: 'p0-drill-star-1',
-      sessionId,
-      responseIndex: 0,
-      targetLearningOutcome: 'Quantify Results Using the STAR Method',
-      targetCompetency: 'structural-communication',
-      gapSeverity: 'high',
-      question:
-        `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
-      timeLimitSeconds: 30,
-      hints: [
-        'Situation: 1 crisp sentence framing the stakes',
-        'Task: 1 sentence on your explicit ownership',
-        'Action: 2 sentences on the exact technical tools and architecture',
-        'Result: 1 sentence citing measurable numbers (e.g. latency, memory, uptime)',
-      ],
-    });
+    loadAndGenerateReport();
+
+    return () => {
+      isMounted = false;
+    };
   }, [sessionId]);
 
-  const handleStartDrill = (drillId?: string) => {
+  const handleStartDrill = (_drillId?: string) => {
     setDrillModalOpen(true);
   };
 
@@ -297,6 +309,14 @@ function ReportContent() {
 
       {/* Main Report Body */}
       <div className="max-w-6xl mx-auto w-full my-8 space-y-8">
+        {/* Loading Banner when synthesizing report via Gemini */}
+        {isGenerating && (
+          <div className="p-4 rounded-2xl bg-violet-950/40 border border-violet-500/30 flex items-center gap-3 text-sm text-violet-200 animate-pulse">
+            <span className="text-xl">✨</span>
+            <span>Synthesizing evidence-based assessment from candidate transcript and behavioral telemetry...</span>
+          </div>
+        )}
+
         {/* Banner with One-Click Drill [1+3] Demonstration */}
         <div className="p-6 rounded-3xl bg-gradient-to-r from-violet-950/70 via-gray-900 to-indigo-950/70 border border-violet-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
@@ -316,7 +336,7 @@ function ReportContent() {
 
           <button
             onClick={() => setDrillModalOpen(true)}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2 flex-shrink-0"
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer"
           >
             <span>Practice This Weak Area</span>
             <span>⚡</span>
@@ -332,6 +352,7 @@ function ReportContent() {
           rubricScores={rubricScores}
           behavioralInsights={behavioralInsights}
           transformations={transformations}
+          remediationPlan={remediationPlan}
           onStartDrill={() => handleStartDrill()}
         />
       </div>

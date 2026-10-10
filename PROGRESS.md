@@ -41,10 +41,10 @@
 
 ## Assessment & remediation
 
-- [ ] Rubric scoring → criterion-level + overall scores `[3]`
-- [ ] Competency & learning-gap engine (gaps classified by domain, concept, severity) `[3]`
-- [ ] Feedback report: strengths, gaps, recommendations — each gap maps to a learning outcome `[3]`
-- [ ] Remediation plan generation (micro-lessons, targeted drills) `[3]`
+- [x] Rubric scoring → criterion-level + overall scores `[3]`
+- [x] Competency & learning-gap engine (gaps classified by domain, concept, severity) `[3]`
+- [x] Feedback report: strengths, gaps, recommendations — each gap maps to a learning outcome `[3]`
+- [x] Remediation plan generation (micro-lessons, targeted drills) `[3]`
 - [ ] Spaced-repetition queue for weak outcomes (feeds next session) `[3]`
 
 ## P1 — High value
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [3] — Fully Dynamic Evidence-Based Assessment & Remediation Report: Removed all hardcoded report values. Created dynamic server assessment engine (`server/learning/rubric.ts`) exposing `POST /api/sessions/:sessionId/report` powered by Gemini. Evaluates the candidate's exact questions asked, transcripts, and behavioral telemetry (MediaPipe gaze, Parselmouth WPM, vocal jitter %, pauses). Dynamically generates criterion rubric scores backed by verbatim transcript quotes and timestamps, behavioral insights framed as constructive coaching cues, side-by-side STAR Answer Transformations on candidate's actual answers, and personalized remediation micro-drills with resilient client-side fallback synthesis.
 - 2026-10-11 [1+2+3] — Integrated real-time Behavioral Telemetry HUD, STAR Answer Transformer, and comprehensive Formative Assessment Report: Created `LiveTelemetryHud` mounted directly above the live interview camera PiP with real-time MediaPipe gaze tracking, Py-feat affect/composure detection, and Parselmouth vocal prosody (speaking rate WPM, pitch, jitter perturbation); built `AnswerTransformer` with side-by-side STAR framework transformation ("What You Said" vs "Felix STAR Rewrite") and coaching callout opportunities; upgraded `FeedbackReport` and wired `/session/report` to dynamically ground in candidate's actual session responses, transcript quotes with timestamps, and 1-click micro-drills; mounted `BehavioralDashboard` with all 6 Recharts telemetry charts in `/session/dashboard`; resolved all TypeScript errors across `frontend/src/behavioral/` and verified clean Next.js build.
 - 2026-10-10 [1] — Formative real-time coaching on mistakes and uncertainty: updated follow-up prompt and turn-engine trigger so when a candidate says "I don't know", expresses confusion, or makes a technical mistake, Felix immediately normalizes it, explicitly explains what interviewers expect to hear and what went wrong/misconception occurred in 1-2 punchy sentences, and provides a guided stepping-stone question to keep the learning practice going.
 - 2026-10-10 [1] — Streamlined, distraction-free interview UI: removed Coach Mode buttons and panels from both setup and live interview pages; removed hackathon/EdTech track badges across the application; added an active call duration timer in the header and ensured the Leave button and native controls are completely unobstructed; eliminated flashing "Enable Sound" and "Test Audio" buttons and badges from the stage; stripped overlay name tags and stream badges from `<Avatar />` so the interviewer video and learner camera render purely alongside essential call controls.

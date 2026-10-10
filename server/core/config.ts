@@ -4,8 +4,11 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load .env from project root
+// Load .env from project root and current directory
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export const config = {
   // API Keys
@@ -27,7 +30,7 @@ export const config = {
   maxTurnLatencyMs: 1500,       // < 1.5s latency budget (P0)
 
   // LLM
-  geminiModel: 'gemini-flash-lite-latest',
+  geminiModel: 'gemini-3.1-flash-lite',
   defaultTemperature: 0.7,
   defaultMaxTokens: 2048,
 } as const;

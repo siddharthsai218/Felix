@@ -1,6 +1,6 @@
-import { RubricResult, GapAnalysis, LearningGap } from './types';
-import { generateJSON } from './llm-client';
-import { GAP_ANALYSIS_PROMPT } from './prompts/gap-analysis';
+import { RubricResult, GapAnalysis, LearningGap } from './types.js';
+import { generateJSON } from './llm-client.js';
+import { GAP_ANALYSIS_PROMPT } from './prompts/gap-analysis.js';
 
 /**
  * Analyzes the rubric result to identify competencies and learning gaps.
