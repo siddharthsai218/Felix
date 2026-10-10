@@ -1,0 +1,14 @@
+{
+  "name": "felix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Felix — Adaptive Interview-Skills Coach (EdTech)",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
