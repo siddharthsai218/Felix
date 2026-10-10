@@ -462,4 +462,4 @@ CARTESIA_API_KEY=your_key_here
 
 ## 📄 License
 
-*(_Add license — MIT recommended — here._)*
+This project is licensed under the [MIT License](LICENSE).
