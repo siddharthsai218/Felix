@@ -235,9 +235,26 @@ export class TurnEngine {
     // Decide what's next: if unlimited or current index < questionCount, keep interviewing
     const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
     if (isUnlimited || this.session.currentQuestionIndex < this.session.config.questionCount) {
-      // Check for follow-up
-      if (text.length < 50 || this.rescueTriggered) {
-        // Short or rescued answer — ask a follow-up
+      // Check for follow-up or coaching intervention
+      const lower = text.toLowerCase().trim();
+      const isUncertainOrStuck =
+        lower.length < 75 ||
+        lower.includes("don't know") ||
+        lower.includes("dont know") ||
+        lower.includes("no idea") ||
+        lower.includes("not sure") ||
+        lower.includes("never worked with") ||
+        lower.includes("haven't worked") ||
+        lower.includes("never heard") ||
+        lower.includes("can't remember") ||
+        lower.includes("cant remember") ||
+        lower.includes("not familiar") ||
+        lower.includes("pass") ||
+        lower.includes("skip") ||
+        this.rescueTriggered;
+
+      if (isUncertainOrStuck) {
+        // Short, uncertain, or rescued answer — provide formative coaching and follow-up
         await this.askFollowUp(question?.text || '', text);
       } else {
         // Move to next question
