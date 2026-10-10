@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Avatar } from '../../components/Avatar';
 import { MediaCapture } from '../../components/MediaCapture';
 import { AudioVisualizer } from '../../components/AudioVisualizer';
-import { RescueScaffold } from '../../components/RescueScaffold';
 import { CoachPanel } from '../../components/CoachPanel';
 import { DrillModal } from '../../components/DrillModal';
 import { captureEventBus } from '../../lib/event-bus';
@@ -83,6 +82,7 @@ function LiveInterviewContent() {
   const currentTimestampsRef = useRef<SttWordTimestamp[]>([]);
   const drillTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
@@ -118,6 +118,7 @@ function LiveInterviewContent() {
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
+      speechUtteranceRef.current = utterance; // Prevent garbage collection in Chromium
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
@@ -141,6 +142,7 @@ function LiveInterviewContent() {
       utterance.onend = () => {
         setIsAvatarSpeaking(false);
         setTurnState('listening');
+        speechUtteranceRef.current = null;
       };
 
       utterance.onerror = (e) => {
@@ -148,7 +150,13 @@ function LiveInterviewContent() {
         setIsAvatarSpeaking(false);
         setTurnState('listening');
         setShowQuestionSubtitle(true);
+        speechUtteranceRef.current = null;
       };
+
+      // Set speaking state and show subtitle right away so learner sees it
+      setShowQuestionSubtitle(true);
+      setTurnState('speaking');
+      setIsAvatarSpeaking(true);
 
       window.speechSynthesis.speak(utterance);
     } catch (err) {
@@ -226,25 +234,13 @@ function LiveInterviewContent() {
     }
   };
 
-  // Silence Timer for Rescue Mode (P1 Hackathon MVP)
-  const triggerRescueMode = useCallback(() => {
-    setRescueActive(true);
-    setTurnState('rescue');
-
-    const promptFallback = `Take a breath. Think about a specific challenge you faced while working as a ${targetRole}. What was the situation and how did you approach it?`;
-    setRescueMessage(promptFallback);
-    playAudio(promptFallback);
-  }, [targetRole, playAudio]);
-
+  // Auto-triggering rescue mode on silence removed per user request
   const resetSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
-
-    silenceTimerRef.current = setTimeout(() => {
-      triggerRescueMode();
-    }, 5000);
-  }, [triggerRescueMode]);
+  }, []);
 
   // Web Speech API Speech Recognition Initialization
   const setupSpeechRecognition = useCallback(() => {
@@ -485,9 +481,7 @@ function LiveInterviewContent() {
               break;
 
             case 'rescue:activate':
-              setRescueActive(true);
-              setRescueMessage(msg.message);
-              playAudio(msg.message);
+              // Suppressed per user request
               break;
 
             case 'coach:hint':
@@ -675,12 +669,7 @@ function LiveInterviewContent() {
             captionText={showQuestionSubtitle ? currentQuestionText : undefined}
           />
 
-          {/* Rescue Mode Scaffolding Overlay Banner */}
-          <RescueScaffold
-            isActive={rescueActive}
-            message={rescueMessage}
-            onDismiss={() => setRescueActive(false)}
-          />
+
 
           {/* Drill Mode Countdown Pill (if active) */}
           {turnState === 'drill' && (
@@ -695,7 +684,7 @@ function LiveInterviewContent() {
           {/* Floating Closed Captions / Subtitle Bar (Google Meet Style) */}
           <div className="absolute bottom-4 left-4 right-4 sm:left-12 sm:right-12 z-20 pointer-events-none flex flex-col items-center">
             {/* Question or Speaking Text */}
-            {showQuestionSubtitle && currentQuestionText && (
+            {(showQuestionSubtitle || turnState === 'speaking' || turnState === 'listening') && currentQuestionText && (
               <div className="pointer-events-auto max-w-2xl px-4 py-2.5 rounded-2xl bg-gray-950/85 border border-gray-800/80 backdrop-blur-md shadow-2xl text-center mb-2 flex items-center gap-2 animate-in fade-in duration-300">
                 <p className="text-xs sm:text-sm text-gray-100 font-medium leading-snug">
                   <span className="text-violet-400 font-semibold mr-1.5">Felix:</span>
@@ -770,16 +759,7 @@ function LiveInterviewContent() {
 
         {/* Center: Google Meet Action Pills */}
         <div className="flex items-center gap-2 sm:gap-3 bg-gray-900/90 border border-gray-800/90 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md">
-          {/* Rescue Mode Button */}
-          <button
-            onClick={triggerRescueMode}
-            type="button"
-            className="px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all flex items-center gap-1.5"
-            title="Simulate 5s pause or request Rescue scaffolding"
-          >
-            <span>🛟</span>
-            <span className="hidden sm:inline">Rescue Mode</span>
-          </button>
+
 
           {/* Coach Hint Button */}
           {coachModeEnabled && (
