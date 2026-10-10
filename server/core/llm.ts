@@ -20,50 +20,82 @@ class LlmClient {
     });
   }
 
+  private getModelInstance(modelName: string, systemInstruction?: string): GenerativeModel {
+    return systemInstruction
+      ? this.genAI.getGenerativeModel({ model: modelName, systemInstruction })
+      : this.genAI.getGenerativeModel({ model: modelName });
+  }
+
   /**
-   * Generate a complete response (non-streaming).
+   * Generate a complete response (non-streaming) with automatic model fallback.
    * Use for post-session scoring, report generation, etc.
    */
   async generate(prompt: string, options: LlmOptions = {}): Promise<string> {
     const generationConfig = this.buildConfig(options);
-    const model = options.systemInstruction
-      ? this.genAI.getGenerativeModel({
-          model: config.geminiModel,
-          systemInstruction: options.systemInstruction,
-        })
-      : this.model;
+    const candidateModels = [
+      config.geminiModel,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+    ];
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig,
-    });
-
-    return result.response.text();
+    let lastError: any = null;
+    for (const modelName of candidateModels) {
+      try {
+        const model = this.getModelInstance(modelName, options.systemInstruction);
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig,
+        });
+        return result.response.text();
+      } catch (err: any) {
+        lastError = err;
+        const msg = String(err?.message || '');
+        if (msg.includes('404') || msg.includes('not found') || msg.includes('models/')) {
+          console.warn(`Model ${modelName} not available, trying next fallback...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
   }
 
   /**
-   * Generate a streaming response.
+   * Generate a streaming response with automatic model fallback.
    * Use for live-turn responses where latency matters.
    * Yields text chunks as they arrive.
    */
   async *generateStream(prompt: string, options: LlmOptions = {}): AsyncIterable<string> {
     const generationConfig = this.buildConfig(options);
-    const model = options.systemInstruction
-      ? this.genAI.getGenerativeModel({
-          model: config.geminiModel,
-          systemInstruction: options.systemInstruction,
-        })
-      : this.model;
+    const candidateModels = [
+      config.geminiModel,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+    ];
 
-    const result = await model.generateContentStream({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig,
-    });
+    for (const modelName of candidateModels) {
+      try {
+        const model = this.getModelInstance(modelName, options.systemInstruction);
+        const result = await model.generateContentStream({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig,
+        });
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) {
-        yield text;
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            yield text;
+          }
+        }
+        return;
+      } catch (err: any) {
+        const msg = String(err?.message || '');
+        if (msg.includes('404') || msg.includes('not found')) {
+          console.warn(`Model ${modelName} not available for streaming, trying fallback...`);
+          continue;
+        }
+        throw err;
       }
     }
   }

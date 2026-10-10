@@ -363,8 +363,8 @@ export class TurnEngine {
             id: 'a0e99841-438c-4a64-b679-ae501e7d6091', // Professional male voice
           },
           output_format: {
-            container: 'raw',
-            encoding: 'pcm_f32le',
+            container: 'wav',
+            encoding: 'pcm_s16le',
             sample_rate: 24000,
           },
         }),
@@ -379,7 +379,7 @@ export class TurnEngine {
 
       this.sendMessage({
         type: 'tts:audio',
-        data: base64Audio,
+        data: `data:audio/wav;base64,${base64Audio}`,
         isLast: true,
       });
     } catch (error) {
