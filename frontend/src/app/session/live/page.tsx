@@ -51,6 +51,8 @@ function LiveInterviewContent() {
   const [responsesCompleted, setResponsesCompleted] = useState<SessionResponseRecord[]>([]);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
+  const [lastAudioPayload, setLastAudioPayload] = useState<string>('');
 
   // References
   const wsRef = useRef<WebSocket | null>(null);
@@ -59,7 +61,6 @@ function LiveInterviewContent() {
   const turnStartTimeRef = useRef<number>(0);
   const currentTimestampsRef = useRef<SttWordTimestamp[]>([]);
   const drillTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
@@ -68,47 +69,130 @@ function LiveInterviewContent() {
     `Describe a time you had a technical disagreement with a team member. How did you resolve it constructively?`,
   ]);
 
-  // Audio Playback helper
-  const playAudio = useCallback(async (audioData: string) => {
+  // Web Speech synthesis helper
+  const speakWithBrowserTts = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setIsAvatarSpeaking(true);
+      setTimeout(() => {
+        setIsAvatarSpeaking(false);
+        setTurnState('listening');
+      }, 3000);
+      return;
+    }
+
     try {
-      // Check if it's base64 PCM / MP3 or plain text
-      if (audioData.startsWith('data:audio') || audioData.length > 500) {
-        const audio = new Audio();
-        audio.src = audioData.startsWith('data:') ? audioData : `data:audio/mp3;base64,${audioData}`;
-        setIsAvatarSpeaking(true);
-        audio.onended = () => {
-          setIsAvatarSpeaking(false);
-          setTurnState('listening');
-        };
-        await audio.play();
-      } else {
-        // Fallback: Web Speech API synthesis
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(audioData);
-          utterance.rate = 1.0;
-          utterance.pitch = 1.0;
-          utterance.onstart = () => setIsAvatarSpeaking(true);
-          utterance.onend = () => {
-            setIsAvatarSpeaking(false);
-            setTurnState('listening');
-          };
-          window.speechSynthesis.speak(utterance);
-        } else {
-          // No TTS available, wait briefly
-          setIsAvatarSpeaking(true);
-          setTimeout(() => {
-            setIsAvatarSpeaking(false);
-            setTurnState('listening');
-          }, 3000);
-        }
+      window.speechSynthesis.resume();
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      // Select natural English voice if possible
+      const voices = window.speechSynthesis.getVoices();
+      const preferred =
+        voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('Alex'))) ||
+        voices.find(v => v.lang.startsWith('en'));
+
+      if (preferred) {
+        utterance.voice = preferred;
       }
-    } catch (e) {
-      console.error('Audio playback error:', e);
+
+      utterance.onstart = () => {
+        setIsAvatarSpeaking(true);
+      };
+
+      utterance.onend = () => {
+        setIsAvatarSpeaking(false);
+        setTurnState('listening');
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('Browser TTS utterance error:', e);
+        setIsAvatarSpeaking(false);
+        setTurnState('listening');
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error('Browser TTS failed:', err);
       setIsAvatarSpeaking(false);
       setTurnState('listening');
     }
   }, []);
+
+  // Robust Audio Playback helper
+  const playAudio = useCallback(async (audioData: string) => {
+    if (!audioData) return;
+    setLastAudioPayload(audioData);
+
+    const isBase64Audio =
+      audioData.startsWith('data:audio') ||
+      audioData.startsWith('blob:') ||
+      (!audioData.includes(' ') && audioData.length > 200 && /^[A-Za-z0-9+/=]+$/.test(audioData.trim()));
+
+    try {
+      if (isBase64Audio) {
+        const audio = new Audio();
+        audio.src = audioData.startsWith('data:') ? audioData : `data:audio/wav;base64,${audioData}`;
+        audio.volume = 1.0;
+        setIsAvatarSpeaking(true);
+
+        audio.onended = () => {
+          setIsAvatarSpeaking(false);
+          setTurnState('listening');
+        };
+
+        audio.onerror = () => {
+          console.warn('Audio element error, falling back to browser voice');
+          speakWithBrowserTts(currentQuestionText || 'Please answer the question.');
+        };
+
+        await audio.play().catch((err) => {
+          console.warn('Autoplay prevented, audio requires user interaction:', err);
+          setAudioUnlocked(false);
+        });
+      } else {
+        // Plain text: use browser Web Speech API
+        speakWithBrowserTts(audioData);
+      }
+    } catch (e) {
+      console.error('Audio playback error:', e);
+      speakWithBrowserTts(audioData);
+    }
+  }, [currentQuestionText, speakWithBrowserTts]);
+
+  // Audio unlock handler on user click
+  const unlockAudioAndPlay = () => {
+    setAudioUnlocked(true);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+    }
+    if (lastAudioPayload) {
+      playAudio(lastAudioPayload);
+    }
+  };
+
+  // Silence Timer for Rescue Mode (P1 Hackathon MVP)
+  const triggerRescueMode = useCallback(() => {
+    setRescueActive(true);
+    setTurnState('rescue');
+
+    const promptFallback = `Take a breath. Think about a specific challenge you faced while working as a ${targetRole}. What was the situation and how did you approach it?`;
+    setRescueMessage(promptFallback);
+    playAudio(promptFallback);
+  }, [targetRole, playAudio]);
+
+  const resetSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+    }
+
+    silenceTimerRef.current = setTimeout(() => {
+      triggerRescueMode();
+    }, 5000);
+  }, [triggerRescueMode]);
 
   // Web Speech API Speech Recognition Initialization
   const setupSpeechRecognition = useCallback(() => {
@@ -118,7 +202,7 @@ function LiveInterviewContent() {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      console.warn('SpeechRecognition not supported in this browser. Using manual input fallback.');
+      console.warn('SpeechRecognition not supported in this browser.');
       return;
     }
 
@@ -143,10 +227,8 @@ function LiveInterviewContent() {
 
         if (interim) {
           setPartialTranscript(interim);
-          // Reset 5s silence timer since user is actively speaking
           resetSilenceTimer();
 
-          // Send partial to WS
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(
               JSON.stringify({ type: 'stt:partial', text: interim } as ClientMessage)
@@ -159,7 +241,6 @@ function LiveInterviewContent() {
           setPartialTranscript('');
           resetSilenceTimer();
 
-          // Record word timestamp
           const now = Date.now();
           currentTimestampsRef.current.push({
             text: final.trim(),
@@ -171,37 +252,70 @@ function LiveInterviewContent() {
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition event:', event.error);
+        console.warn('Speech recognition warning:', event.error);
       };
 
       recognitionRef.current = recognition;
     } catch (e) {
       console.error('Failed to create SpeechRecognition:', e);
     }
-  }, []);
+  }, [resetSilenceTimer]);
 
-  // Silence Timer for Rescue Mode (P1 Hackathon MVP)
-  const resetSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
+  // Finish Speaking / Submit Response
+  const handleSubmitResponse = useCallback(() => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
     }
 
-    silenceTimerRef.current = setTimeout(() => {
-      // 5 seconds of silence detected during listening state
-      triggerRescueMode();
-    }, 5000);
-  }, []);
+    const finalAnswer = learnerTranscript || partialTranscript || 'I explained my approach and technical solution.';
 
-  const triggerRescueMode = useCallback(() => {
-    setRescueActive(true);
-    setTurnState('rescue');
+    setTurnState('processing');
+    turnStartTimeRef.current = Date.now();
 
-    const promptFallback = `Take a breath. Think about a specific challenge you faced while working as a ${targetRole}. What was the situation and how did you approach it?`;
-    setRescueMessage(promptFallback);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'stt:final',
+          text: finalAnswer,
+          timestamps: currentTimestampsRef.current,
+        } as ClientMessage)
+      );
+    } else {
+      // Local fallback turn progression
+      const nextIndex = currentQuestionIndex;
+      if (nextIndex < questionCount && nextIndex < fallbackQuestionsRef.current.length) {
+        const nextQ = fallbackQuestionsRef.current[nextIndex];
+        setTimeout(() => {
+          setCurrentQuestionIndex(nextIndex + 1);
+          setCurrentQuestionText(nextQ);
+          setLearnerTranscript('');
+          setPartialTranscript('');
+          setTurnState('speaking');
+          playAudio(nextQ);
+        }, 1200);
+      } else {
+        setTurnState('complete');
+        setTimeout(() => {
+          router.push(`/session/report?sessionId=${sessionId}`);
+        }, 1500);
+      }
+    }
+  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, sessionId, router, playAudio]);
 
-    // Speak rescue guidance
-    playAudio(promptFallback);
-  }, [targetRole, playAudio]);
+  // Resilient Local Turn Fallback
+  const runLocalSessionFallback = useCallback(() => {
+    setTurnState('processing');
+    const firstQ = fallbackQuestionsRef.current[0];
+    setTimeout(() => {
+      setCurrentQuestionText(firstQ);
+      setCurrentQuestionIndex(1);
+      setTurnState('speaking');
+      playAudio(firstQ);
+    }, 800);
+  }, [playAudio]);
 
   // WebSocket Connection & Turn loop
   useEffect(() => {
@@ -259,7 +373,6 @@ function LiveInterviewContent() {
               if (msg.questionIndex >= 0) {
                 setCurrentQuestionIndex(msg.questionIndex + 1);
               }
-              // Reset transcript state for new turn
               setLearnerTranscript('');
               setPartialTranscript('');
               setRescueActive(false);
@@ -267,7 +380,6 @@ function LiveInterviewContent() {
               break;
 
             case 'tts:audio':
-              // Play avatar audio (< 1.5s latency budget metric)
               const latency = Date.now() - turnStartTimeRef.current;
               if (turnStartTimeRef.current > 0) {
                 setTurnLatencyMs(latency);
@@ -292,14 +404,13 @@ function LiveInterviewContent() {
 
             case 'session:complete':
               setTurnState('complete');
-              // Navigate to report
               setTimeout(() => {
                 router.push(`/session/report?sessionId=${msg.record.sessionId}`);
               }, 2500);
               break;
 
             case 'error':
-              console.warn('Server error:', msg.message);
+              console.warn('Server warning:', msg.message);
               break;
           }
         } catch (e) {
@@ -326,64 +437,7 @@ function LiveInterviewContent() {
         } catch (e) {}
       }
     };
-  }, [targetRole, difficulty, questionCount, coachModeEnabled, playAudio, resetSilenceTimer, setupSpeechRecognition, router]);
-
-  // Resilient Local Turn Fallback (ensures hackathon demo never fails)
-  const runLocalSessionFallback = useCallback(() => {
-    setTurnState('processing');
-    const firstQ = fallbackQuestionsRef.current[0];
-    setTimeout(() => {
-      setCurrentQuestionText(firstQ);
-      setCurrentQuestionIndex(1);
-      setTurnState('speaking');
-      playAudio(firstQ);
-    }, 800);
-  }, [playAudio]);
-
-  // Finish Speaking / Submit Response
-  const handleSubmitResponse = () => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
-    }
-
-    const finalAnswer = learnerTranscript || partialTranscript || 'No response captured.';
-
-    setTurnState('processing');
-    turnStartTimeRef.current = Date.now();
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: 'stt:final',
-          text: finalAnswer,
-          timestamps: currentTimestampsRef.current,
-        } as ClientMessage)
-      );
-    } else {
-      // Local fallback turn progression
-      const nextIndex = currentQuestionIndex;
-      if (nextIndex < questionCount && nextIndex < fallbackQuestionsRef.current.length) {
-        const nextQ = fallbackQuestionsRef.current[nextIndex];
-        setTimeout(() => {
-          setCurrentQuestionIndex(nextIndex + 1);
-          setCurrentQuestionText(nextQ);
-          setLearnerTranscript('');
-          setPartialTranscript('');
-          setTurnState('speaking');
-          playAudio(nextQ);
-        }, 1200);
-      } else {
-        // Complete session
-        setTurnState('complete');
-        setTimeout(() => {
-          router.push(`/session/report?sessionId=${sessionId}`);
-        }, 1500);
-      }
-    }
-  };
+  }, [targetRole, difficulty, questionCount, coachModeEnabled, playAudio, resetSilenceTimer, setupSpeechRecognition, runLocalSessionFallback, router]);
 
   // Coach Mode Hint Request
   const handleRequestCoachHint = () => {
@@ -424,13 +478,26 @@ function LiveInterviewContent() {
     }, 1000);
   };
 
+  const handleStreamReady = useCallback((stream: MediaStream) => {
+    setMediaStream(stream);
+  }, []);
+
+  const handleCaptureError = useCallback((err: string) => {
+    setErrorMessage(err);
+  }, []);
+
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col justify-between p-3 sm:p-6 select-none">
-      {/* Top Bar / Header */}
-      <header className="max-w-6xl mx-auto w-full flex items-center justify-between py-2 border-b border-gray-800/80 mb-4">
+    <main
+      onClick={() => {
+        if (!audioUnlocked) setAudioUnlocked(true);
+      }}
+      className="h-screen w-screen bg-gray-950 text-white flex flex-col justify-between p-2 sm:p-4 select-none overflow-hidden"
+    >
+      {/* Google Meet Top Bar */}
+      <header className="w-full flex items-center justify-between px-3 py-1.5 z-20">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-base shadow">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-sm shadow">
               🎓
             </div>
             <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
@@ -445,12 +512,22 @@ function LiveInterviewContent() {
           </div>
         </div>
 
-        {/* Progress & Latency Budget Indicator */}
-        <div className="flex items-center gap-4">
+        {/* Status Indicators */}
+        <div className="flex items-center gap-3">
+          {!audioUnlocked && (
+            <button
+              onClick={unlockAudioAndPlay}
+              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold animate-pulse shadow-md flex items-center gap-1.5"
+            >
+              <span>🔊</span>
+              <span>Enable Sound</span>
+            </button>
+          )}
+
           {/* Latency Tracker */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 border border-gray-800 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-gray-400">Live Turn Latency:</span>
+            <span className="text-gray-400">Latency:</span>
             <span className="font-mono font-bold text-emerald-300">
               {turnLatencyMs ? `${turnLatencyMs}ms` : '< 1.5s'}
             </span>
@@ -463,62 +540,87 @@ function LiveInterviewContent() {
 
           <Link
             href="/session/setup"
-            className="text-xs text-gray-400 hover:text-white transition-colors"
+            className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-gray-900/60 border border-gray-800 transition-colors"
           >
-            Exit
+            Leave
           </Link>
         </div>
       </header>
 
-      {/* Main Interactive Stage */}
-      <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col items-center justify-center relative">
-        {/* Rescue Mode Notification Banner (P1 Feature) */}
-        <RescueScaffold
-          isActive={rescueActive}
-          message={rescueMessage}
-          onDismiss={() => setRescueActive(false)}
-        />
+      {/* Main Google Meet Video Stage */}
+      <div className="w-full flex-1 relative flex items-center justify-center p-1 sm:p-2 overflow-hidden">
+        {/* Large Stage: The Avatar (Pinned Speaker in Google Meet) */}
+        <div className="w-full h-full relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900/90 border border-gray-800/80 shadow-2xl flex items-center justify-center">
+          <Avatar
+            state={turnState}
+            isSpeaking={isAvatarSpeaking}
+            audioLevel={avatarVolume}
+            captionText={turnState === 'speaking' || turnState === 'asking' ? currentQuestionText : undefined}
+          />
 
-        {/* Drill Mode Countdown (if active) */}
-        {turnState === 'drill' && (
-          <div className="w-full max-w-md mx-auto mb-4 p-3 rounded-2xl bg-purple-950/80 border border-purple-500/50 flex items-center justify-between text-xs">
-            <span className="font-bold text-purple-200">⚡ 30s Micro-Drill Sprint</span>
-            <span className="font-mono text-sm font-extrabold text-amber-300">
-              00:{drillCountdown.toString().padStart(2, '0')}
-            </span>
-          </div>
-        )}
+          {/* Rescue Mode Scaffolding Overlay Banner */}
+          <RescueScaffold
+            isActive={rescueActive}
+            message={rescueMessage}
+            onDismiss={() => setRescueActive(false)}
+          />
 
-        {/* Center Grid: Avatar + Learner Picture-in-Picture */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 items-center my-4">
-          {/* Left: Session Telemetry & Controls */}
-          <div className="hidden md:flex flex-col gap-4">
-            <div className="p-4 rounded-2xl bg-gray-900/60 border border-gray-800/80 backdrop-blur-sm">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                Turn Engine
-              </h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-gray-400">
-                  <span>State:</span>
-                  <span className="font-semibold text-white capitalize">{turnState}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>AI Reasoning:</span>
-                  <span className="text-violet-400 font-medium">Gemini 3.1 Flash-Lite</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Voice Engine:</span>
-                  <span className="text-emerald-400 font-medium">Cartesia Sonic</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Speech To Text:</span>
-                  <span className="text-cyan-400 font-medium">AssemblyAI Streaming</span>
-                </div>
-              </div>
+          {/* Drill Mode Countdown Pill (if active) */}
+          {turnState === 'drill' && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 px-4 py-2 rounded-2xl bg-purple-950/90 border border-purple-500/50 flex items-center gap-3 shadow-xl backdrop-blur-md">
+              <span className="font-bold text-xs text-purple-200">⚡ 30s Micro-Drill Sprint</span>
+              <span className="font-mono text-sm font-extrabold text-amber-300">
+                00:{drillCountdown.toString().padStart(2, '0')}
+              </span>
             </div>
+          )}
 
-            {/* Coach Mode Trigger */}
-            {coachModeEnabled && (
+          {/* Floating Closed Captions / Subtitle Bar (Google Meet Style) */}
+          <div className="absolute bottom-4 left-4 right-4 sm:left-12 sm:right-12 z-20 pointer-events-none flex flex-col items-center">
+            {/* Question or Speaking Text */}
+            {currentQuestionText && (
+              <div className="pointer-events-auto max-w-2xl px-4 py-2.5 rounded-2xl bg-gray-950/85 border border-gray-800/80 backdrop-blur-md shadow-2xl text-center mb-2 flex items-center gap-2">
+                <p className="text-xs sm:text-sm text-gray-100 font-medium leading-snug">
+                  <span className="text-violet-400 font-semibold mr-1.5">Felix:</span>
+                  "{currentQuestionText}"
+                </p>
+                <button
+                  onClick={() => playAudio(currentQuestionText)}
+                  type="button"
+                  title="Replay Audio"
+                  className="p-1 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                >
+                  🔊
+                </button>
+              </div>
+            )}
+
+            {/* Learner Real-time Transcript */}
+            {(learnerTranscript || partialTranscript) && (
+              <div className="pointer-events-auto max-w-xl px-4 py-1.5 rounded-xl bg-gray-900/90 border border-gray-800 text-center text-xs text-gray-200 backdrop-blur-sm shadow-lg">
+                <span className="text-emerald-400 font-semibold mr-1.5">You:</span>
+                <span>{learnerTranscript}</span>{' '}
+                <span className="text-violet-400 italic">{partialTranscript}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Self-View Camera: Google Meet Bottom-Right Floating PiP */}
+          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-48 sm:w-60 md:w-72 aspect-video z-30 shadow-2xl transition-all">
+            <MediaCapture
+              sessionId={sessionId}
+              responseIndex={currentQuestionIndex - 1}
+              isRecordingResponse={turnState === 'listening'}
+              sttTimestamps={currentTimestampsRef.current}
+              onStreamReady={handleStreamReady}
+              onError={handleCaptureError}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Coach Panel Flyout (if opened) */}
+          {coachModeEnabled && (
+            <div className="absolute top-4 left-4 z-30 max-w-xs">
               <CoachPanel
                 isOpen={coachOpen}
                 hint={coachHint}
@@ -526,99 +628,56 @@ function LiveInterviewContent() {
                 onRequestHint={handleRequestCoachHint}
                 onClose={() => setCoachOpen(false)}
               />
-            )}
-          </div>
-
-          {/* Center: The Avatar Coach */}
-          <div className="flex flex-col items-center justify-center">
-            <Avatar
-              state={turnState}
-              isSpeaking={isAvatarSpeaking}
-              audioLevel={avatarVolume}
-              captionText={turnState === 'speaking' || turnState === 'asking' ? currentQuestionText : undefined}
-            />
-          </div>
-
-          {/* Right: Learner Video Capture & Audio Waveform */}
-          <div className="flex flex-col items-center md:items-end justify-center gap-4">
-            <MediaCapture
-              sessionId={sessionId}
-              responseIndex={currentQuestionIndex - 1}
-              isRecordingResponse={turnState === 'listening'}
-              sttTimestamps={currentTimestampsRef.current}
-              onStreamReady={(stream) => setMediaStream(stream)}
-              onError={(err) => setErrorMessage(err)}
-            />
-
-            {/* Live Audio Visualizer */}
-            <div className="w-full max-w-xs">
-              <AudioVisualizer
-                stream={mediaStream}
-                isActive={turnState === 'listening'}
-                onVolumeChange={(vol) => setAvatarVolume(vol)}
-              />
             </div>
-          </div>
-        </div>
-
-        {/* Current Question Display Banner */}
-        <div className="w-full max-w-2xl mx-auto my-3 p-4 rounded-2xl bg-gray-900/80 border border-gray-800 text-center shadow-lg backdrop-blur-md">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400 block mb-1">
-            Current Question
-          </span>
-          <p className="text-base sm:text-lg font-semibold text-gray-100">
-            {currentQuestionText || 'Preparing your interview question…'}
-          </p>
-        </div>
-
-        {/* Live Learner Speech Transcription Box */}
-        <div className="w-full max-w-2xl mx-auto my-2 p-3.5 rounded-2xl bg-gray-950 border border-gray-800/80 min-h-[64px] flex items-center justify-between gap-4">
-          <div className="flex-1 text-xs sm:text-sm text-gray-300 overflow-hidden">
-            {learnerTranscript || partialTranscript ? (
-              <p>
-                <span className="text-gray-100 font-medium">{learnerTranscript}</span>{' '}
-                <span className="text-violet-400 italic">{partialTranscript}</span>
-              </p>
-            ) : (
-              <span className="text-gray-500 italic">
-                {turnState === 'listening'
-                  ? 'Listening to you speak… (start answering or pause to trigger Rescue Mode)'
-                  : 'Waiting for your turn…'}
-              </span>
-            )}
-          </div>
-
-          {/* Complete Turn / Finish Button */}
-          {turnState === 'listening' && (
-            <button
-              onClick={handleSubmitResponse}
-              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-all shadow-md shadow-violet-500/25 flex-shrink-0"
-            >
-              Done Speaking →
-            </button>
           )}
         </div>
       </div>
 
-      {/* Bottom Control Bar */}
-      <footer className="max-w-6xl mx-auto w-full flex items-center justify-between py-3 border-t border-gray-800/80 text-xs text-gray-400">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span>Capture Stream Active</span>
-          <span className="text-gray-600">|</span>
-          <span className="text-gray-400">Emitting Handoff to Part 2 via EventBus</span>
+      {/* Google Meet Bottom Controls Bar */}
+      <footer className="w-full flex items-center justify-between px-3 py-2 z-20">
+        {/* Left: Meeting Info & Live Audio Wave */}
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block text-xs text-gray-400">
+            <span className="font-semibold text-gray-200">{targetRole} Practice</span>
+            <span className="text-gray-600 mx-2">|</span>
+            <span className="text-gray-400">Turn {currentQuestionIndex}</span>
+          </div>
+          <div className="w-24 sm:w-32">
+            <AudioVisualizer
+              stream={mediaStream}
+              isActive={turnState === 'listening'}
+              onVolumeChange={(vol) => setAvatarVolume(vol)}
+            />
+          </div>
         </div>
 
-        {/* Demo trigger: Simulate Rescue or Drill */}
-        <div className="flex items-center gap-2">
+        {/* Center: Google Meet Action Pills */}
+        <div className="flex items-center gap-2 sm:gap-3 bg-gray-900/90 border border-gray-800/90 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md">
+          {/* Rescue Mode Button */}
           <button
             onClick={triggerRescueMode}
             type="button"
-            className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-medium transition-colors"
-            title="Simulate 5s pause to demonstrate Rescue Mode"
+            className="px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+            title="Simulate 5s pause or request Rescue scaffolding"
           >
-            Test Rescue Mode (5s)
+            <span>🛟</span>
+            <span className="hidden sm:inline">Rescue Mode</span>
           </button>
+
+          {/* Coach Hint Button */}
+          {coachModeEnabled && (
+            <button
+              onClick={handleRequestCoachHint}
+              type="button"
+              className="px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+              title="Request STAR coach hint"
+            >
+              <span>💡</span>
+              <span className="hidden sm:inline">Coach Hint</span>
+            </button>
+          )}
+
+          {/* Micro-Drill Practice Button */}
           <button
             onClick={() => {
               setActiveDrill({
@@ -641,10 +700,54 @@ function LiveInterviewContent() {
               setDrillModalOpen(true);
             }}
             type="button"
-            className="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[11px] font-medium transition-colors"
-            title="Demonstrate the 30s micro-drill retry loop"
+            className="px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+            title="Start 30s micro-drill"
           >
-            Practice Weak Area (Drill)
+            <span>⚡</span>
+            <span className="hidden sm:inline">Drill</span>
+          </button>
+
+          {/* Done Speaking Button (When listening) */}
+          {turnState === 'listening' ? (
+            <button
+              onClick={handleSubmitResponse}
+              className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+            >
+              <span>Done Speaking</span>
+              <span>→</span>
+            </button>
+          ) : (
+            <div className="px-3 py-1.5 rounded-full bg-gray-800 text-gray-400 text-xs font-medium">
+              {turnState === 'speaking' ? 'Felix Speaking…' : 'Processing…'}
+            </div>
+          )}
+
+          {/* Red End Call Button */}
+          <Link
+            href="/session/setup"
+            className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white text-xs shadow-md shadow-red-500/20 transition-transform hover:scale-105"
+            title="Leave call"
+          >
+            📞
+          </Link>
+        </div>
+
+        {/* Right: Sound Re-Test / Help */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (currentQuestionText) {
+                playAudio(currentQuestionText);
+              } else {
+                playAudio('Hello! Welcome to your Felix interview practice session.');
+              }
+            }}
+            type="button"
+            className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-gray-900 border border-gray-800 transition-colors flex items-center gap-1"
+            title="Test audio output"
+          >
+            <span>🔊</span>
+            <span className="hidden sm:inline">Test Audio</span>
           </button>
         </div>
       </footer>
@@ -662,7 +765,13 @@ function LiveInterviewContent() {
 
 export default function LiveInterviewPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">Loading Felix interview session…</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+          Loading Felix interview session…
+        </div>
+      }
+    >
       <LiveInterviewContent />
     </Suspense>
   );

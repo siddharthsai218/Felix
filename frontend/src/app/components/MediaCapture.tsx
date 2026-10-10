@@ -8,6 +8,7 @@ interface MediaCaptureProps {
   responseIndex: number;
   isRecordingResponse: boolean;
   sttTimestamps?: SttWordTimestamp[];
+  className?: string;
   onStreamReady?: (stream: MediaStream) => void;
   onError?: (err: string) => void;
 }
@@ -17,6 +18,7 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
   responseIndex,
   isRecordingResponse,
   sttTimestamps = [],
+  className = '',
   onStreamReady,
   onError,
 }) => {
@@ -33,11 +35,24 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
   const [isMicActive, setIsMicActive] = useState<boolean>(true);
   const responseStartTimeRef = useRef<number>(0);
 
-  // Request permissions and initialize media stream
+  const onStreamReadyRef = useRef(onStreamReady);
+  onStreamReadyRef.current = onStreamReady;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
+  // Request permissions and initialize media stream ONCE on mount
   useEffect(() => {
     let isMounted = true;
 
     async function initMedia() {
+      // If already initialized, avoid re-requesting
+      if (mediaStreamRef.current && mediaStreamRef.current.active) {
+        if (videoRef.current && videoRef.current.srcObject !== mediaStreamRef.current) {
+          videoRef.current.srcObject = mediaStreamRef.current;
+        }
+        return;
+      }
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -63,7 +78,7 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
         }
 
         setHasPermission(true);
-        if (onStreamReady) onStreamReady(stream);
+        if (onStreamReadyRef.current) onStreamReadyRef.current(stream);
       } catch (err: any) {
         console.warn('Full media capture failed, attempting audio-only fallback:', err);
         try {
@@ -74,10 +89,10 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
           mediaStreamRef.current = audioOnlyStream;
           setHasPermission(true);
           setIsCameraActive(false);
-          if (onStreamReady) onStreamReady(audioOnlyStream);
+          if (onStreamReadyRef.current) onStreamReadyRef.current(audioOnlyStream);
         } catch (audioErr: any) {
           console.error('Microphone permission denied:', audioErr);
-          if (onError) onError('Microphone access is required for live voice interviews.');
+          if (onErrorRef.current) onErrorRef.current('Microphone access is required for live voice interviews.');
         }
       }
     }
@@ -91,7 +106,7 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
         mediaStreamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [onStreamReady, onError]);
+  }, []); // Run only once on mount!
 
   // Video Frame Streaming to Part 2 via EventBus (~5 fps)
   const extractAndEmitFrame = useCallback(() => {
@@ -222,12 +237,12 @@ export const MediaCapture: React.FC<MediaCaptureProps> = ({
   };
 
   return (
-    <div className="relative group">
+    <div className={`relative group ${className}`}>
       {/* Hidden canvas for extracting pixel data */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Video Container */}
-      <div className="relative w-48 h-36 sm:w-60 sm:h-44 rounded-2xl overflow-hidden border-2 border-violet-500/40 bg-gray-900 shadow-xl backdrop-blur-md">
+      <div className="relative w-full h-full rounded-2xl overflow-hidden border-2 border-violet-500/40 bg-gray-900 shadow-xl backdrop-blur-md">
         <video
           ref={videoRef}
           autoPlay
