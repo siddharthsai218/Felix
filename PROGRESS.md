@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1] — Removed Sound Enable Badge and Question Subtitles: Completely removed the "Click anywhere to enable sound" bouncing badge and the floating question subtitle/caption overlay from the live interview stage (`frontend/src/app/session/live/page.tsx`), leaving a distraction-free full-stage view with natural audio playback and uninterrupted avatar interaction.
 - 2026-10-11 [1] — Fixed False Project Grounding When No GitHub/Resume Provided:
   - Fixed Beyond Presence cloud avatar sync (`server/session/beyond-presence-sync.ts` & `frontend/src/app/api/avatar/sync/route.ts`) which previously hardcoded greeting text referencing "your portfolio" or "your GitHub repositories" even when neither was provided.
   - Added strict negative constraints to Gemini prompts (`server/session/prompts/question.ts`) when candidate does not submit GitHub or resume, explicitly barring references to "your GitHub" or "your project" and instructing the AI to ask foundational role-domain architecture and scenario questions.

@@ -539,8 +539,6 @@ function LiveInterviewContent() {
                 }
               } else if (msg.state === 'speaking') {
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-              } else if (msg.state === 'processing' || msg.state === 'asking') {
-                setShowQuestionSubtitle(false);
               }
               break;
 
@@ -549,7 +547,6 @@ function LiveInterviewContent() {
               if (msg.questionIndex >= 0) {
                 setCurrentQuestionIndex(msg.questionIndex + 1);
               }
-              setShowQuestionSubtitle(false);
               setLearnerTranscript('');
               setPartialTranscript('');
               setRescueActive(false);
