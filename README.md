@@ -56,7 +56,7 @@ Traditional mock interviews are **summative**: you're told you did poorly, then 
 | Dashboard | Recruiter view, rankings, cheat detection | **Learner mastery + educator cohort view** |
 | Behavioral analysis | Proctoring / flag misconduct | **Coaching cues for self-awareness** |
 | End goal | Hire / reject decision | **Learn, practice, improve** |
-| Track fit | ❌ HR Tech | ✅ EdTech |
+| Track fit  | ✅ EdTech |
 
 ---
 
@@ -273,7 +273,8 @@ For the hackathon, **one fast LLM runs all text reasoning** — this is delibera
 | Gaze Analysis | MediaPipe | Estimates gaze direction and camera-facing behavior |
 | Facial Analysis | Py-feat | Detects facial expressions / action units |
 | Speech & Prosody Analysis | Parselmouth + STT timestamps | Pitch, jitter, shimmer, speaking rate, pause duration |
-| Avatar | _[Avatar platform]_ | Visual interview + coach agent |
+| Avatar | Beyond Presence | Visual interview + coach agent |
+
 
 > **Why one LLM?** Consolidating all text reasoning onto a single fast model (Gemini 3.1 Flash-Lite — free tier, low latency) removes the #1 hackathon risk: too many API keys, rate limits, and points of failure. Splitting into specialized models per task is a **post-hackathon optimization** (see Roadmap), not a demo dependency.
 
@@ -286,7 +287,7 @@ For the hackathon, **one fast LLM runs all text reasoning** — this is delibera
 | STT | Whisper / WhisperX (self-hosted) |
 | TTS | Kokoro / Piper / Coqui XTTS (local) |
 | LLMs | Llama 3 / Qwen 2.5 / DeepSeek via Ollama or vLLM |
-| Avatar | SadTalker / MuseTalk / Wav2Lip (GPU) |
+| Avatar | SadTalker / MuseTalk / Wav2Lip (GPU) | Beyond Presence
 | Gaze / Facial / Prosody | MediaPipe · Py-feat · Parselmouth (already free & open-source) |
 
 ---
