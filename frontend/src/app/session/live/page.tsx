@@ -589,28 +589,6 @@ function LiveInterviewContent() {
   }, [targetRole, difficulty, questionCount, coachModeEnabled, playAudio, resetSilenceTimer, setupSpeechRecognition, runLocalSessionFallback, router]);
 
 
-  // Micro-Drill Start
-  const handleStartDrill = (drillId: string) => {
-    setDrillModalOpen(false);
-    setTurnState('drill');
-    setDrillCountdown(30);
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'drill:start', drillId } as ClientMessage));
-    }
-
-    drillTimerRef.current = setInterval(() => {
-      setDrillCountdown((prev) => {
-        if (prev <= 1) {
-          if (drillTimerRef.current) clearInterval(drillTimerRef.current);
-          handleSubmitResponse();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   const handleStreamReady = useCallback((stream: MediaStream) => {
     setMediaStream(stream);
   }, []);
