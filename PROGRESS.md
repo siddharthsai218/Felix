@@ -17,7 +17,7 @@
 ## Setup
 
 - [ ] Project scaffold — establish the real backend/frontend layout per AGENTS.md's directory-ownership map (README's install commands are placeholders) **and write the five `docs/contracts/` files** — day-0 unblocker: Parts 2/3 start nothing until this lands `[1]`
-- [ ] Contract fixtures for parallel start — sample WAV/video clip `[2]`, fake session-record JSON `[3]`; start as soon as the contracts land, don't wait for the real capture pipeline `[2+3]`
+- [ ] Contract fixtures for parallel start — sample WAV/video clip `[2]`, fake session-record JSON `[3]`; start as soon as the contracts land, don't wait for the real capture pipeline `[2+3]` _(in progress: `[2]` signal-record contract created)_
 - [ ] Environment variables wired: `GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `CARTESIA_API_KEY` (others request keys via Log) `[1]`
 - [ ] Avatar platform chosen (README leaves it as `_[Avatar platform]_`) `[1]`
 - [ ] Mic + camera capture working in the browser `[1]`
@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-10 — [2] Created signal record contract (`docs/contracts/signal-record.md`). Built against fixtures while waiting for Part 1's scaffold and capture handoff contract. Request to `[1]`: please create the project scaffold and `docs/contracts/capture-handoff.md` so Part 2 can integrate.
 - 2026-10-10 — Patched the work division with four sequencing/risk addenda (day-0 scaffold+contracts unblocker, fixture-based parallel start for `[2]`/`[3]`, Part 3 learns-before-integrates ordering, ~5 s post-session scoring target + drill-retry demo fallback). Added to AGENTS.md § Sequencing & risk patches; checklist updated here (Setup, P0 note, Integrations note).
 - 2026-10-10 — Divided the build into three non-overlapping parts (Live Session `[1]` / Behavioral Telemetry `[2]` / Learning Engine `[3]`); documented in AGENTS.md and tagged every checklist item here. Previous entries below.
 - 2026-10-10 — Pulled spec updates (Answer Transformer, Rescue Mode, MCP). Created `AGENTS.md` and `PROGRESS.md`. No code yet.
