@@ -126,10 +126,25 @@ export default function SessionSetupPage() {
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('felix_session_role', finalRole);
-      sessionStorage.setItem('felix_session_github', githubUrl.trim());
-      sessionStorage.setItem('felix_session_resume', resumeText.trim());
-      sessionStorage.setItem('felix_session_resume_filename', resumeFileName.trim());
-      sessionStorage.setItem('felix_session_jd', pasteJd.trim());
+      if (githubUrl.trim()) {
+        sessionStorage.setItem('felix_session_github', githubUrl.trim());
+      } else {
+        sessionStorage.removeItem('felix_session_github');
+      }
+
+      if (resumeText.trim()) {
+        sessionStorage.setItem('felix_session_resume', resumeText.trim());
+        sessionStorage.setItem('felix_session_resume_filename', resumeFileName.trim());
+      } else {
+        sessionStorage.removeItem('felix_session_resume');
+        sessionStorage.removeItem('felix_session_resume_filename');
+      }
+
+      if (pasteJd.trim()) {
+        sessionStorage.setItem('felix_session_jd', pasteJd.trim());
+      } else {
+        sessionStorage.removeItem('felix_session_jd');
+      }
     }
 
     try {

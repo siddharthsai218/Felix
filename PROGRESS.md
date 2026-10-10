@@ -79,6 +79,12 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1] — Fixed False Project Grounding When No GitHub/Resume Provided:
+  - Fixed Beyond Presence cloud avatar sync (`server/session/beyond-presence-sync.ts` & `frontend/src/app/api/avatar/sync/route.ts`) which previously hardcoded greeting text referencing "your portfolio" or "your GitHub repositories" even when neither was provided.
+  - Added strict negative constraints to Gemini prompts (`server/session/prompts/question.ts`) when candidate does not submit GitHub or resume, explicitly barring references to "your GitHub" or "your project" and instructing the AI to ask foundational role-domain architecture and scenario questions.
+  - Updated fallback questions in `question.ts` and `frontend/src/app/session/live/page.tsx` so initial questions do not claim familiarity with a candidate project when no portfolio is submitted.
+  - Fixed `sessionStorage` in setup so empty fields properly remove stale items from previous sessions.
+
 - 2026-10-11 [1+3] — PDF Resume Upload & Transcript-Backed Score Generation Audit:
   - Replaced resume textarea with dedicated drag-and-drop `ResumePdfUploader` component (`frontend/src/app/components/ResumePdfUploader.tsx`). Added `/api/resume/parse` endpoint using `pdf-parse` and Gemini Flash to extract candidate experience, tools, and technical projects from uploaded `.pdf` documents; pre-populates session grounding and provides an expandable drawer to preview grounded technical details.
   - Implemented comprehensive `TranscriptScoreAudit` component (`frontend/src/report/TranscriptScoreAudit.tsx`) mounted directly in the Formative Feedback Report (`/session/report`). Shows full transparent scoring derivation (weighting formula, narrative rationale, and points credit vs deductions) backed directly by the candidate's exact spoken words.

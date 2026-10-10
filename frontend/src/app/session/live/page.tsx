@@ -65,7 +65,6 @@ function LiveInterviewContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
   const [lastAudioPayload, setLastAudioPayload] = useState<string>('');
-  const [showQuestionSubtitle, setShowQuestionSubtitle] = useState<boolean>(false);
 
   // Active call duration timer
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -94,7 +93,7 @@ function LiveInterviewContent() {
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
-    `Tell me about a challenging technical project you worked on recently in ${targetRole}. What was your specific role and what was the outcome?`,
+    `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`,
     `How do you approach debugging a high-stakes issue in production when telemetry or logs are sparse?`,
     `Describe a time you had a technical disagreement with a team member. How did you resolve it constructively?`,
     `Can you walk me through a major system architecture decision you made? What trade-offs did you consider?`,
@@ -112,7 +111,6 @@ function LiveInterviewContent() {
   const speakWithBrowserTts = useCallback((text: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setIsAvatarSpeaking(true);
-      setShowQuestionSubtitle(true);
       setTurnState('speaking');
       setTimeout(() => {
         setIsAvatarSpeaking(false);
@@ -143,7 +141,6 @@ function LiveInterviewContent() {
 
       utterance.onstart = () => {
         setIsAvatarSpeaking(true);
-        setShowQuestionSubtitle(true);
         setTurnState('speaking');
       };
 
@@ -157,12 +154,9 @@ function LiveInterviewContent() {
         console.warn('Browser TTS utterance error:', e);
         setIsAvatarSpeaking(false);
         setTurnState('listening');
-        setShowQuestionSubtitle(true);
         speechUtteranceRef.current = null;
       };
 
-      // Set speaking state and show subtitle right away so learner sees it
-      setShowQuestionSubtitle(true);
       setTurnState('speaking');
       setIsAvatarSpeaking(true);
 
@@ -171,7 +165,6 @@ function LiveInterviewContent() {
       console.error('Browser TTS failed:', err);
       setIsAvatarSpeaking(false);
       setTurnState('listening');
-      setShowQuestionSubtitle(true);
     }
   }, []);
 
@@ -201,7 +194,6 @@ function LiveInterviewContent() {
 
         audio.onplay = () => {
           setIsAvatarSpeaking(true);
-          setShowQuestionSubtitle(true);
           setTurnState('speaking');
         };
 
@@ -218,7 +210,6 @@ function LiveInterviewContent() {
         await audio.play().catch((err) => {
           console.warn('Autoplay prevented, audio requires user interaction:', err);
           setIsAvatarSpeaking(false);
-          setShowQuestionSubtitle(false);
           setAudioUnlocked(false);
         });
       } else {
@@ -339,7 +330,6 @@ function LiveInterviewContent() {
     }
 
     setTurnState('processing');
-    setShowQuestionSubtitle(false);
     setCurrentQuestionText('');
     turnStartTimeRef.current = Date.now();
 
@@ -398,7 +388,6 @@ function LiveInterviewContent() {
       if (hasNext) {
         const fallbacks = fallbackQuestionsRef.current;
         const nextQ = fallbacks[nextIndex % fallbacks.length];
-        setShowQuestionSubtitle(false);
         setCurrentQuestionText('');
         setTimeout(() => {
           setCurrentQuestionIndex(nextIndex + 1);
@@ -481,7 +470,9 @@ function LiveInterviewContent() {
 
     let firstQ = fallbackQuestionsRef.current[0];
     if (effectiveGithub || effectiveResume) {
-      firstQ = `In the technical projects on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+      firstQ = `In the technical work on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+    } else {
+      firstQ = `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`;
     }
 
     setTimeout(() => {
@@ -708,31 +699,6 @@ function LiveInterviewContent() {
             isSpeaking={isAvatarSpeaking}
           />
 
-          {/* Current Question Subtitle / Captions (Always readable when Felix is asking or learner is answering) */}
-          {currentQuestionText && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-2xl w-[90%] z-20 pointer-events-none">
-              <div className="bg-gray-950/85 backdrop-blur-md border border-violet-500/30 px-5 py-3 rounded-2xl shadow-2xl text-center">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-violet-400 block mb-1">
-                  {turnState === 'speaking' ? '🗣️ Felix is Asking:' : '💡 Current Question:'}
-                </span>
-                <p className="text-xs sm:text-sm text-gray-100 font-medium leading-relaxed">
-                  {currentQuestionText}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* User Gesture Audio Unlock Badge (if autoplay blocked) */}
-          {!audioUnlocked && (
-            <div
-              onClick={unlockAudioAndPlay}
-              className="absolute top-20 left-1/2 -translate-x-1/2 z-30 cursor-pointer pointer-events-auto"
-            >
-              <div className="bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-full text-xs font-bold text-white shadow-lg flex items-center gap-2 animate-bounce">
-                <span>🔊 Click anywhere to enable sound</span>
-              </div>
-            </div>
-          )}
 
           {/* Live Behavioral Telemetry HUD (MediaPipe Gaze, Py-feat Emotion, Parselmouth Prosody) */}
           <div className="absolute bottom-36 sm:bottom-48 right-4 sm:right-6 w-52 sm:w-64 z-30 shadow-2xl transition-all">

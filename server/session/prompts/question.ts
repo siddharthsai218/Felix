@@ -58,15 +58,21 @@ export async function generateQuestions(
     }
   }
 
+  const hasGithub = Boolean(githubContext);
+  const hasResume = Boolean(context?.resumeText?.trim());
+
   let candidateContext = '';
-  if (githubContext) {
+  if (hasGithub) {
     candidateContext += `\nCANDIDATE GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext}\n`;
   }
-  if (context?.resumeText?.trim()) {
-    candidateContext += `\nCANDIDATE RESUME / EXPERIENCE SUMMARY:\n"""\n${context.resumeText.trim().slice(0, 3000)}\n"""\n`;
+  if (hasResume) {
+    candidateContext += `\nCANDIDATE RESUME / EXPERIENCE SUMMARY:\n"""\n${context?.resumeText?.trim().slice(0, 3000)}\n"""\n`;
   }
   if (context?.jobDescription?.trim()) {
     candidateContext += `\nTARGET JOB REQUIREMENTS:\n"""\n${context.jobDescription.trim().slice(0, 1000)}\n"""\n`;
+  }
+  if (!hasGithub && !hasResume) {
+    candidateContext += `\nCANDIDATE CONTEXT: The candidate has NOT submitted an external GitHub profile or resume.\nCRITICAL CONSTRAINT: DO NOT refer to "your GitHub", "your repository", "your resume", or "your project". Do NOT pretend you have seen a codebase they did not provide. Ask domain-specific engineering questions for "${targetRole}" (system architecture principles, state management, databases, concurrency, and behavioral teamwork scenarios).\n`;
   }
 
   const prompt = QUESTION_PROMPT_TEMPLATE
@@ -106,7 +112,7 @@ function getFallbackQuestions(
 
   const baseQuestions: GeneratedQuestion[] = [];
 
-  // Ground question 1 in candidate's project or GitHub if provided
+  // Ground question 1 in candidate's project or GitHub ONLY if provided
   if (hasGithub || hasResume) {
     baseQuestions.push({
       text: `In the projects listed on your ${hasGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most technically demanding architectural decision you made for ${role}? What trade-offs were involved?`,
@@ -117,11 +123,11 @@ function getFallbackQuestions(
     });
   } else {
     baseQuestions.push({
-      text: `Can you walk me through a challenging production project you built as a ${role}? What was your specific architectural contribution and the outcome?`,
-      type: 'behavioral',
+      text: `To kick off, as a ${role}, how do you typically approach architecting scalable, resilient systems, and what key trade-offs do you prioritize during design?`,
+      type: 'technical',
       targetCompetency: 'technical-depth',
       difficulty: diff,
-      followUpHints: ['What was the biggest technical bottleneck?', 'How did you measure success?'],
+      followUpHints: ['What was the biggest technical bottleneck?', 'How do you measure success?'],
     });
   }
 

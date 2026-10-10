@@ -187,23 +187,57 @@ export async function POST(request: Request) {
 
     const roleName = targetRole || 'Software Engineer';
     const diffLevel = difficulty || 'intermediate';
+    const hasGithub = Boolean(githubUrl?.trim() && repoNames.length > 0);
+    const hasResume = Boolean(resumeText?.trim());
 
-    // Build dynamic greeting that speaks their actual repos
+    // Build dynamic greeting that speaks their actual repos ONLY if provided
     let greeting = '';
-    if (repoNames.length > 0) {
+    if (hasGithub) {
       const featuredRepos = repoNames.slice(0, 3).join(', ');
       const firstRepo = repoNames[0];
       greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your GitHub repositories including ${featuredRepos}. To get started, could you walk me through how you architected your ${firstRepo} project and the key technical trade-offs you made?`;
+    } else if (hasResume) {
+      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your resume background. To begin, could you walk me through a technical accomplishment relevant to ${roleName}?`;
     } else {
-      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. Let's begin: could you walk me through a challenging technical project you worked on recently and the architectural trade-offs you faced?`;
+      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. To begin our discussion, how do you typically approach designing a resilient system architecture that can scale under high load?`;
     }
 
     // Build system prompt strictly commanding the avatar
-    const systemPrompt = `You are Felix, an expert technical interview coaching AI conducting a live mock technical interview with a candidate for the target role: "${roleName}" at ${diffLevel} level.
+    let systemPrompt = `You are Felix, an expert technical interview coaching AI conducting a live mock technical interview with a candidate for the target role: "${roleName}" at ${diffLevel} level.\n\n`;
 
-${githubContext ? `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext}\n\n` : ''}${resumeText?.trim() ? `CANDIDATE RESUME SUMMARY:\n"""\n${resumeText.trim().slice(0, 1000)}\n"""\n\n` : ''}${jobDescription?.trim() ? `TARGET JOB REQUIREMENTS:\n"""\n${jobDescription.trim().slice(0, 500)}\n"""\n\n` : ''}CRITICAL INTERVIEW GUIDELINES:
-1. QUESTIONING FOCUS: You MUST focus your questions on the candidate's actual GitHub repositories listed above (${repoNames.length > 0 ? repoNames.slice(0, 4).join(', ') : 'their practical software engineering experience'}). Probe their system architecture, data persistence, concurrency, API design, and trade-offs.
-2. ABSOLUTE PROHIBITION: NEVER state or say that you cannot access their GitHub profile, cannot view external links, or cannot browse websites. You ALREADY have full knowledge and details of their repositories right in front of you. If the candidate asks whether you can see their GitHub or asks what you know about them, warmly confirm that you have reviewed their repositories and discuss their specific projects.
+    if (hasGithub) {
+      systemPrompt += `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext}\n\n`;
+    }
+
+    if (hasResume) {
+      systemPrompt += `CANDIDATE RESUME SUMMARY:\n"""\n${resumeText.trim().slice(0, 1000)}\n"""\n\n`;
+    }
+
+    if (jobDescription?.trim()) {
+      systemPrompt += `TARGET JOB REQUIREMENTS:\n"""\n${jobDescription.trim().slice(0, 500)}\n"""\n\n`;
+    }
+
+    if (!hasGithub && !hasResume) {
+      systemPrompt += `CANDIDATE CONTEXT: The candidate has NOT submitted a personal GitHub profile or resume.
+CRITICAL MANDATE:
+- DO NOT refer to "your GitHub", "your repositories", "your resume", or "your project" that you pretend to know.
+- Do NOT claim you have seen their codebase or portfolio.
+- Ask standard technical domain questions, architectural trade-offs, and behavioral engineering scenarios for the ${roleName} role.\n\n`;
+    }
+
+    systemPrompt += `CRITICAL INTERVIEW GUIDELINES:
+1. QUESTIONING FOCUS: ${
+      hasGithub
+        ? `Focus your questions on the candidate's actual GitHub repositories listed above (${repoNames.slice(0, 4).join(', ')}). Probe their system architecture, data persistence, concurrency, and trade-offs.`
+        : hasResume
+        ? `Focus your questions on their real experiences, tools, and accomplishments from their resume.`
+        : `Ask foundational and practical engineering questions for ${roleName}: system design principles, state management, caching, reliability, and behavioral teamwork scenarios.`
+    }
+2. ABSOLUTE PROHIBITION: ${
+      hasGithub
+        ? `NEVER state that you cannot access their GitHub profile or view code. You have already reviewed their repositories. If asked, confirm you reviewed their projects (${repoNames.slice(0, 3).join(', ')}).`
+        : `Do NOT pretend to know personal projects or repositories the candidate did not mention. Focus on general technical competence for ${roleName}.`
+    }
 3. SPOKEN VOICE FORMAT:
    - Ask one sharp technical question at a time.
    - Listen attentively to their explanation.
