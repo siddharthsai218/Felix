@@ -15,43 +15,43 @@ interface PresetRole {
 
 const PRESET_ROLES: PresetRole[] = [
   {
-    id: 'frontend-dev',
-    name: 'Frontend Developer',
+    id: 'frontend-architect',
+    name: 'Senior Systems & Frontend Architect',
     icon: '💻',
-    description: 'React, Next.js, TypeScript, State Management, Web Performance & DOM',
+    description: 'React, Next.js, Concurrency, State Machines, Web Performance & DOM',
     competencies: ['UI Architecture', 'Web Performance', 'State Management', 'STAR Structure'],
   },
   {
     id: 'backend-dev',
-    name: 'Backend Developer',
+    name: 'Distributed Systems & Backend Engineer',
     icon: '⚙️',
     description: 'APIs, Distributed Systems, Concurrency, Databases & High Availability',
     competencies: ['System Design', 'Data Modeling', 'Concurrency', 'STAR Structure'],
   },
   {
     id: 'fullstack-dev',
-    name: 'Full-Stack Developer',
+    name: 'Full-Stack Lead Engineer',
     icon: '🔧',
     description: 'End-to-end web apps, API architecture, Database schemas & Deployment',
     competencies: ['Full-Stack Fluency', 'API Design', 'DevOps Basics', 'Communication'],
   },
   {
     id: 'ml-engineer',
-    name: 'Machine Learning Engineer',
+    name: 'Machine Learning Platform Engineer',
     icon: '🧠',
     description: 'PyTorch, Model Training, Inference Optimization, Pipelines & Metrics',
     competencies: ['Model Architecture', 'Data Pipelines', 'Inference Latency', 'Evaluation'],
   },
   {
     id: 'devops-engineer',
-    name: 'DevOps / Cloud Engineer',
+    name: 'Cloud & Infrastructure SRE Architect',
     icon: '☁️',
     description: 'Kubernetes, Docker, CI/CD pipelines, AWS/GCP, Terraform & Reliability',
     competencies: ['Infrastructure as Code', 'Observability', 'Security', 'CI/CD'],
   },
   {
     id: 'product-manager',
-    name: 'Product Manager',
+    name: 'Technical Product Manager',
     icon: '📋',
     description: 'Product strategy, Feature scoping, Metrics, Stakeholders & User Empathy',
     competencies: ['Metric Framing', 'User Empathy', 'Conflict Resolution', 'Leadership'],
@@ -61,31 +61,31 @@ const PRESET_ROLES: PresetRole[] = [
 const DIFFICULTIES = [
   {
     id: 'beginner',
-    label: 'Beginner',
+    label: 'Standard',
     desc: 'Foundational concepts, encouraging pace, gentle coaching nudges',
     color: 'from-emerald-400 to-green-500',
     border: 'border-emerald-500/30',
   },
   {
     id: 'intermediate',
-    label: 'Intermediate',
-    desc: 'Standard mock interview rigor with follow-up probing',
-    color: 'from-blue-400 to-indigo-500',
-    border: 'border-indigo-500/30',
+    label: 'Staff L6',
+    desc: 'Standard mock interview rigor with follow-up probing and trade-offs',
+    color: 'from-cyan-400 to-blue-500',
+    border: 'border-cyan-500/30',
   },
   {
     id: 'advanced',
-    label: 'Advanced',
-    desc: 'Senior rigor with architectural edge cases and behavioral curveballs',
-    color: 'from-purple-400 to-rose-500',
-    border: 'border-rose-500/30',
+    label: 'Principal / Fellow',
+    desc: 'High rigor with architectural edge cases, incident leadership, and ambiguity',
+    color: 'from-violet-400 to-rose-500',
+    border: 'border-violet-500/30',
   },
 ] as const;
 
 export default function SessionSetupPage() {
   const router = useRouter();
 
-  const [roleTitle, setRoleTitle] = useState<string>('Software Engineer');
+  const [roleTitle, setRoleTitle] = useState<string>('Senior Systems & Frontend Architect');
   const [githubUrl, setGithubUrl] = useState<string>('');
   const [resumeText, setResumeText] = useState<string>('');
   const [resumeFileName, setResumeFileName] = useState<string>('');
@@ -94,7 +94,6 @@ export default function SessionSetupPage() {
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>('');
-  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   // Restore saved setup from previous practice if available
   useEffect(() => {
@@ -121,7 +120,7 @@ export default function SessionSetupPage() {
     if (isStarting) return;
     setIsStarting(true);
     setSyncStatus('Configuring Beyond Presence Avatar with your role...');
-    const finalRole = roleTitle.trim() || 'Software Engineer';
+    const finalRole = roleTitle.trim() || 'Senior Systems & Frontend Architect';
 
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
     if (typeof window !== 'undefined') {
@@ -194,122 +193,148 @@ export default function SessionSetupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col justify-between p-4 sm:p-8">
-      {/* Top Navbar */}
-      <header className="max-w-4xl mx-auto w-full flex items-center justify-between py-4 border-b border-gray-800/80 mb-8">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
-            🎓
+    <main className="min-h-screen bg-[#070b12] text-white flex flex-col justify-between selection:bg-violet-500/30">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* TOP NAV BAR                                                               */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <header className="w-full bg-[#090d16] border-b border-slate-800/80 sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-violet-500/20">
+              F
+            </div>
+            <span className="font-extrabold text-sm tracking-wider uppercase text-white font-mono">
+              FELIX AI
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] text-slate-300">
+              CONFIG SUITE v2.4
+            </span>
+            <Link
+              href="/session/report"
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              Previous Report
+            </Link>
           </div>
-          <div>
-            <h1 className="font-bold text-lg tracking-tight group-hover:text-violet-400 transition-colors">
-              Felix
-            </h1>
-            <p className="text-[11px] text-gray-500">Adaptive Interview-Skills Coach</p>
+        </div>
+
+        {/* Sub-Header Banner Strip */}
+        <div className="border-t border-slate-800/60 bg-[#06090f]/80 px-4 sm:px-6 py-1.5 text-[11px] font-mono flex items-center justify-between text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>🛡️</span>
+            <span>Adaptive Technical Interview & Behavioral Rehearsal Suite</span>
           </div>
-        </Link>
+          <span className="text-[10px] text-emerald-400 font-bold hidden sm:inline-block">READY FOR DEPLOYMENT</span>
+        </div>
       </header>
 
-      {/* Main Form Body */}
-      <div className="max-w-3xl mx-auto w-full flex-1">
-        <div className="mb-8">
-          <h2 className="text-3xl font-extrabold tracking-tight mb-2">
-            Configure Your Practice Session
-          </h2>
-          <p className="text-sm text-gray-400 leading-relaxed">
-            Felix generates role-specific interview questions grounded in your selected field, your GitHub code, and your resume.
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* MAIN FORM BODY                                                            */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 flex-1 space-y-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-cyan-400 text-xs font-mono">⚡</span>
+            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-cyan-400">
+              SESSION INITIALIZATION
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Configure Your Technical Rehearsal
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+            Felix generates high-rigor, role-specific prompts grounded in your public GitHub codebase, system architecture trade-offs, and resume accomplishments.
           </p>
         </div>
 
         {/* 1. Target Role Field */}
-        <section className="mb-8 p-6 rounded-2xl bg-gray-900/60 border border-gray-800 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-semibold uppercase tracking-wider text-violet-400 flex items-center gap-2">
+        <section className="p-6 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <label className="text-xs font-mono font-bold uppercase tracking-wider text-violet-400 flex items-center gap-2">
               <span>🎯</span>
-              <span>1. Target Role</span>
+              <span>1. Target Role & Specialty</span>
             </label>
-            <span className="text-[11px] text-gray-400">Questions are strictly limited to this field</span>
+            <span className="text-[10px] font-mono text-slate-400">Prompts calibrated to this engineering bar</span>
           </div>
 
           {/* Role Direct Text Input */}
-          <div className="mb-4">
+          <div>
             <input
               type="text"
               value={roleTitle}
-              onChange={(e) => {
-                setRoleTitle(e.target.value);
-                setActivePreset(null);
-              }}
-              placeholder="e.g. Distributed Systems Engineer, Data Scientist, iOS Developer..."
-              className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-base text-white font-medium placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+              onChange={(e) => setRoleTitle(e.target.value)}
+              placeholder="e.g. Senior Systems & Frontend Architect, Distributed Systems Engineer..."
+              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-medium placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-sans"
             />
           </div>
 
           {/* Quick Preset Selector Buttons */}
-          <div>
-            <span className="text-xs text-gray-400 block mb-2 font-medium">
-              Or pick a popular role preset:
+          <div className="space-y-2 pt-1">
+            <span className="text-[11px] font-mono text-slate-400 block font-semibold">
+              Or pick an established staff-level track:
             </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {PRESET_ROLES.map((preset) => (
                 <button
                   key={preset.id}
                   type="button"
                   onClick={() => handleSelectPreset(preset)}
-                  className={`px-3 py-2 rounded-xl text-left text-xs font-medium border transition-all flex items-center gap-2 ${
+                  className={`p-3 rounded-xl text-left border transition-all flex items-start gap-2.5 ${
                     roleTitle.toLowerCase() === preset.name.toLowerCase()
-                      ? 'border-violet-500 bg-violet-600/20 text-white ring-1 ring-violet-500'
-                      : 'border-gray-800 bg-gray-950/60 text-gray-300 hover:border-gray-700 hover:bg-gray-900'
+                      ? 'border-violet-500 bg-violet-600/20 text-white ring-1 ring-violet-500 shadow-md shadow-violet-500/20'
+                      : 'border-slate-800/90 bg-slate-950/60 text-slate-300 hover:border-slate-700 hover:bg-slate-900/60'
                   }`}
                 >
-                  <span className="text-base">{preset.icon}</span>
-                  <span className="truncate">{preset.name}</span>
+                  <span className="text-lg shrink-0 mt-0.5">{preset.icon}</span>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block truncate text-slate-200">{preset.name}</span>
+                    <span className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{preset.description}</span>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
         </section>
 
-        {/* 2. Candidate Portfolio & Resume Intake */}
-        <section className="mb-8 p-6 rounded-2xl bg-gray-900/60 border border-gray-800 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-semibold uppercase tracking-wider text-violet-400 flex items-center gap-2">
-              <span>📁</span>
-              <span>2. Candidate Portfolio & Resume Context</span>
+        {/* 2. Candidate Portfolio & GitHub Grounding */}
+        <section className="p-6 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <label className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <span>🐙</span>
+              <span>2. Codebase Grounding (Upstream MCP)</span>
             </label>
-            <span className="text-[11px] text-emerald-400 font-medium">Upstream MCP Intake</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">Live GitHub Scraper Active</span>
           </div>
-          <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-            Felix inspects your public GitHub code and resume to grill you on your <strong>actual architectural decisions and projects</strong> instead of generic trivia.
-          </p>
 
           <div className="space-y-4">
             {/* GitHub URL Field */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-                <span>🐙</span>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <span>GitHub Profile or Repository URL</span>
               </label>
               <input
                 type="text"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="e.g. username, github.com/username, or repository URL"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-mono"
+                placeholder="e.g. username, github.com/username, or specific repo"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
               />
-              <span className="text-[11px] text-gray-500 mt-1 block">
-                Enter your GitHub username or profile URL. Felix reads your public repositories and projects to ground your interview questions.
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Felix reads your public repositories, dependencies, and commit architectures to grill you on your <strong>actual code</strong> instead of generic LeetCode trivia.
               </span>
             </div>
 
-            {/* Resume PDF Upload (Required / Recommended instead of plain text) */}
+            {/* Resume PDF Upload */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span>📄</span>
                   <span>Resume (PDF Upload)</span>
                 </div>
-                <span className="text-[10px] text-violet-400 font-medium">PDF File Required</span>
+                <span className="text-[10px] text-violet-400 font-medium">PDF File Recommended</span>
               </label>
               <ResumePdfUploader
                 initialFileName={resumeFileName}
@@ -331,14 +356,14 @@ export default function SessionSetupPage() {
                   }
                 }}
               />
-              <span className="text-[11px] text-gray-500 mt-1 block">
-                Upload your PDF resume. Felix reads your real projects, tools, and technical experience from the PDF to grill you on your actual code and architecture.
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Upload your PDF resume. Felix reads your real projects, tools, and technical experience from the PDF to challenge you on your actual architecture.
               </span>
             </div>
 
             {/* Target Job Description (Optional) */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <span>💼</span>
                 <span>Target Job Description (Optional)</span>
               </label>
@@ -346,17 +371,17 @@ export default function SessionSetupPage() {
                 rows={3}
                 value={pasteJd}
                 onChange={(e) => setPasteJd(e.target.value)}
-                placeholder="Paste requirements or qualifications from a company job listing to align the questions..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-gray-950 border border-gray-800 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all resize-y"
+                placeholder="Paste key requirements, preferred tech stack, or JD details..."
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all resize-y"
               />
             </div>
           </div>
         </section>
 
-        {/* 3. Difficulty Level */}
-        <section className="mb-8">
-          <label className="block text-sm font-semibold uppercase tracking-wider text-violet-400 mb-3">
-            3. Difficulty Rigor
+        {/* 3. Difficulty Rigor */}
+        <section className="p-6 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-4">
+          <label className="block text-xs font-mono font-bold uppercase tracking-wider text-violet-400 pb-2 border-b border-slate-800/80">
+            3. Evaluation Rigor & Curveball Probing
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {DIFFICULTIES.map((d) => (
@@ -364,28 +389,28 @@ export default function SessionSetupPage() {
                 key={d.id}
                 type="button"
                 onClick={() => setDifficulty(d.id)}
-                className={`p-4 rounded-2xl border text-left transition-all ${
+                className={`p-4 rounded-xl border text-left transition-all ${
                   difficulty === d.id
-                    ? `${d.border} bg-gray-900 ring-2 ring-violet-500/80`
-                    : 'border-gray-800/80 bg-gray-900/50 hover:border-gray-700'
+                    ? `${d.border} bg-slate-900 ring-2 ring-violet-500/80 shadow-lg shadow-violet-500/20`
+                    : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
                 }`}
               >
-                <div className={`text-sm font-extrabold bg-gradient-to-r ${d.color} bg-clip-text text-transparent mb-1`}>
+                <div className={`text-sm font-extrabold bg-gradient-to-r ${d.color} bg-clip-text text-transparent mb-1 font-mono`}>
                   {d.label}
                 </div>
-                <p className="text-xs text-gray-400 leading-snug">{d.desc}</p>
+                <p className="text-xs text-slate-400 leading-snug">{d.desc}</p>
               </button>
             ))}
           </div>
         </section>
 
-        {/* Start Button */}
-        <div className="mb-12">
+        {/* Launch Button */}
+        <div>
           <button
             type="button"
             disabled={isStarting}
             onClick={handleStartSession}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-violet-500/30 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-80 disabled:cursor-wait"
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold font-mono text-sm sm:text-base shadow-xl shadow-violet-500/25 transition-all hover:scale-[1.008] active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-80 disabled:cursor-wait"
           >
             {isStarting ? (
               <>
@@ -394,7 +419,7 @@ export default function SessionSetupPage() {
               </>
             ) : (
               <>
-                <span>Launch Live Interview for {roleTitle || 'Selected Role'}</span>
+                <span>Launch Live Engineering Rehearsal</span>
                 <span className="text-lg">→</span>
               </>
             )}
@@ -403,8 +428,8 @@ export default function SessionSetupPage() {
       </div>
 
       {/* Footer Notice */}
-      <footer className="max-w-3xl mx-auto w-full text-center text-xs text-gray-500 pt-6 border-t border-gray-900">
-        All questions adapt directly to your chosen role, portfolio, and resume.
+      <footer className="max-w-4xl mx-auto w-full text-center text-[11px] font-mono text-slate-500 py-6 border-t border-slate-900">
+        ENGINEERING REHEARSAL SUITE • ADAPTIVE INTERVIEW-SKILLS COACH
       </footer>
     </main>
   );

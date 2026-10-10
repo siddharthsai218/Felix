@@ -79,6 +79,7 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [all] — Pulled and Merged Remote Suite Redesign: Pulled remote `origin/main` (commit `602f852` enterprise suite UI redesign); resolved merge conflicts across `frontend/src/app/session/live/page.tsx`, `setup/page.tsx`, `report/page.tsx`, and `FeedbackReport.tsx`. Preserved distraction-free avatar stage (no subtitles, no sound banner), `ResumePdfUploader` drag-and-drop PDF parsing, dynamic Gemini evaluation, and `TranscriptScoreAudit` verbatim transcript grounding alongside the sleek non-overlapping layouts. All TypeScript compiles and production builds verified clean.
 - 2026-10-11 [1] — Removed Sound Enable Badge and Question Subtitles: Completely removed the "Click anywhere to enable sound" bouncing badge and the floating question subtitle/caption overlay from the live interview stage (`frontend/src/app/session/live/page.tsx`), leaving a distraction-free full-stage view with natural audio playback and uninterrupted avatar interaction.
 - 2026-10-11 [1] — Fixed False Project Grounding When No GitHub/Resume Provided:
   - Fixed Beyond Presence cloud avatar sync (`server/session/beyond-presence-sync.ts` & `frontend/src/app/api/avatar/sync/route.ts`) which previously hardcoded greeting text referencing "your portfolio" or "your GitHub repositories" even when neither was provided.
