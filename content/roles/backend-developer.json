@@ -1,0 +1,36 @@
+{
+  "id": "backend-developer",
+  "title": "Backend Developer",
+  "description": "Backend Developer responsible for APIs, databases, and system architecture.",
+  "skills": ["Node.js", "Python", "SQL", "REST APIs", "System Design", "Data Structures", "Git"],
+  "competencies": ["Technical Knowledge", "Problem Solving", "System Design Thinking", "Code Quality", "Communication"],
+  "questionBank": [
+    {
+      "id": "bd-1",
+      "question": "Tell me about a time you had to debug a complex production issue.",
+      "type": "behavioral",
+      "difficulty": 3,
+      "competency": "Problem Solving",
+      "followUpQuestions": ["What specific tools did you use?", "How did you communicate the issue to stakeholders?"],
+      "expectedLearningOutcomes": ["Demonstrate systematic debugging", "Show effective communication during crisis"]
+    },
+    {
+      "id": "bd-2",
+      "question": "How would you design a URL shortener that handles 10M requests per day?",
+      "type": "technical",
+      "difficulty": 4,
+      "competency": "System Design Thinking",
+      "followUpQuestions": ["How would you handle caching?", "What database would you choose and why?"],
+      "expectedLearningOutcomes": ["Understand scalability", "Database selection rationale"]
+    },
+    {
+      "id": "bd-3",
+      "question": "Your team disagrees on using microservices vs monolith. How do you approach this?",
+      "type": "situational",
+      "difficulty": 3,
+      "competency": "Communication",
+      "followUpQuestions": ["What metrics would you use to decide?", "How do you handle a team member who refuses to compromise?"],
+      "expectedLearningOutcomes": ["Conflict resolution", "Data-driven decision making"]
+    }
+  ]
+}

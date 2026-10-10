@@ -1,0 +1,36 @@
+{
+  "id": "product-manager",
+  "title": "Product Manager",
+  "description": "Product Manager responsible for product strategy and execution.",
+  "skills": ["Product Strategy", "User Research", "Prioritization", "Stakeholder Management", "Analytics"],
+  "competencies": ["Strategic Thinking", "Communication", "Data Analysis", "User Empathy", "Execution"],
+  "questionBank": [
+    {
+      "id": "pm-1",
+      "question": "Tell me about a time you had to pivot a product strategy based on user feedback.",
+      "type": "behavioral",
+      "difficulty": 3,
+      "competency": "User Empathy",
+      "followUpQuestions": ["How did you validate the feedback?", "How did you convince stakeholders?"],
+      "expectedLearningOutcomes": ["Adaptability", "Customer-centricity"]
+    },
+    {
+      "id": "pm-2",
+      "question": "How do you prioritize features for a new product launch?",
+      "type": "technical",
+      "difficulty": 3,
+      "competency": "Strategic Thinking",
+      "followUpQuestions": ["What frameworks do you use?", "How do you balance tech debt vs new features?"],
+      "expectedLearningOutcomes": ["Prioritization frameworks", "Decision making"]
+    },
+    {
+      "id": "pm-3",
+      "question": "Your engineering team says a critical feature will take 3 months instead of 1. What do you do?",
+      "type": "situational",
+      "difficulty": 4,
+      "competency": "Execution",
+      "followUpQuestions": ["How do you communicate this to leadership?", "Can you reduce scope?"],
+      "expectedLearningOutcomes": ["Project management", "Negotiation"]
+    }
+  ]
+}
