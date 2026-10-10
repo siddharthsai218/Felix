@@ -2,120 +2,125 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col justify-between selection:bg-violet-500 selection:text-white">
-      {/* Navigation */}
-      <header className="max-w-6xl mx-auto w-full px-6 py-6 flex items-center justify-between border-b border-gray-800/80">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
-            🎓
-          </div>
-          <div>
-            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-violet-400 to-indigo-300 bg-clip-text text-transparent">
-              Felix
-            </span>
-            <span className="text-[11px] text-gray-500 block -mt-0.5">Adaptive Interview-Skills Coach</span>
-          </div>
-        </div>
+    <main className="min-h-screen bg-[#070b12] text-white flex flex-col justify-between selection:bg-violet-500/30">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* Top Header Bar                                                            */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <header className="w-full bg-[#090d16] border-b border-slate-800/80 sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-violet-500/20">
+                F
+              </div>
+              <span className="font-extrabold text-sm tracking-wider uppercase text-white font-mono">
+                FELIX AI
+              </span>
+            </Link>
 
-        <div className="flex items-center gap-4">
-          <Link
-            href="/session/setup"
-            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white shadow-md shadow-violet-500/25 transition-all"
-          >
-            Start Practice
-          </Link>
+            <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
+
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-mono text-cyan-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>ENGINEERING REHEARSAL SUITE v2.4</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/session/report?sessionId=FLX-98219"
+              className="text-xs font-mono text-slate-400 hover:text-white transition-colors hidden sm:inline-block"
+            >
+              Demo Assessment
+            </Link>
+            <Link
+              href="/session/setup"
+              className="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-xs font-mono font-bold text-white shadow-md shadow-violet-500/25 transition-all"
+            >
+              Start Rehearsal →
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="max-w-4xl mx-auto w-full px-6 py-16 sm:py-24 text-center">
-        {/* Track Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium mb-8">
-          <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-          Formative Interview Coaching · Not a Hiring Screen
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* Hero Section                                                              */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-16 sm:py-24 text-center space-y-6">
+        {/* Status Pill */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 text-xs font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Formative Closed-Loop Interview Coaching • Not a Proctoring Screen</span>
         </div>
 
-        {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-6 leading-tight">
-          Master Your Delivery,{' '}
-          <span className="bg-gradient-to-r from-violet-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-            Not Just Your Answers.
+        {/* Headline */}
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight">
+          Master Your Architectural Delivery,{' '}
+          <span className="bg-gradient-to-r from-cyan-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent">
+            Not Just Your Trivia.
           </span>
         </h1>
 
-        <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          The interview is the <span className="text-gray-200 font-semibold">practice activity</span>. The <span className="text-violet-300 font-semibold">learning</span> is the point. Experience real-time avatar practice, pedagogical Rescue Mode, and side-by-side Answer Transformation.
+        <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          The interview is the <strong className="text-slate-200">practice activity</strong>; the closed-loop skill elevation is the point. Experience real-time avatar probing, live acoustic jitter tracking, and the executive Answer Transformer.
         </p>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
           <Link
             href="/session/setup"
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-violet-500/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-500 hover:to-indigo-500 text-white font-mono font-bold text-sm shadow-xl shadow-violet-500/25 transition-all hover:scale-[1.01]"
           >
-            <span>Launch Mock Interview</span>
-            <span>→</span>
+            Launch Engineering Rehearsal →
           </Link>
           <Link
-            href="/session/report?sessionId=demo-sample"
-            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-gray-900/80 hover:bg-gray-800 border border-gray-800 text-gray-300 font-medium text-sm transition-colors"
+            href="/session/report?sessionId=FLX-98219"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-mono text-xs transition-colors"
           >
             View Sample Assessment Report
           </Link>
         </div>
 
-        {/* Feature Highlights Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-          {/* Card 1 */}
-          <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800/80 backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl mb-3">
-              🛟
+        {/* Feature Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left pt-12">
+          {/* Feature 1 */}
+          <div className="p-5 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-lg text-cyan-400 font-mono">
+              🐙
             </div>
-            <h3 className="font-bold text-sm text-white mb-1.5">Live Rescue Mode</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Freeze up for &gt;5 seconds? Felix uses Vygotsky&apos;s Zone of Proximal Development to scaffold your thinking out loud instead of letting you fail.
+            <h3 className="font-bold text-sm text-white font-mono">GitHub Upstream Grounding</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Felix reads your actual public code and architecture to cross-examine you on your real commits, state machines, and concurrency trade-offs.
             </p>
           </div>
 
-          {/* Card 2 */}
-          <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800/80 backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl mb-3">
-              🌟
-            </div>
-            <h3 className="font-bold text-sm text-white mb-1.5">The Answer Transformer</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Immediate side-by-side comparison: your verbatim speech translated into a professional STAR framework rewrite with concrete metrics.
-            </p>
-          </div>
-
-          {/* Card 3 */}
-          <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800/80 backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl mb-3">
+          {/* Feature 2 */}
+          <div className="p-5 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/25 flex items-center justify-center text-lg text-violet-400 font-mono">
               ⚡
             </div>
-            <h3 className="font-bold text-sm text-white mb-1.5">One-Click Micro-Drill</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Target detected weaknesses immediately. Launch a 30-second sprint, retry the question, and watch your competency score improve in the same session.
+            <h3 className="font-bold text-sm text-white font-mono">The Answer Transformer</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Immediate side-by-side translation: your unstructured verbatim speech rewritten into an executive-ready STAR pitch with quantifiable metrics.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="p-5 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-lg text-emerald-400 font-mono">
+              〰️
+            </div>
+            <h3 className="font-bold text-sm text-white font-mono">Multimodal Biometrics</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Real-time normalized autocorrelation vocal jitter tracking and MediaPipe eye contact alignment—coaching self-awareness, never penalizing.
             </p>
           </div>
         </div>
       </section>
 
-      {/* EdTech Manifesto Strip */}
-      <section className="max-w-4xl mx-auto w-full px-6 mb-12">
-        <div className="p-5 rounded-2xl bg-violet-950/30 border border-violet-800/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🌱</span>
-            <p className="text-xs text-violet-200">
-              <span className="font-bold">Felix vs. Screening Tools:</span> Traditional mock interviews are summative tests. Felix is formative education — behavioral signals are self-awareness cues, never proctoring penalties.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="max-w-6xl mx-auto w-full px-6 py-6 border-t border-gray-900 text-center text-xs text-gray-600">
-        Felix — Adaptive Interview-Skills Coach
+      {/* Footer Bar */}
+      <footer className="w-full bg-[#090d16] border-t border-slate-800/80 py-4 px-6 text-center text-[11px] font-mono text-slate-500">
+        ENGINEERING REHEARSAL SUITE v2.4.1-rc • SECURE COGNITIVE LINK ACTIVE
       </footer>
     </main>
   );

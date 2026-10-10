@@ -602,31 +602,30 @@ function LiveInterviewContent() {
       onClick={() => {
         if (!audioUnlocked) unlockAudioAndPlay();
       }}
-      className="h-screen w-screen bg-gray-950 text-white flex flex-col justify-between p-2 sm:p-4 select-none overflow-hidden"
+      className="h-screen w-screen bg-[#070b12] text-white flex flex-col justify-between p-3 select-none overflow-hidden font-sans"
     >
-      {/* Top Bar */}
-      <header className="w-full flex items-center justify-between px-3 py-1.5 z-20">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* Top Header Bar                                                            */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <header className="w-full bg-[#0d131f] border border-slate-800/90 rounded-2xl px-4 py-2.5 z-20 flex items-center justify-between gap-4 shadow-xl">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-sm shadow">
-              🎓
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-violet-500/20">
+              F
             </div>
-            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
-              Felix
+            <span className="font-extrabold text-sm tracking-wider uppercase text-white font-mono">
+              FELIX AI
             </span>
           </Link>
-          <div className="h-4 w-[1px] bg-gray-800" />
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-violet-300">{targetRole}</span>
-            <span className="text-gray-500">•</span>
-            <span className="text-gray-400 capitalize">{difficulty}</span>
+          <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-mono text-cyan-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>{targetRole} • LIVE REHEARSAL</span>
           </div>
           {githubUrl && (
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-950/70 border border-indigo-700/60 text-[11px] text-indigo-300 shadow-sm" title={`Grounded in GitHub: ${githubUrl}`}>
+            <div className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-[10px] font-mono text-slate-300">
               <span>🐙</span>
-              <span className="font-mono truncate max-w-[130px]">
-                {githubUrl.replace(/^https?:\/\/(?:www\.)?github\.com\//, '').replace(/\/$/, '')}
-              </span>
+              <span className="truncate max-w-[120px]">{githubUrl.replace(/^https?:\/\/(?:www\.)?github\.com\//, '')}</span>
             </div>
           )}
         </div>
@@ -634,23 +633,21 @@ function LiveInterviewContent() {
         {/* Status Indicators & Navigation */}
         <div className="flex items-center gap-3">
           {/* Active Call Duration Timer */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs font-mono text-gray-300 shadow-sm">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>{formatElapsed(elapsedSeconds)}</span>
           </div>
 
           {/* Question Index Pill */}
-          <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-bold text-violet-300">
-            {isUnlimited
-              ? `Question ${currentQuestionIndex}`
-              : `Question ${currentQuestionIndex} of ${questionCount}`}
+          <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-mono font-bold text-violet-300">
+            {isUnlimited ? `Prompt 0${currentQuestionIndex}` : `Prompt 0${currentQuestionIndex} / 0${questionCount}`}
           </div>
 
           {/* Finish & View Report Button */}
           <button
             onClick={handleFinishInterview}
-            className="px-3 py-1 rounded-full bg-violet-600 hover:bg-violet-500 text-xs font-bold text-white transition-all shadow-md shadow-violet-500/20 flex items-center gap-1.5"
-            title="Conclude interview and generate comprehensive evaluation report"
+            className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-xs font-bold font-mono text-white transition-all shadow-md shadow-violet-500/25 flex items-center gap-1.5"
+            title="Conclude interview and generate executive review report"
           >
             <span>Finish Interview</span>
             <span>✓</span>
@@ -659,34 +656,47 @@ function LiveInterviewContent() {
           {/* Leave Button */}
           <Link
             href="/session/setup"
-            className="text-xs text-gray-300 hover:text-white px-3 py-1 rounded-lg bg-gray-900/80 hover:bg-gray-800 border border-gray-800 transition-colors"
+            className="text-xs font-mono text-slate-400 hover:text-white px-3 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-colors"
           >
             Leave
           </Link>
         </div>
       </header>
 
-      {/* Main Video Stage */}
-      <div className="w-full flex-1 relative flex items-center justify-center p-1 sm:p-2 overflow-hidden">
-        {/* Large Stage: The Avatar (Pinned Speaker) */}
-        <div className="w-full h-full relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900/90 border border-gray-800/80 shadow-2xl flex items-center justify-center">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* Main Stage (Clean Non-Overlapping Grid Layout)                            */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <div className="w-full flex-1 my-2 flex flex-col md:flex-row items-stretch gap-3 overflow-hidden">
+        {/* Main Left Stage: The Avatar (Pinned Speaker) */}
+        <div className="flex-1 relative rounded-2xl overflow-hidden bg-[#0a0f19] border border-slate-800/90 shadow-2xl flex items-center justify-center min-h-0">
           <Avatar
             state={turnState}
             isSpeaking={isAvatarSpeaking}
           />
 
-          {/* Live Behavioral Telemetry HUD (MediaPipe Gaze, Py-feat Emotion, Parselmouth Prosody) */}
-          <div className="absolute bottom-36 sm:bottom-48 right-4 sm:right-6 w-52 sm:w-64 z-30 shadow-2xl transition-all">
-            <LiveTelemetryHud
-              isActive={true}
-              isListening={turnState === 'listening'}
-              transcript={learnerTranscript || partialTranscript}
-              audioStream={mediaStream}
-            />
-          </div>
+          {/* Subtitle / Caption Bar (Docked strictly at bottom-left of avatar stage, never overlapping) */}
+          {currentQuestionText && (
+            <div className="absolute bottom-3 left-4 right-4 z-10 pointer-events-none">
+              <div className="bg-[#0b101c]/90 backdrop-blur-md border border-slate-800/90 p-3 rounded-xl shadow-xl max-w-2xl mx-auto">
+                <span className="text-[10px] font-mono font-bold tracking-wider text-violet-400 uppercase block mb-1">
+                  INTERVIEWER PROMPT
+                </span>
+                <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
+                  "{currentQuestionText}"
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* Self-View Camera: Bottom-Right Floating PiP */}
-          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-48 sm:w-60 md:w-72 aspect-video z-30 shadow-2xl transition-all">
+        {/* Right Sidebar: Camera PiP + Live Behavioral Telemetry HUD (Clean Stack, Zero Overlap) */}
+        <div className="w-full md:w-72 lg:w-80 flex flex-col gap-3 shrink-0 justify-between overflow-y-auto">
+          {/* Top Card: Self-View Camera Feed */}
+          <div className="rounded-2xl overflow-hidden bg-[#0d131f] border border-slate-800/90 shadow-xl flex flex-col aspect-video shrink-0 relative">
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-800 text-[10px] font-mono text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>CANDIDATE FEED</span>
+            </div>
             <MediaCapture
               sessionId={sessionId}
               responseIndex={currentQuestionIndex - 1}
@@ -697,17 +707,30 @@ function LiveInterviewContent() {
               className="w-full h-full"
             />
           </div>
+
+          {/* Bottom Card: Live Behavioral Telemetry HUD (Docked cleanly below camera) */}
+          <div className="flex-1 min-h-[220px]">
+            <LiveTelemetryHud
+              isActive={true}
+              isListening={turnState === 'listening'}
+              transcript={learnerTranscript || partialTranscript}
+              audioStream={mediaStream}
+              className="h-full"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Bottom Controls Bar */}
-      <footer className="w-full flex items-center justify-between px-3 py-2 z-20">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* Bottom Controls Bar (Clean Floating Dock)                                 */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <footer className="w-full bg-[#0d131f] border border-slate-800/90 rounded-2xl px-4 py-2 z-20 flex items-center justify-between gap-4 shadow-xl">
         {/* Left: Meeting Info & Live Audio Wave */}
         <div className="flex items-center gap-3">
-          <div className="hidden sm:block text-xs text-gray-400">
-            <span className="font-semibold text-gray-200">{targetRole} Practice</span>
-            <span className="text-gray-600 mx-2">|</span>
-            <span className="text-gray-400">Turn {currentQuestionIndex}</span>
+          <div className="hidden sm:block text-xs font-mono text-slate-400">
+            <span className="font-semibold text-slate-200">{targetRole}</span>
+            <span className="text-slate-600 mx-2">|</span>
+            <span className="text-slate-400">Prompt {currentQuestionIndex}</span>
           </div>
           <div className="w-24 sm:w-32">
             <AudioVisualizer
@@ -719,19 +742,19 @@ function LiveInterviewContent() {
         </div>
 
         {/* Center: Call Controls */}
-        <div className="flex items-center gap-2 sm:gap-3 bg-gray-900/90 border border-gray-800/90 px-4 py-2 rounded-full shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-3">
           {/* Done Speaking Button (When listening) */}
           {turnState === 'listening' ? (
             <button
               onClick={handleSubmitResponse}
-              className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+              className="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-mono text-xs transition-all shadow-md shadow-emerald-500/25 flex items-center gap-1.5"
             >
               <span>Done Speaking</span>
               <span>→</span>
             </button>
           ) : (
-            <div className="px-3 py-1.5 rounded-full bg-gray-800 text-gray-400 text-xs font-medium">
-              {turnState === 'speaking' ? 'Felix Speaking…' : 'Processing…'}
+            <div className="px-4 py-2 rounded-full bg-slate-800/80 text-slate-400 text-xs font-mono font-medium border border-slate-700/60">
+              {turnState === 'speaking' ? 'Interviewer Speaking…' : 'Synthesizing Prompt…'}
             </div>
           )}
 
@@ -739,14 +762,16 @@ function LiveInterviewContent() {
           <Link
             href="/session/setup"
             className="w-8 h-8 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white text-xs shadow-md shadow-red-500/20 transition-transform hover:scale-105"
-            title="Leave call"
+            title="Leave rehearsal"
           >
             📞
           </Link>
         </div>
 
         {/* Right: Clean alignment spacer */}
-        <div className="w-16 hidden sm:block" />
+        <div className="w-16 hidden sm:block text-right text-[10px] font-mono text-slate-500">
+          ENGINE v2.4
+        </div>
       </footer>
     </main>
   );

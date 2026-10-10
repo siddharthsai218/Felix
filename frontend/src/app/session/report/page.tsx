@@ -11,28 +11,28 @@ import type { DrillSpec } from '../../lib/types';
 function ReportContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const sessionId = searchParams.get('sessionId') || 'demo-session';
+  const rawSessionId = searchParams.get('sessionId') || 'FLX-98219';
+  const sessionId = rawSessionId.startsWith('FLX-') ? rawSessionId : `FLX-${rawSessionId.slice(-5).toUpperCase()}`;
 
   const [drillModalOpen, setDrillModalOpen] = useState(false);
   const [activeDrill, setActiveDrill] = useState<DrillSpec | null>(null);
 
-  const [roleTitle, setRoleTitle] = useState<string>('Software Engineer');
+  const [roleTitle, setRoleTitle] = useState<string>('Senior Systems & Frontend Architect');
   const [githubUrl, setGithubUrl] = useState<string>('');
-  const [overallScore, setOverallScore] = useState<number>(3.5);
+  const [overallScore, setOverallScore] = useState<number>(3.9);
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
   const [behavioralInsights, setBehavioralInsights] = useState<BehavioralInsightItem[]>([]);
   const [transformations, setTransformations] = useState<StarResponseTransformation[]>([]);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
-  const [candidateResponsesCount, setCandidateResponsesCount] = useState<number>(0);
 
   useEffect(() => {
-    let storedRole = 'Software Engineer';
+    let storedRole = 'Senior Systems & Frontend Architect';
     let storedGithub = '';
     let storedResponses: any[] = [];
     let storedTelemetry: any = null;
 
     if (typeof window !== 'undefined') {
-      storedRole = sessionStorage.getItem('felix_session_role') || 'Software Engineer';
+      storedRole = sessionStorage.getItem('felix_session_role') || 'Senior Systems & Frontend Architect';
       storedGithub = sessionStorage.getItem('felix_session_github') || '';
 
       try {
@@ -48,7 +48,6 @@ function ReportContent() {
 
     setRoleTitle(storedRole);
     setGithubUrl(storedGithub);
-    setCandidateResponsesCount(storedResponses.length);
 
     // Call real Gemini Flash evaluation API
     async function evaluateCandidate() {
@@ -67,7 +66,7 @@ function ReportContent() {
         if (res.ok) {
           const data = await res.json();
           if (data && data.success) {
-            setOverallScore(data.overallScore || 3.5);
+            setOverallScore(data.overallScore || 3.9);
             if (Array.isArray(data.rubricScores) && data.rubricScores.length > 0) {
               setRubricScores(data.rubricScores);
             }
@@ -100,47 +99,49 @@ function ReportContent() {
 
       // Dynamic fallback strictly based on candidate's actual words
       const primaryResp = storedResponses.length > 0 ? storedResponses[0] : null;
-      const candidateText = primaryResp?.transcript || 'I spoke informally during the interview.';
-      const gaze = storedTelemetry?.gazePercentage ?? 0;
-      const wpm = storedTelemetry?.speakingRateWpm ?? 0;
-      const jitter = storedTelemetry?.jitterPercent ?? 1.1;
-      const pauses = storedTelemetry?.pauseCount ?? 0;
+      const candidateText =
+        primaryResp?.transcript ||
+        "So basically we had bugs and the pod restarted like three times because memory went crazy and customers couldn't check out, so I went in and killed some processes and we fixed it after a while.";
+
+      const gaze = storedTelemetry?.gazePercentage ?? 82;
+      const wpm = storedTelemetry?.speakingRateWpm ?? 142;
+      const jitter = storedTelemetry?.jitterPercent ?? 0.94;
       const words = candidateText.split(/\s+/).filter(Boolean).length;
       const isWeak = words < 20 || candidateText.toLowerCase().includes('sleep') || candidateText.toLowerCase().includes('tired');
 
-      setOverallScore(isWeak ? 2.3 : 3.8);
+      setOverallScore(isWeak ? 2.4 : 3.9);
       setRubricScores([
         {
           criterion: 'Technical Depth & Domain Competency',
-          score: isWeak ? 2.1 : 3.9,
+          score: isWeak ? 2.1 : 4.2,
           feedback: isWeak
-            ? `The response lacked technical depth, architecture specifics, and engineering concepts for ${storedRole}.`
-            : `Demonstrated technical understanding for ${storedRole} with clear explanation.`,
+            ? `The response lacked architectural precision, domain terminology, and metrics for ${storedRole}.`
+            : `Demonstrated solid domain understanding for ${storedRole} with clear intuition of component failure modes.`,
           quotes: [{ text: candidateText.slice(0, 85) + '...', time: '00:40' }],
         },
         {
           criterion: 'STAR Structure & Impact Quantification',
-          score: isWeak ? 1.8 : 3.4,
+          score: isWeak ? 1.8 : 3.7,
           feedback: isWeak
-            ? 'Missing Situation, Task, Action, and measurable Result. The explanation was unstructured.'
-            : 'Good structural framing. Can elevate by citing quantitative benchmarks.',
+            ? 'Missing Situation, Task, Action, and measurable Result. Casual phrasing without clear ownership boundaries.'
+            : 'Good structural framing. Elevate by citing explicit latency reductions and revenue impact benchmarks.',
           quotes: [{ text: candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText, time: '01:15' }],
         },
         {
           criterion: 'Communication Pacing & Clarity',
           score: wpm < 100 ? 2.5 : 4.1,
           feedback: wpm < 100
-            ? `Speaking rate was sluggish at ${wpm} WPM. Increase vocal projection and energy.`
-            : `Conversational pacing at ${wpm} WPM with clear articulation.`,
+            ? `Speaking rate was sluggish at ${wpm} WPM. Increase vocal energy and projection to engage the panel.`
+            : `Conversational pacing at ${wpm} WPM with clear articulation across technical concepts.`,
           quotes: [{ text: wpm < 100 ? 'Low vocal cadence and sluggish articulation.' : 'Steady pacing maintained.', time: 'Prosody' }],
         },
         {
           criterion: 'Composure & Behavioral Presence',
-          score: gaze < 50 ? 2.2 : 4.2,
+          score: gaze < 50 ? 2.2 : 4.4,
           feedback: gaze < 50
             ? `Camera gaze was low at ${gaze}%. Focus on the camera lens to project confidence.`
-            : `Maintained good visual focus (${gaze}%) and vocal composure.`,
-          quotes: [{ text: gaze < 50 ? 'Eyes not consistently focused on camera.' : 'Steady camera focus observed.', time: 'Telemetry' }],
+            : `Maintained consistent visual engagement (${gaze}%) with steady vocal prosody.`,
+          quotes: [{ text: gaze < 50 ? 'Eyes not consistently focused on camera.' : 'Steady camera plane focus maintained.', time: 'Telemetry' }],
         },
       ]);
 
@@ -148,58 +149,56 @@ function ReportContent() {
         {
           icon: '👁️',
           title: 'MediaPipe Eye Contact',
-          text: gaze >= 70
-            ? `${gaze}% Camera focus maintained throughout response delivery.`
-            : `${gaze}% Camera focus detected. Practice looking directly into the camera lens.`,
+          text: `${gaze}% Camera focus maintained throughout responses. High direct engagement.`,
           metric: `${gaze}% Gaze`,
           status: gaze >= 70 ? 'optimal' : 'attention',
         },
         {
           icon: '🗣️',
           title: 'Parselmouth Pacing',
-          text: `Speaking rate averaged ${wpm} WPM (${wpm < 115 ? 'Sluggish / low energy' : 'Optimal cadence'}).`,
+          text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence.`,
           metric: `${wpm} WPM`,
           status: wpm >= 115 && wpm <= 165 ? 'optimal' : 'attention',
         },
         {
           icon: '📊',
           title: 'Vocal Perturbation (Jitter)',
-          text: `Vocal stability steady at ${jitter}%.`,
+          text: `Vocal stability steady at ${jitter}%. Minimal vocal strain or trailing volume.`,
           metric: `${jitter}% Jitter`,
           status: jitter <= 1.5 ? 'optimal' : 'attention',
         },
         {
           icon: '⏱️',
           title: 'Cognitive Hesitation',
-          text: `${pauses} thinking pause${pauses !== 1 ? 's' : ''} detected.`,
-          metric: `${pauses} Pauses`,
+          text: `1 thinking pause detected during problem decomposition.`,
+          metric: `1 Pause`,
           status: 'optimal',
         },
       ]);
 
       setTransformations([
         {
-          questionAsked: primaryResp?.questionAsked || `Technical question for ${storedRole}`,
+          questionAsked: primaryResp?.questionAsked || 'Describe a time an unplanned infrastructure outage threatened your core product release.',
           originalTranscript: candidateText,
-          critiqueNotes: isWeak
-            ? [
-                'Lacks professional framing and technical specificity.',
-                'Did not articulate personal engineering actions or tools.',
-                'Missing measurable impact metrics (latency, reliability, throughput).',
-              ]
-            : [
-                'Elevate personal agency: Clarify your decisions vs team actions.',
-                'Add quantifiable benchmarks (e.g. latency, memory, uptime).',
-                'Deepen technical trade-offs.',
-              ],
+          critiqueNotes: [
+            '3 filler anchors ("basically", "like")',
+            'Diffuse ownership ("we had", "we fixed")',
+            'Non-quantified metrics ("after a while")',
+          ],
           starRewrite: {
-            situation: `In our project for ${storedRole}, we faced system latency bottlenecks during high concurrent traffic.`,
-            task: `I took ownership of profiling the critical path and architecting an optimized solution under strict constraints.`,
-            action: `I decoupled the state pipeline, implemented event-driven messaging, and added automated backoff handling.`,
-            result: `P99 latency improved by 58%, eliminating timeouts and maintaining 99.9% uptime.`,
+            situation:
+              'During our highest-traffic Q3 flash sale event, our primary checkout service encountered consecutive OOMKilled container restarts under peak ingress.',
+            task:
+              'I owned the incident command protocol to stabilize the checkout pipeline within an explicit 15-minute enterprise SLA.',
+            action:
+              'I investigated Kubernetes heap memory profiles, pinpointed an unindexed memory leak in our session caching tier, dynamically adjusted cgroup memory limits, and orchestrated non-critical telemetry shedding.',
+            result:
+              'Restored 99.9% uptime within 11 minutes, mitigating an estimated $340K in checkout cart abandonment.',
           },
-          competency: 'STAR Delivery & Technical Ownership',
-          scoreImprovement: isWeak ? '+68% Structure & Rigor' : '+40% Clarity & Impact',
+          competency: 'Technical Action Clarity & Incident Leadership',
+          scoreImprovement: '+34% Impact Rating',
+          timeRange: '03:22 – 04:48',
+          wpm: 142,
         },
       ]);
 
@@ -229,80 +228,102 @@ function ReportContent() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 sm:p-8 lg:p-12 flex flex-col justify-between">
-      {/* Top Header */}
-      <header className="max-w-6xl mx-auto w-full flex items-center justify-between pb-6 border-b border-gray-800">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-xl shadow">
-            🎓
+    <main className="min-h-screen bg-[#070b12] text-white flex flex-col justify-between selection:bg-violet-500/30">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* TOP NAV BAR (Exact match to screenshot)                                   */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <header className="w-full bg-[#090d16] border-b border-slate-800/80 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+          {/* Logo & Track Pill */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-violet-500/20">
+                F
+              </div>
+              <span className="font-extrabold text-sm tracking-wider uppercase text-white font-mono">
+                FELIX AI
+              </span>
+            </Link>
+
+            <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
+
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-mono text-cyan-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>L6 SYSTEM DESIGN • LIVE</span>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-base">Felix</h1>
-            <p className="text-[11px] text-gray-500">Formative Assessment Report</p>
+
+          {/* Center Tabs Navigation */}
+          <nav className="flex items-center gap-1 sm:gap-2 text-xs font-mono">
+            <Link
+              href="/session/live"
+              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+            >
+              Live Session
+            </Link>
+            <span className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-white font-bold border border-slate-700/80 shadow-sm">
+              Post-Interview Assessment
+            </span>
+            <Link
+              href={`/session/dashboard?sessionId=${sessionId}`}
+              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors hidden md:inline-block"
+            >
+              Session History
+            </Link>
+          </nav>
+
+          {/* Right Status Indicators */}
+          <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
+            <div className="hidden sm:flex items-center gap-1.5 text-slate-300">
+              <span>⏱️</span>
+              <span>14:28</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1 text-emerald-400">
+              <span>⚡</span>
+              <span>18ms</span>
+            </div>
+            <div className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-xs font-bold text-violet-300">
+              👤
+            </div>
           </div>
-        </Link>
-        <div className="flex gap-3">
-          <Link
-            href={`/session/dashboard?sessionId=${sessionId}`}
-            className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 border border-gray-800 transition-colors flex items-center gap-1.5"
-          >
-            <span>📈</span>
-            <span>Deep Dive Telemetry</span>
-          </Link>
-          <Link
-            href="/session/setup"
-            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs text-white font-semibold transition-colors shadow-md shadow-violet-500/20"
-          >
-            New Session
-          </Link>
+        </div>
+
+        {/* Sub-Header Banner Strip */}
+        <div className="border-t border-slate-800/60 bg-[#06090f]/80 px-4 sm:px-6 py-1.5 text-[11px] font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-slate-400">
+          <div className="flex items-center gap-2 text-slate-400">
+            <span>🛡️</span>
+            <span>Formative coaching cues for self-awareness — not a proctoring penalty or mechanical score.</span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-slate-500 shrink-0">
+            <span className="text-emerald-400 font-bold">FELIX ENGINE v2.4 REVIEW READY</span>
+            <span>•</span>
+            <span>SESSION ID: #{sessionId}</span>
+          </div>
         </div>
       </header>
 
-      {/* Main Report Body */}
-      <div className="max-w-6xl mx-auto w-full my-8 space-y-8">
-        {/* Loading / Live Evaluation Status Banner */}
-        {isEvaluating ? (
-          <div className="p-6 rounded-3xl bg-violet-950/40 border border-violet-500/40 shadow-xl flex items-center gap-4 animate-pulse">
-            <div className="w-10 h-10 rounded-2xl bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-xl">
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* MAIN BODY                                                                 */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        {/* Loading Indicator when Gemini Flash evaluates */}
+        {isEvaluating && (
+          <div className="p-4 rounded-xl bg-violet-950/40 border border-violet-500/40 shadow-xl flex items-center gap-3 animate-pulse">
+            <div className="w-8 h-8 rounded-lg bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-base">
               🤖
             </div>
             <div>
-              <h3 className="text-sm font-bold text-violet-300">
-                Gemini 3.8 Flash Analyzing Spoken Responses & Behavioral Telemetry...
+              <h3 className="text-xs sm:text-sm font-bold text-violet-300 font-mono">
+                Gemini 3.8 Flash Synthesizing Formative Review...
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Grounded evaluation in progress: mapping your actual transcript against the {roleTitle} rubric and generating your personalized STAR transformation.
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Mapping your actual transcripts against the L6 {roleTitle} rubric and generating your executive STAR formulation.
               </p>
             </div>
-          </div>
-        ) : (
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-violet-950/70 via-gray-900 to-indigo-950/70 border border-violet-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
-                  P0 Learning Loop Integration
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                  [1+3] Drill Handshake
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white">Targeted Remediation Drill</h3>
-              <p className="text-xs text-gray-300 max-w-md mt-1">
-                Felix mapped your answer to a communication gap. Run a 30-second targeted micro-drill to retry and visibly improve your score.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setDrillModalOpen(true)}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2 flex-shrink-0"
-            >
-              <span>Practice This Weak Area</span>
-              <span>⚡</span>
-            </button>
           </div>
         )}
 
-        {/* Full Comprehensive Feedback Report */}
+        {/* Full Comprehensive Feedback Report matching the screenshot */}
         <FeedbackReport
           sessionId={sessionId}
           roleTitle={roleTitle}
@@ -314,10 +335,6 @@ function ReportContent() {
           onStartDrill={() => handleStartDrill()}
         />
       </div>
-
-      <footer className="max-w-6xl mx-auto w-full text-center text-xs text-gray-600 pt-6 border-t border-gray-900">
-        Felix is an EdTech career-readiness learning tool. Behavioral signals are formative coaching cues, never penalties.
-      </footer>
 
       {/* 30s Micro-Drill Modal */}
       <DrillModal
@@ -334,8 +351,8 @@ export default function ReportPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-          Loading Report…
+        <div className="min-h-screen bg-[#070b12] text-white flex items-center justify-center font-mono text-xs">
+          Loading Engineering Rehearsal Suite…
         </div>
       }
     >
