@@ -127,8 +127,6 @@ function LiveInterviewContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState<boolean>(false);
   const [lastAudioPayload, setLastAudioPayload] = useState<string>('');
-  const [showSubtitles, setShowSubtitles] = useState<boolean>(true);
-  const [showTranscriptDrawer, setShowTranscriptDrawer] = useState<boolean>(false);
 
   // Active call duration timer
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -1205,46 +1203,6 @@ function LiveInterviewContent() {
               </div>
             </div>
           )}
-
-          {/* Live Question & Speech Subtitle Dock */}
-          {showSubtitles && (
-            <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-none flex flex-col gap-2 items-center animate-in fade-in duration-200">
-              {/* Active Spoken Speech from Candidate */}
-              {turnState === 'listening' && (learnerTranscript || partialTranscript) && (
-                <div className="max-w-2xl w-full bg-[#080d17]/95 backdrop-blur-md border border-emerald-500/50 rounded-xl px-4 py-2.5 shadow-2xl text-left pointer-events-auto animate-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      <span>Live Speech Transcript • Listening</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {((learnerTranscript ? learnerTranscript + ' ' : '') + partialTranscript).split(/\s+/).filter(Boolean).length} words
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-emerald-100 font-sans leading-relaxed">
-                    {learnerTranscript && <span>{learnerTranscript} </span>}
-                    {partialTranscript && <span className="text-emerald-300/80 italic">{partialTranscript}</span>}
-                  </p>
-                </div>
-              )}
-
-              {/* Active Question Asked by Interviewer */}
-              {(turnState === 'speaking' || (!learnerTranscript && !partialTranscript && (activeQuestionRef.current || currentQuestionText))) && (
-                <div className="max-w-2xl w-full bg-[#090d16]/90 backdrop-blur-md border border-violet-500/40 rounded-xl px-4 py-2.5 shadow-2xl text-left pointer-events-auto">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[10px] font-mono font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                      <span>{archConfig.name} • Active Question</span>
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">Prompt 0{currentQuestionIndex}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-white font-medium leading-relaxed">
-                    "{activeQuestionRef.current || currentQuestionText || 'Preparing technical challenge…'}"
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right Sidebar: Camera PiP + Live Behavioral Telemetry HUD (Clean Stack, Zero Overlap) */}
@@ -1326,112 +1284,11 @@ function LiveInterviewContent() {
           </Link>
         </div>
 
-        {/* Right: Live Transcript & Subtitle Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowSubtitles((prev) => !prev)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors border flex items-center gap-1.5 ${
-              showSubtitles
-                ? 'bg-violet-950/70 border-violet-700/60 text-violet-300'
-                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-400'
-            }`}
-            title="Toggle live question and speech subtitles"
-          >
-            <span>CC</span>
-            <span className="hidden sm:inline">{showSubtitles ? 'On' : 'Off'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowTranscriptDrawer((prev) => !prev)}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-colors border flex items-center gap-1.5 ${
-              showTranscriptDrawer
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
-            title="Open real-time live conversation transcript feed"
-          >
-            <span>💬</span>
-            <span className="hidden sm:inline">Transcript ({transcriptRef.current.length})</span>
-          </button>
+        {/* Right: Clean alignment spacer */}
+        <div className="w-16 hidden sm:block text-right text-[10px] font-mono text-slate-500">
+          ENGINE v2.4
         </div>
       </footer>
-
-      {/* Live Conversation Transcript Drawer (Slide-Over) */}
-      {showTranscriptDrawer && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#090d16]/98 border-l border-slate-800/90 shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200">
-          {/* Drawer Header */}
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">📜</span>
-              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                Live Dialogue Transcript
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono border border-violet-500/30">
-                {transcriptRef.current.length} Lines
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowTranscriptDrawer(false)}
-              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-mono flex items-center justify-center transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Dialogue Feed */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-            {transcriptRef.current.length === 0 ? (
-              <div className="p-6 text-center text-slate-500 text-xs font-mono">
-                Conversation transcript will stream here in real time as questions are asked and answered.
-              </div>
-            ) : (
-              transcriptRef.current.map((line, idx) => {
-                const isInterviewer = line.speaker === 'interviewer';
-                return (
-                  <div
-                    key={line.lineId || idx}
-                    className={`flex flex-col gap-1 p-3 rounded-xl text-xs ${
-                      isInterviewer
-                        ? 'bg-violet-950/40 border border-violet-800/40 text-violet-100'
-                        : 'bg-slate-900 border border-slate-800 text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pb-1 border-b border-white/5">
-                      <span className={isInterviewer ? 'text-violet-400 font-bold' : 'text-slate-400 font-bold'}>
-                        {line.speakerName || (isInterviewer ? 'Interviewer' : 'You')}
-                      </span>
-                      <span>
-                        {line.timestamp
-                          ? new Date(line.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                          : ''}
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-wrap leading-relaxed pt-0.5">{line.text}</p>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Drawer Footer */}
-          <div className="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => {
-                const txt = transcriptRef.current.map((l) => `${l.speakerName}: ${l.text}`).join('\n\n');
-                navigator.clipboard.writeText(txt);
-              }}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition-colors"
-            >
-              📋 Copy All
-            </button>
-            <span className="text-[10px] text-slate-500">Auto-saved to Vault</span>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

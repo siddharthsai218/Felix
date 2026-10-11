@@ -74,6 +74,24 @@ export default function HistoryPage() {
     }
   };
 
+  const handleOpenTranscript = (session: HistoricalSession) => {
+    let resolved = { ...session };
+    if (!resolved.transcriptLines || resolved.transcriptLines.length === 0) {
+      if (typeof window !== 'undefined') {
+        try {
+          const vaultRaw = localStorage.getItem('felix_all_transcripts_vault_v1');
+          if (vaultRaw) {
+            const vault = JSON.parse(vaultRaw);
+            if (vault[session.sessionId] && Array.isArray(vault[session.sessionId])) {
+              resolved.transcriptLines = vault[session.sessionId];
+            }
+          }
+        } catch {}
+      }
+    }
+    setActiveTranscriptSession(resolved);
+  };
+
   const handleCopyTranscript = (session: HistoricalSession) => {
     let text = '';
     if (session.transcriptLines && session.transcriptLines.length > 0) {
@@ -387,7 +405,7 @@ export default function HistoryPage() {
 
                       <button
                         type="button"
-                        onClick={() => setActiveTranscriptSession(session)}
+                        onClick={() => handleOpenTranscript(session)}
                         className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-slate-200 transition-colors"
                         title="Read full turn-by-turn dialogue"
                       >

@@ -79,15 +79,16 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
-- 2026-10-11 [1+3] — Added Live Subtitles Dock, Interactive In-Call Transcript Drawer, and Direct Report Anchoring:
-  - Live Subtitles & Captions Dock (`frontend/src/app/session/live/page.tsx`):
-    - Added floating Closed Caption (CC) container over the live interview stage displaying the interviewer's active question and candidate's live speech transcription in real time.
-    - Added `[CC Subtitles On/Off]` toggle in the call footer controls.
-    - Added `[💬 Transcript (N)]` counter button opening a slide-over `Live Conversation Transcript Drawer` so learners can scroll through dialogue during the session without navigating away.
-  - Report Navigation & Vault Fallback Hydration (`frontend/src/app/session/report/page.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/report/FullConversationTranscript.tsx`):
-    - Added `[📜 View Full Transcript]` quick jump button in the report header bar with smooth scrolling to `#dialogue-transcript-section`.
-    - Added multi-source fallback hydration in `FullConversationTranscript` and `report/page.tsx`: automatically reconstructs transcript dialogue from `felix_all_transcripts_vault_v1`, `sessionStorage`, or session responses if navigating directly or on hard refresh.
-    - Verified clean Next.js production build (`npm run build`).
+- 2026-10-11 [1+3] — Distraction-Free Live Interview Stage & Dedicated History Transcript Archive:
+  - Streamlined Live Interview Experience (`frontend/src/app/session/live/page.tsx`):
+    - Per user requirement, stripped all live transcript drawers, subtitle overlays, and in-call CC buttons from `/session/live` to maintain a completely clean, realistic, distraction-free stage.
+    - Preserved 100% of background conversational recording and multi-storage persistence (`recordTranscriptLine`, `sessionStorage`, `felix_all_transcripts_vault_v1`, `history-store.ts`, and backend API) so every turn is archived without candidate distraction.
+  - History Dialogue Archive & Vault Hydration (`frontend/src/app/session/history/page.tsx`):
+    - Wired `handleOpenTranscript` with automatic vault fallback hydration to pull full dialogue from `felix_all_transcripts_vault_v1` if historical session state lacks pre-parsed lines.
+    - Verified turn-by-turn dialogue bubbles, speaker avatars, timestamps, video replay players, and 1-click clipboard copying in the Rehearsal History modal.
+  - Report Dialogue Navigation (`frontend/src/report/FeedbackReport.tsx`, `frontend/src/report/FullConversationTranscript.tsx`):
+    - Retained post-session verbatim dialogue audit and top bar `[📜 View Full Transcript]` navigation in `/session/report`.
+  - Verified clean Next.js production build (`npm run build`).
 
 - 2026-10-11 [1+3] — Exact AI Question Grounding, Full Spoken Answer Capture & Comprehensive Transcript Vault:
   - Fixed AI Question Mismatch & Loss:
