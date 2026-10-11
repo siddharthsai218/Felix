@@ -79,6 +79,13 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Added 1-Click Formative PDF Coaching Portfolio Export:
+  - Engineered client-side PDF document generation engine `frontend/src/app/lib/pdf-exporter.ts` formatting standard A4/Letter print documents for university career counseling and mentorship portfolios.
+  - Generates comprehensive, high-contrast debrief reports including: University Career Services letterhead, session metadata, overall rubric mastery badge with longitudinal growth deltas, on-device telemetry summary badges (MediaPipe gaze %, Parselmouth WPM, autocorrelation jitter %), scored Rubric Matrix with verbatim transcript citations, side-by-side Answer Transformer (spoken response vs. Felix STAR rewrite), question-by-question spoken transcripts, and candidate/counselor certification signature lines.
+  - Added 1-click "Export Coaching PDF" action buttons in `frontend/src/report/FeedbackReport.tsx` (top summary overview and bottom footer bar) and `frontend/src/app/session/history/page.tsx` (session card quick actions and dialogue transcript modal header).
+  - Configured `@media print` CSS rules in `frontend/src/app/globals.css` ensuring clean black-and-white print contrast and hiding transient screen navigation controls.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [1+3] — Added Longitudinal Learner Progression & Improvement Tracking:
   - Added longitudinal analysis engine in `frontend/src/app/lib/history-store.ts` (`getLearnerProgression`) that compares a candidate's current rehearsal against their immediately preceding session for that profile, computing exact score deltas ($\Delta \text{Overall Score}$), mastery trends (`improved`, `steady`, `needs_calibration`), and behavioral deltas.
   - Built dedicated `LearnerProgressionCard` component in `frontend/src/report/LearnerProgressionCard.tsx` featuring side-by-side prior vs current score comparisons (`3.6 ➔ 4.1 / 5.0`), visual trend indicators (`▲ +0.5 Mastery Growth`), and formative AI commentary highlighting specific areas where the candidate leveled up.

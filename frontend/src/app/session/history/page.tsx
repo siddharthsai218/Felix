@@ -9,6 +9,7 @@ import {
   clearAllHistoricalSessions,
   type HistoricalSession,
 } from '../../lib/history-store';
+import { exportHistoricalSessionToPdf } from '../../lib/pdf-exporter';
 import { TurnVideoPlayer } from '../../components/TurnVideoPlayer';
 
 export default function HistoryPage() {
@@ -359,6 +360,16 @@ export default function HistoryPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        onClick={() => exportHistoricalSessionToPdf(session)}
+                        className="px-2.5 py-1.5 rounded-lg bg-violet-950/80 hover:bg-violet-900 border border-violet-700/60 text-xs font-mono font-bold text-violet-300 transition-colors flex items-center gap-1 shadow-sm"
+                        title="Download Executive Coaching PDF"
+                      >
+                        <span>📄</span>
+                        <span>PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setActiveTranscriptSession(session)}
                         className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-slate-200 transition-colors"
                         title="Read full turn-by-turn dialogue"
@@ -425,6 +436,15 @@ export default function HistoryPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportHistoricalSessionToPdf(activeTranscriptSession)}
+                  className="px-2.5 py-1 rounded bg-violet-950/80 hover:bg-violet-900 border border-violet-700/60 text-xs font-mono font-bold text-violet-300 transition-colors flex items-center gap-1 shadow-sm"
+                  title="Download Formative Assessment PDF"
+                >
+                  <span>📄</span>
+                  <span>PDF Report</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => handleCopyTranscript(activeTranscriptSession)}
