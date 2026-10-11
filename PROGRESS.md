@@ -79,6 +79,11 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1] — Turbopack Identifier Scope Disambiguation:
+  - Resolved identifier shadowing and duplication errors (`the name currentQ is defined multiple times` and `the name openingFromSetup is defined multiple times`) in `frontend/src/app/session/live/page.tsx`.
+  - Disambiguated variable scopes across `handleSubmitResponse` (`submitQuestion`, `setupOpeningQuestion`), `handleFinishInterview` (`finishQuestion`, `finishOpeningQuestion`), and `handleStartSessionLocal` (`localOpeningQuestion`), preventing Turbopack Fast Refresh and AST inlining conflicts.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js 16.4 Turbopack production build (`npm run build`).
+
 - 2026-10-11 [1+3] — Robust Student Speech Recognition & Resilient Fallback Transcription:
   - Fixed Silent / Unstarted Speech Recognition (`frontend/src/app/session/live/page.tsx`):
     - Added state-synchronized lifecycle management (`useEffect([turnState])`) guaranteeing that `SpeechRecognition.start()` triggers automatically whenever the session enters the `listening` state.

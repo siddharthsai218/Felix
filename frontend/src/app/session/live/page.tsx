@@ -572,11 +572,11 @@ function LiveInterviewContent() {
     }
 
     // Retrieve active question BEFORE resetting
-    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
-    const currentQ =
+    const setupOpeningQuestion = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
+    const submitQuestion =
       activeQuestionRef.current ||
       currentQuestionText ||
-      (currentQuestionIndex <= 1 ? openingFromSetup : '') ||
+      (currentQuestionIndex <= 1 ? setupOpeningQuestion : '') ||
       fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
       'Technical interview question';
 
@@ -589,7 +589,7 @@ function LiveInterviewContent() {
     let finalAnswer = rawAnswer;
     if (!finalAnswer || finalAnswer.length < 5) {
       finalAnswer = generateGroundedCandidateResponse(
-        currentQ,
+        submitQuestion,
         targetRole,
         githubUrl,
         resumeText,
@@ -633,7 +633,7 @@ function LiveInterviewContent() {
       sessionId,
       learnerId: currentLearner,
       responseIndex: currentQuestionIndex - 1,
-      questionAsked: currentQ,
+      questionAsked: submitQuestion,
       questionType: turnState === 'drill' ? 'drill' : 'behavioral',
       transcript: finalAnswer,
       timestamps: currentTimestampsRef.current,
@@ -757,11 +757,11 @@ function LiveInterviewContent() {
     const combinedFromState = `${learnerTranscript} ${partialTranscript}`.trim();
     const rawAnswer = (combinedFromRefs || combinedFromState || '').trim();
 
-    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
-    const currentQ =
+    const finishOpeningQuestion = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
+    const finishQuestion =
       activeQuestionRef.current ||
       currentQuestionText ||
-      (currentQuestionIndex <= 1 ? openingFromSetup : '') ||
+      (currentQuestionIndex <= 1 ? finishOpeningQuestion : '') ||
       fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
       'Technical interview question';
 
@@ -777,7 +777,7 @@ function LiveInterviewContent() {
       let finalTurnAnswer = rawAnswer;
       if (!finalTurnAnswer || finalTurnAnswer.length < 5) {
         finalTurnAnswer = generateGroundedCandidateResponse(
-          currentQ,
+          finishQuestion,
           targetRole,
           githubUrl,
           resumeText,
@@ -801,7 +801,7 @@ function LiveInterviewContent() {
         sessionId,
         learnerId: currentLearner,
         responseIndex: currentQuestionIndex - 1,
-        questionAsked: currentQ,
+        questionAsked: finishQuestion,
         questionType: 'behavioral',
         transcript: finalTurnAnswer,
         timestamps: currentTimestampsRef.current,
@@ -898,9 +898,9 @@ function LiveInterviewContent() {
 
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
     const effectiveResume = typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume_text') || '' : '';
-    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
-    let firstQ = openingFromSetup || fallbackQuestionsRef.current[0];
-    if (!openingFromSetup) {
+    const localOpeningQuestion = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
+    let firstQ = localOpeningQuestion || fallbackQuestionsRef.current[0];
+    if (!localOpeningQuestion) {
       if (archetype === 'pragmatic-architect') {
         if (effectiveGithub || effectiveResume) {
           firstQ = `Looking at the architectural choices in your ${effectiveGithub ? 'GitHub repositories' : 'resume projects'}, what were the most critical failure states and edge cases you had to guard against for ${targetRole}? How did you handle fallback mechanisms?`;
