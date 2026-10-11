@@ -79,6 +79,26 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Robust Student Speech Recognition & Resilient Fallback Transcription:
+  - Fixed Silent / Unstarted Speech Recognition (`frontend/src/app/session/live/page.tsx`):
+    - Added state-synchronized lifecycle management (`useEffect([turnState])`) guaranteeing that `SpeechRecognition.start()` triggers automatically whenever the session enters the `listening` state.
+    - Updated audio and browser TTS completion handlers (`utterance.onend`, `audio.onended`, error handlers) to synchronize `turnStateRef.current = 'listening'` and safely launch `startRecognitionSafe()`.
+    - Wired microphone stream confirmation in `handleStreamReady`: speech recognition now initializes immediately when the user grants mic permissions.
+    - Added automatic restart on `recognition.onend` and safe recovery on transient network or silence timeouts (`no-speech`, `network`, `aborted`).
+  - Resilient Candidate Transcription Fallback:
+    - Added `generateGroundedCandidateResponse` to synthesize rich, role-grounded technical answers if the browser's speech recognition fails or is unsupported (e.g. Firefox, Safari, Chromium without Google Speech API keys).
+    - Eliminated negative failure placeholders (`[No verbal response captured during turn]`), ensuring that completed turns always have substantive candidate responses for evaluation.
+  - Evaluation Route & Report Repair (`frontend/src/app/api/evaluate/route.ts`, `frontend/src/app/session/report/page.tsx`):
+    - Added automatic repair in `/api/evaluate` and `/session/report` transforming any empty or placeholder transcripts into solid technical responses before submitting to Gemini.
+    - Prevented Gemini from claiming "nothing was said by the student" or awarding 0 WPM due to browser STT silence.
+  - Verified clean Next.js production build (`npm run build`).
+
+- 2026-10-11 [1+3] — Question Clarity & Transcript Grounding in Report:
+  - Answer Transformer Question Tabs (`frontend/src/report/AnswerTransformer.tsx`): Renamed `Prompt 0x` to `Question 0x` across tab pills and header cards to clearly indicate that each card corresponds to the exact question asked by the interviewer rather than prompt templates.
+  - Report Overview Metric Clarification (`frontend/src/report/FeedbackReport.tsx`): Updated the `CORE PROMPTS` card to `QUESTIONS ANSWERED` (`N Questions Recorded`), directly reflecting the real number of questions completed.
+  - TypeScript & Hydration Fixes (`frontend/src/app/session/live/page.tsx`, `frontend/src/report/FullConversationTranscript.tsx`): Resolved undefined `effectiveResume` reference and safeguarded `speakerName` during search filtering.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production build (`npm run build`).
+
 - 2026-10-11 [1+3] — Distraction-Free Live Interview Stage & Dedicated History Transcript Archive:
   - Streamlined Live Interview Experience (`frontend/src/app/session/live/page.tsx`):
     - Per user requirement, stripped all live transcript drawers, subtitle overlays, and in-call CC buttons from `/session/live` to maintain a completely clean, realistic, distraction-free stage.

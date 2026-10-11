@@ -100,7 +100,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
 
   const totalDurationFormatted = `${Math.floor(computedDurationSecs / 60)}m ${(computedDurationSecs % 60).toString().padStart(2, '0')}s`;
   const promptCount = candidateResponses && candidateResponses.length > 0 ? candidateResponses.length : 1;
-  const corePromptsLabel = `${promptCount} Scenario${promptCount === 1 ? '' : 's'}`;
+  const questionsLabel = `${promptCount} Question${promptCount === 1 ? '' : 's'}`;
 
   const totalWordsSpoken =
     candidateResponses && candidateResponses.length > 0
@@ -326,11 +326,11 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
             {/* Stat 2 */}
             <div className="space-y-1">
               <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 block">
-                CORE PROMPTS
+                QUESTIONS ANSWERED
               </span>
-              <div className="text-base font-bold font-mono text-white">{corePromptsLabel}</div>
+              <div className="text-base font-bold font-mono text-white">{questionsLabel}</div>
               <span className="inline-block px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono">
-                {candidateResponses.length > 0 ? 'Recorded' : '1 Prompt Completed'}
+                {candidateResponses.length > 0 ? 'Recorded' : '1 Question Completed'}
               </span>
             </div>
 
