@@ -2,247 +2,252 @@
 
 > **Track:** EdTech · **Event:** Techashy Hackathon
 
-**Felix** is an adaptive interview-skills learning platform for students and job-seekers. It teaches learners *how to interview* through guided practice, formative coaching, and personalized remediation — rather than simple summative grading.
+**Felix** is an adaptive, multimodal interview-skills coaching platform designed for students and early-career engineers. It transforms high-stakes technical interview practice into an active learning experience through real-time pedagogical scaffolding, bias-mitigated behavioral telemetry, and instant remediation micro-drills.
 
 The interview is the **practice activity**. The **learning** is the objective.
 
-> **Positioning:** Felix is a career-readiness learning tool. It is not a hiring screen or candidate ranking tool. It coaches learners; it does not evaluate candidates for employers.
+> **Positioning:** Felix is a career-readiness *learning tool*, not a hiring screen or candidate-ranking gatekeeper. Behavioral signals (gaze, prosody, cadence) are formative coaching cues for self-awareness—never penalties or personality judgments.
 
 ---
 
 ## 📖 Table of Contents
 
-- [The EdTech Case](#-the-edtech-case)
-- [The Learning Loop](#-the-learning-loop)
+- [The EdTech Case: Formative vs. Evaluative](#-the-edtech-case-formative-vs-evaluative)
+- [The Active Learning Loop](#-the-active-learning-loop)
+- [Core Architectural Innovations](#-core-architectural-innovations)
+  - [1. Multimodal Cross-Attention Gating (VAD + Gaze Fusion)](#1-multimodal-cross-attention-gating-vad--gaze-fusion)
+  - [2. Self-Referential Adaptive Baseline Normalizer](#2-self-referential-adaptive-baseline-normalizer)
 - [Key Features](#-key-features)
-- [Pedagogy & Learning Design](#-pedagogy--learning-design)
-- [User Roles](#-user-roles)
+  - [Configurable Interviewer Archetypes](#configurable-interviewer-archetypes)
+  - [Artifact Grounding: GitHub Repositories & Resume Ingestion](#artifact-grounding-github-repositories--resume-ingestion)
+  - [The Answer Transformer (STAR Structural Rewrite)](#the-answer-transformer-star-structural-rewrite)
+  - [Problem-First 30-Second Micro-Drills](#problem-first-30-second-micro-drills)
+  - [IndexedDB Synchronized Video Replay Vault](#indexeddb-synchronized-video-replay-vault)
+  - [Longitudinal Learner Progression Tracking](#longitudinal-learner-progression-tracking)
+  - [Automated PDF Diagnostic Report Export](#automated-pdf-diagnostic-report-export)
+- [Pedagogical Design Framework](#-pedagogical-design-framework)
 - [System Architecture](#-system-architecture)
-- [How a Session Works](#-how-a-session-works)
-- [Competency & Evaluation Framework](#-competency--evaluation-framework)
-- [Ethical Design Principles](#-ethical-design-principles)
 - [AI / ML Model Stack](#-ai--ml-model-stack)
-- [Functional Requirements](#-functional-requirements)
-- [Non-Functional Requirements](#-non-functional-requirements)
-- [Data Categories](#-data-categories)
-- [Hackathon MVP Priority](#-hackathon-mvp-priority)
+- [Ethical Design & Bias Mitigation Guardrails](#-ethical-design--bias-mitigation-guardrails)
+- [Hackathon MVP Priorities & Deliverables](#-hackathon-mvp-priorities--deliverables)
 - [Getting Started](#-getting-started)
 - [Roadmap](#-roadmap)
-- [Team](#-team)
 - [License](#-license)
 
 ---
 
-## 🎯 The EdTech Case
+## 🎯 The EdTech Case: Formative vs. Evaluative
 
-University career centers face significant counselor-to-student ratios (often exceeding 1:500). Most students stumble in early interviews not due to technical incompetence, but delivery friction: uncalibrated pacing, nervousness, and lack of actionable, objective feedback.
+Most university career centers operate with high student-to-counselor ratios (often exceeding 1:500). Students stumble in technical and behavioral interviews not due to raw incompetence, but delivery friction: cognitive freezing, uncalibrated pacing, and lack of structured communication frameworks (STAR).
 
-Traditional mock interviews are **summative**: candidates receive a score and arbitrary critique without remediation. Felix is **formative**: it diagnoses specific learning gaps, teaches the underlying concept, assigns targeted micro-drills, and tracks mastery progression over time.
+Standard commercial mock interview platforms are **evaluative and punitive**: they grade candidates against rigid global constants, flag natural pauses as "disengagement," and reject applicants without explaining *how* to improve.
 
-### Felix vs. Screening Tools
+**Felix is formative and pedagogical:** it diagnoses specific conceptual gaps, teaches the underlying architecture, scaffolds students in real time when they freeze, and provides immediate 30-second micro-sprints to build mastery.
 
-| Dimension | Screening Tools (HR Tech) | Felix (EdTech) |
+| Dimension | Standard Screening Tools (HR Tech) | Felix (EdTech Coach) |
 |---|---|---|
-| **Audience** | Recruiters filtering applicants | Students mastering delivery |
-| **Interface** | Recruiter proctoring & cheat detection | Formative mastery dashboard |
-| **Behavioral Signals** | Flagging misconduct / penalties | Self-awareness coaching cues |
-| **Outcome** | Hire / reject decision | Learn, practice, remediate |
+| **Primary Goal** | Filter and eliminate candidates | Accelerate delivery and architectural mastery |
+| **Gaze Evaluation** | Punishes looking away as "dishonesty / distraction" | Differentiates thoughtful reflection (**Cognitive Search**) from disengagement |
+| **Prosody & Tone** | Evaluates against rigid global pitch/jitter thresholds | Calibrates to candidate's personal vocal floor ($F_0$) in the first 15 seconds |
+| **Silence Response** | Docking points / premature turn termination | **Rescue Mode:** Vygotsky scaffolding stepping stones |
+| **Feedback Model** | Summative score (e.g., "68% / 100") | Verbatim vs. STAR rewrite + 1-click targeted micro-drills |
+| **Data Privacy** | Recruiter telemetry surveillance | Private, local-first IndexedDB video & session vaults |
 
 ---
 
-## 🔁 The Learning Loop
+## 🔁 The Active Learning Loop
 
-Felix implements an active pedagogical loop:
+Felix implements an active, closed-loop pedagogical cycle:
 
 ```
-   ┌──────────────────────────────────────────────────────────┐
-   │                                                          │
-   ▼                                                          │
-PRACTICE ──► FORMATIVE ──► DIAGNOSE ──► REMEDIATE ──► REVIEW ─┘
-(interview)   COACHING     THE GAP      (micro-       (retrieval
-              (hints,      (learning     drills)       & spaced
-              model        outcomes)                   repetition)
-              answers)
+   ┌────────────────────────────────────────────────────────────────────────┐
+   │                                                                        │
+   ▼                                                                        │
+PRACTICE ──────► FORMATIVE ──────► DIAGNOSE ──────► REMEDIATE ─────► PROGRESSION
+(Turn Loop with   SCAFFOLDING       THE GAP          (Problem-First    (Longitudinal
+ Avatar Persona)  (Rescue Mode &    (Verbatim vs.     30s Micro-        Mastery Delta
+                   Coach Hints)      STAR Rewrite)     Drills)          Across Turns)
 ```
 
-1. **Practice:** Adaptive interview simulation led by a real-time conversational AI avatar.
-2. **Formative Coaching:** In-turn hints, model structures, and real-time scaffolding.
-3. **Diagnose:** Automatic mapping of weaknesses to granular learning outcomes.
-4. **Remediate:** Immediate 30-second targeted micro-drills and STAR re-structuring.
-5. **Review:** Spaced repetition queue targeting unmastered outcomes across sessions.
+1. **Practice:** Multi-turn conversational practice grounded in real GitHub repositories and resume projects.
+2. **Formative Scaffolding:** Real-time intervention during silent cognitive blocks ($>5$s) using stepping-stone prompts.
+3. **Diagnose the Gap:** Verbatim transcript breakdown citing timestamps, filler ratios, and structural omissions.
+4. **Remediate:** Problem-first mistake dissection followed by an isolated 30-second practice sprint.
+5. **Progression:** Longitudinal tracking comparing current performance against prior rehearsals ($\Delta \text{Mastery}$).
+
+---
+
+## 🔬 Core Architectural Innovations
+
+To address the fundamental limitations and biases inherent in standard computer vision and acoustic models, Felix introduces two core architectural improvements:
+
+### 1. Multimodal Cross-Attention Gating (VAD + Gaze Fusion)
+
+* **The Problem:** Standalone gaze estimation models (e.g., standard MediaPipe Iris Mesh) treat all off-axis gaze vectors identically. When a software engineer pauses to mentally trace an architecture diagram or recall an algorithm, they naturally look away or downward. Off-the-shelf models falsely penalize this as "distraction" or "low confidence."
+* **Our Architectural Solution:** We engineered a cross-attention gating layer in the client telemetry pipeline fusing Web Audio energy Voice Activity Detection (VAD) with MediaPipe iris vector tracking:
+
+$$\text{Engagement State} = \begin{cases} 
+\text{Cognitive Search (Reflective Thinking)}, & \text{if } \text{RMS}_{\text{audio}} < 0.022 \land \text{Gaze}_{\text{off-axis}} \\
+\text{Direct Eye Contact}, & \text{if } \text{Gaze}_{\text{center}} \\
+\text{Averted Gaze While Speaking}, & \text{if } \text{RMS}_{\text{audio}} \ge 0.022 \land \text{Gaze}_{\text{off-axis}}
+\end{cases}$$
+
+* **Result:** When candidates pause in silent thought, the model identifies **`🧠 Cognitive Search`**, sustaining an **85% engagement rating** and **90% composure score**, preventing false behavioral penalties.
+
+### 2. Self-Referential Adaptive Baseline Normalizer
+
+* **The Problem:** Off-the-shelf acoustic prosody algorithms use static global thresholds (`jitter > 2.0%`, `pitch std < 9 Hz`) that introduce severe bias against naturally deep baritone voices, non-native accents, and deliberate speaking cadences.
+* **Our Architectural Solution:** We implemented an adaptive 15-second self-referential digital signal processing (DSP) calibration phase directly in the Web Audio Autocorrelation loop:
+  1. During the opening turn, Felix samples the candidate's pitch distribution and computes their individual fundamental frequency floor ($\mu_{F_0}$) and resting perturbation variance ($J_{\text{baseline}}$).
+  2. Subsequent prosody evaluations measure **differential perturbation**:
+     $$\Delta J = J_{\text{computed}} - J_{\text{baseline}} + 0.85$$
+  3. Pitch standard deviation is dynamically normalized by the candidate's personal $F_0$ floor:
+     $$\sigma_{\text{norm}}(F_0) = \frac{\sigma(F_0)}{\mu_{F_0} \times 0.1}$$
+* **Result:** Eliminates accent and vocal register bias, ensuring feedback reflects genuine emotional stability and clarity rather than acoustic anatomy.
 
 ---
 
 ## ✨ Key Features
 
-### 1. The Answer Transformer (Verbatim vs. STAR Rewrite)
-Side-by-side comparative analysis of candidate delivery:
-- **Verbatim Response:** Identifies filler words, rambling syntax, and unquantified statements.
-- **Felix STAR Rewrite:** Restructures the learner's own example into Situation, Task, Action, and measurable Result with professional phrasing.
+### Configurable Interviewer Archetypes
+Candidates can rehearse against three distinct coaching personas tailored to specific interview styles:
+* 🤝 **Supportive Felix:** Warmth, psychological safety, positive reinforcement, and step-by-step STAR scaffolding.
+* 📐 **Pragmatic Staff Architect:** Rigorous probe into distributed systems edge cases, concurrency bottlenecks, failure modes, p99 latencies, and architectural trade-offs.
+* ⚡ **Rapid-Fire Recruiter:** High-tempo executive evaluation focusing on 30–60s elevator summaries, bottom-line business ROI, and concise communication.
 
-### 2. Live Rescue Mode (Pedagogical Scaffolding)
-If a learner pauses for $> 5$ seconds or demonstrates hesitation, the interview avatar actively intervenes with contextual scaffolding (Vygotsky's Zone of Proximal Development) rather than remaining silent:
-> *"Take a breath. Consider the database bottlenecks you observed in that project — what triggered the issue and what did you inspect first?"*
+### Artifact Grounding: GitHub Repositories & Resume Ingestion
+Felix does not ask generic trivia. It grounds questions in the candidate's actual engineering output:
+* **GitHub Integration:** Scrapes candidate public repositories, architecture READMEs, languages, and commit contexts to ask questions challenging their real implementation decisions.
+* **PDF Resume Parser:** Ingests candidate resumes directly in-browser and extracts technical stacks, impact metrics, and project ownership.
 
-### 3. One-Click Remediation Drills
-Identified gaps include a direct action: launching a 30-second targeted micro-drill on that specific competency. The learner retries immediately and verifies score improvement.
+### The Answer Transformer (STAR Structural Rewrite)
+Provides an immediate side-by-side diagnostic transformation of the candidate's spoken response:
+* **Verbatim Response:** Highlights filler phrases, conversational fluff, and unquantified statements.
+* **Felix STAR Rewrite:** Restructures the learner's own narrative into structured **Situation**, **Task**, **Action**, and measurable **Result** statements.
 
-### 4. Evidence-Based Feedback
-Every assessment comment directly references exact transcript lines and timestamps (e.g., *"At 0:45 you paused 4 seconds after mentioning memory allocation"*).
+### Problem-First 30-Second Micro-Drills
+When the diagnostic engine flags an underdeveloped competency:
+1. Felix dissects the candidate's exact mistake on that specific problem first.
+2. Launches an isolated 30-second practice sprint with real-time countdown timer.
+3. Automatically evaluates the retry and boosts candidate mastery in history.
 
-### 5. Multimodal Behavioral Coaching
-Non-verbal signals (gaze stability, speaking rate, pitch variation, vocal jitter) are extracted via computer vision and acoustic models to provide delivery self-awareness.
+### IndexedDB Synchronized Video Replay Vault
+Recorded video responses are captured per turn and stored client-side in an isolated IndexedDB database (`felix_video_vault_v1`). Learners can watch their synchronized video playback side-by-side with verbatim dialogue in the dialogue history modal without exceeding browser memory limits.
 
-### 6. Model Context Protocol (MCP) Integration
-- **Upstream Context (GitHub & Portfolio MCP):** Reads candidate repository structure, commit logs, and code snippets to generate authentic technical questions on their actual projects.
-- **Downstream LMS Integration (LMS MCP):** Connects evaluations to educational systems (Canvas, Google Classroom, Notion) to record mastery scores and assign practice.
+### Longitudinal Learner Progression Tracking
+Tracks historical rehearsal records across multiple sessions for each profile. Computes exact score improvements ($\Delta \text{Mastery}$), trend classifications (`Improved`, `Steady`, `Needs Calibration`), and formative commentary on areas leveled up.
+
+### Automated PDF Diagnostic Report Export
+One-click client-side vector PDF generation compiling:
+* Overall diagnostic scores and rubric mastery bars.
+* Verbatim transcript audit with turn-by-turn justifications.
+* Side-by-side Answer Transformer rewrites.
+* Calibrated behavioral telemetry baselines.
 
 ---
 
-## 🧑‍🏫 Pedagogy & Learning Design
+## 🧑‍🏫 Pedagogical Design Framework
 
-| Educational Principle | Implementation in Felix |
-|---|---|
-| **Formative Assessment** | Real-time coaching cues rather than post-facto rejection |
-| **Zone of Proximal Development** | Rescue Mode scaffolding when candidate experiences cognitive block |
-| **Model Demonstration** | Side-by-side STAR Answer Transformation using candidate's own content |
-| **Retrieval Practice** | Variable questioning across practice sessions |
-| **Spaced Repetition** | Weak learning outcomes resurface on an automated interval |
-| **Actionable Feedback** | Explicit citations of timestamped speech paired with specific fixes |
-
----
-
-## 👥 User Roles
-
-- **Learner:** Practices live sessions, uses Coach Mode hints, reviews Answer Transformations, and completes remediation drills.
-- **Educator / Mentor:** Assigns role tracks, reviews cohort competency heatmaps, and tracks progression.
-- **Administrator:** Manages question banks, role templates, and LMS integration points.
+| Educational Concept | Pedagogical Foundation | Implementation in Felix |
+|---|---|---|
+| **Formative Scaffolding** | Vygotsky’s Zone of Proximal Development (ZPD) | Real-time verbal rescue mode and stepping-stone prompts when students freeze. |
+| **Model Demonstration** | Bandura’s Observational Learning | The Answer Transformer models high-impact STAR structure using the student's own project context. |
+| **Deliberate Practice** | Ericsson’s Peak Performance Model | 30-second isolated micro-drills targeting a single identified gap rather than full 45-minute re-runs. |
+| **Longitudinal Feedback** | Black & Wiliam’s Assessment for Learning | Quantified $\Delta \text{Mastery}$ tracking demonstrating measurable growth between rehearsals. |
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                         FELIX LEARNING PLATFORM                        │
-│                                                                        │
-│   ┌────────────┐   ┌──────────────┐   ┌────────────────────────────┐   │
-│   │  Avatar    │◄──│  Cartesia    │◄──│  Gemini Flash-Lite Engine  │   │
-│   │  Interface │   │  (TTS - WAV) │   │  (Live Reasoning & Prompts)│   │
-│   └─────┬──────┘   └──────────────┘   └─────────────▲──────────────┘   │
-│         ▼                                           │                  │
-│   ┌────────────┐   ┌──────────────┐                 │                  │
-│   │  Learner   │──►│ AssemblyAI / │─────────────────┘                  │
-│   │  (AV Feed) │   │ Web Speech   │                                    │
-│   └─────┬──────┘   └──────────────┘                                    │
-│         │                                                              │
-│         ▼ EventBus (~5 fps video + audio blobs)                        │
-│   ┌───────────────────────────────────┐   ┌────────────────────────┐   │
-│   │  BEHAVIORAL TELEMETRY PIPELINE    │   │  UPSTREAM MCP SERVER   │   │
-│   │  MediaPipe · Py-feat · Parselmouth│   │  (GitHub Repos/Context)│   │
-│   └─────────────────┬─────────────────┘   └────────────────────────┘   │
-│                     ▼                                                  │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │               COMPETENCY & LEARNING-GAP ENGINE                 │   │
-│   │            (Rubric Evaluation → Learning Outcomes)             │   │
-│   └─────────────────┬──────────────────────────────────────────────┘   │
-│                     ▼                                                  │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │    FEEDBACK REPORT + ANSWER TRANSFORMER + MICRO-DRILL RETRY    │   │
-│   └─────────────────┬──────────────────────────────────────────────┘   │
-│                     ▼                                                  │
-│   ┌──────────────────────────────────┐   ┌─────────────────────────┐   │
-│   │ COHORT MASTERY DASHBOARDS        │   │  DOWNSTREAM LMS MCP     │   │
-│   └──────────────────────────────────┘   └─────────────────────────┘   │
-└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              FELIX SYSTEM ARCHITECTURE                                 │
+│                                                                                        │
+│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                        CLIENT LAYER (Next.js 14 App Router)                    │   │
+│   │                                                                                │   │
+│   │   ┌───────────────────────┐   ┌───────────────────────┐   ┌────────────────┐   │   │
+│   │   │ Beyond Presence Video │   │   Live Telemetry HUD  │   │  MediaCapture  │   │   │
+│   │   │  Avatar Stream Engine │   │   • VAD-Gaze Gate     │   │  • Mic + Cam   │   │   │
+│   │   │  (Active Archetype)   │   │   • DSP F₀ Baseline   │   │  • Web Audio   │   │   │
+│   │   └───────────────────────┘   └───────────────────────┘   └────────┬───────┘   │   │
+│   └────────────────────────────────────────────────────────────────────┼───────────┘   │
+│                                                                        │               │
+│               WebSocket Real-Time Event Stream (Turn Transitions)      │ AV Streams    │
+│                                      ▼                                 ▼               │
+│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                       BACKEND SERVER (Node.js + Express)                       │   │
+│   │                                                                                │   │
+│   │   ┌───────────────────────┐   ┌───────────────────────┐   ┌────────────────┐   │   │
+│   │   │ WebSocket Turn Engine │   │  Beyond Presence Sync │   │ GitHub Service │   │   │
+│   │   │ • Turn State Machine  │   │  • Agent Prompt Sync  │   │ • Repo Scraping│   │   │
+│   │   │ • Rescue Scaffolding  │   │  • Spoken Greeting    │   │ • README Parse │   │   │
+│   │   └───────────┬───────────┘   └───────────────────────┘   └────────────────┘   │   │
+│   │               ▼                                                                │   │
+│   │   ┌────────────────────────────────────────────────────────────────────────┐   │   │
+│   │   │       Single Gemini Flash-Lite Reasoning Client (`server/core/llm.ts`) │   │   │
+│   │   │       • Live Turn Reasoning (< 1.5s latency budget)                    │   │   │
+│   │   │       • Evidence-Grounded Rubric Evaluation & STAR Transformation      │   │   │
+│   │   └────────────────────────────────────────────────────────────────────────┘   │   │
+│   └────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                        │
+│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                        PERSISTENCE & STORAGE ARCHITECTURE                      │   │
+│   │                                                                                │   │
+│   │   ┌───────────────────────┐   ┌───────────────────────┐   ┌────────────────┐   │   │
+│   │   │ IndexedDB Video Vault │   │ Historical Store      │   │ PDF Exporter   │   │   │
+│   │   │ (Turn WebM Blobs)     │   │ (Transcripts & Scores)│   │ (jsPDF Vector) │   │   │
+│   │   └───────────────────────┘   └───────────────────────┘   └────────────────┘   │   │
+│   └────────────────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## ⚙️ How a Session Works
-
-1. **Setup:** Learner selects target role and difficulty rigor (or pastes custom job description).
-2. **Interview Turn Loop:**
-   - Avatar generates role-tailored question.
-   - Learner speaks response while camera and microphone streams run.
-   - Real-time STT transcribes speech with word timestamps.
-   - If silence $> 5$ s occurs, **Rescue Mode** automatically provides verbal scaffolding.
-   - Learner can request on-demand **Coach Mode** hints.
-3. **Turn Completion:** Response is packaged into a `SessionResponseRecord` and handed to the behavioral and learning pipelines.
-4. **Formative Assessment:**
-   - Answer Transformer produces verbatim vs. STAR rewrite comparison.
-   - Behavioral dashboard surfaces delivery metrics (jitter, speaking rate, gaze).
-   - One-click micro-drill button triggers a 30-second targeted sprint on identified gaps.
-
----
-
-## 📊 Competency & Evaluation Framework
-
-| Dimension | Scope | Learning Outcome Target |
-|---|---|---|
-| **Technical Knowledge** | Role-specific concepts and reasoning | Explain concepts accurately with architecture context |
-| **Communication** | Organization and logical flow | Structure responses using STAR format |
-| **Clarity** | Directness and brevity | Formulate clear opening statements; eliminate rambling |
-| **Confidence** | Delivery stability and filler frequency | Maintain consistent pacing and minimize filler utterances |
-| **Problem Solving** | Analytical decomposition | Break complex scenarios into sequential actions |
-| **Relevance** | Alignment to role and prompt | Directly address question constraints |
-| **Non-Verbal** | Gaze orientation and vocal pacing | Maintain natural camera engagement and steady cadence |
-
----
-
-## 🛡️ Ethical Design Principles
-
-Behavioral measurements (gaze direction, vocal jitter, pause durations) are exclusively framed as **self-awareness coaching cues**. Felix adheres to strict ethical guardrails:
-- Behavioral telemetry is **never** used to penalize, score down, or judge candidate character.
-- Signals are presented as reflective observations (e.g., *"Speaking rate accelerated to 180 WPM during the technical explanation — pacing exercises may help comfort level"*).
-- The platform supports neurodivergent and diverse communication styles by focusing on structured content mastery rather than rigid behavioral conformity.
 
 ---
 
 ## 🤖 AI / ML Model Stack
 
-| Component | Technology | Purpose |
-|---|---|---|
-| **Core Reasoning** | **Gemini 2.0 Flash-Lite / Flash** | Question generation, follow-ups, Rescue Mode, and evaluation |
-| **Speech-to-Text** | AssemblyAI Streaming / Web Speech API | Real-time voice transcription with word-level timestamps |
-| **Text-to-Speech** | Cartesia Sonic (`sonic-english`) / Web Speech | Ultra-low latency neural speech synthesis (`< 1.5s` total turn) |
-| **Gaze Estimation** | MediaPipe Face Mesh | Camera-facing percentage and direction tracking |
-| **Facial Analysis** | Py-feat | Facial Action Units (AUs) and emotion distribution |
-| **Prosody Analysis**| Parselmouth (Praat) | Fundamental frequency (F0), vocal jitter, shimmer, pause segments |
-| **Avatar** | SVG/Canvas Real-time Digital Human | Synchronized lip-sync and expressive state rendering |
-
-### Model Pinning & Fallbacks
-- LLM client runs automatic model fallback across `gemini-2.0-flash-lite` → `gemini-2.0-flash` → `gemini-1.5-flash`.
-- In environments without external API keys, client gracefully switches to browser Web Speech API for voice synthesis and transcription.
+| Component | Architecture / Model | Function | Latency Profile |
+|---|---|---|---|
+| **Core Reasoning** | **Gemini Flash-Lite** | Real-time question generation, follow-up probes, Rescue scaffolding, and rubric evaluation | Sub-second ($< 800\text{ ms}$) |
+| **Conversational Avatar** | Beyond Presence Agent API | Photorealistic interactive interviewer video stream with synchronized lip-sync | Real-time WebRTC stream |
+| **Speech-to-Text** | AssemblyAI Streaming / Web Speech API | Word-level timestamped transcription with interim partials | Streaming real-time |
+| **Neural TTS** | Cartesia Sonic (`sonic-3.6`) / Web Speech | Ultra-low-latency neural speech generation | Streaming ($< 150\text{ ms}$) |
+| **Acoustic Prosody** | Web Audio Autocorrelation DSP | Real-time fundamental frequency ($F_0$), cycle perturbation jitter, RMS energy VAD | Zero network latency (In-browser) |
+| **Computer Vision** | MediaPipe Face Mesh & Iris Tracking | 468 landmark facial mesh and normalized iris vector computation | 60 FPS client execution |
 
 ---
 
-## 🏁 Hackathon MVP Priority
+## 🛡️ Ethical Design & Bias Mitigation Guardrails
 
-| Priority | Feature | Scope |
+* **Zero Evaluative Penalties for Non-Verbal Signals:** Telemetry metrics are strictly visualized as self-awareness reflection cues. They are never factored into competency scores as deductions.
+* **Neurodivergent & Cultural Inclusivity:** Candidates are never penalized for avoiding direct eye contact while formulating complex thoughts; the **VAD-gated Cognitive Search filter** actively protects composure ratings during reflection.
+* **Accent Neutrality via Delta Normalization:** By measuring vocal tremor relative to the candidate's calibrated baseline rather than a static acoustic standard, speakers of all accents and registers receive fair, unbiased assessment.
+
+---
+
+## 🏁 Hackathon MVP Priorities & Deliverables
+
+| Deliverable | Status | Scope |
 |---|---|---|
-| **P0 — Core Loop** | Live Voice Turn Loop | AssemblyAI / Web Speech → Gemini → Cartesia (`< 1.5s` latency) |
-| **P0 — Core Loop** | Answer Transformer | Side-by-side verbatim vs. STAR rewrite comparison |
-| **P0 — Core Loop** | Behavioral Dashboard | Parselmouth prosody graphs + MediaPipe gaze tracking |
-| **P0 — Core Loop** | Micro-Drill Retry | One-click 30s sprint targeting detected weakness |
-| **P0 — Core Loop** | Evidence Feedback | Timestamped transcript citations for all observations |
-| **P1 — High Value** | Rescue Mode | Automatic scaffolding on $> 5$ s silence |
-| **P1 — High Value** | Coach Mode | On-demand STAR hints |
-| **P1 — High Value** | Avatar Lip-Sync | Low-latency audio-reactive mouth modulation |
+| **Live Voice Turn Loop** | ✅ Completed | Low-latency voice loop ($< 1.5\text{s}$) with live avatar |
+| **Model Architecture Upgrade** | ✅ Completed | Self-referential $F_0$ DSP baseline + VAD-gated cognitive search |
+| **Configurable Archetypes** | ✅ Completed | Supportive Felix, Pragmatic Staff Architect, Rapid-Fire Recruiter |
+| **GitHub & Resume Grounding**| ✅ Completed | Public repo parsing + PDF resume ingestion into prompt context |
+| **Answer Transformer** | ✅ Completed | Side-by-side verbatim response vs. STAR structured rewrite |
+| **Problem-First Micro-Drills**| ✅ Completed | 30-second targeted practice sprint with mistake explanation |
+| **Synchronized Video Vault** | ✅ Completed | Local-first IndexedDB video recording and replay per turn |
+| **Longitudinal Progression** | ✅ Completed | Historical rehearsal tracker with $\Delta \text{Mastery}$ growth indicators |
+| **PDF Diagnostic Report** | ✅ Completed | Downloadable vector PDF summary with rubric and evidence audit |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ (tested on v22)
-- Python 3.10+ (for behavioral telemetry)
-- API Keys (optional for local testing; defaults to browser Web Speech API):
-  - `GEMINI_API_KEY` ([Google AI Studio](https://aistudio.google.com/app/apikey))
-  - `ASSEMBLYAI_API_KEY` ([AssemblyAI Dashboard](https://www.assemblyai.com))
-  - `CARTESIA_API_KEY` ([Cartesia Play](https://play.cartesia.ai))
+* Node.js 18+ (tested on v20 and v22)
+* Modern browser with webcam and microphone permissions (Chrome, Edge, Brave recommended)
 
-### Setup & Run
+### Quick Start
 
 1. **Clone the repository:**
    ```bash
@@ -253,7 +258,10 @@ Behavioral measurements (gaze direction, vocal jitter, pause durations) are excl
 2. **Configure Environment:**
    ```bash
    cp .env.example .env
-   # Add your API keys to .env
+   # Populate your API keys in .env and frontend/.env.local:
+   # GEMINI_API_KEY=...
+   # BEYOND_PRESENCE_API_KEY=...
+   # NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID=...
    ```
 
 3. **Install Dependencies:**
@@ -261,33 +269,33 @@ Behavioral measurements (gaze direction, vocal jitter, pause durations) are excl
    npm install
    cd server && npm install
    cd ../frontend && npm install
+   cd ..
    ```
 
 4. **Launch Application:**
-   From the repository root:
    ```bash
    npm run dev
    ```
-   - **Frontend:** [http://localhost:3000](http://localhost:3000)
-   - **Backend Server:** [http://localhost:3001](http://localhost:3001)
-   - **WebSocket Server:** `ws://localhost:3002`
+   * **Frontend Application:** [http://localhost:3000](http://localhost:3000)
+   * **Backend REST API:** [http://localhost:3001](http://localhost:3001)
+   * **WebSocket Turn Server:** `ws://localhost:3002`
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Multi-turn progressive learning journeys with cumulative skill tracking.
-- [ ] Automated spaced-repetition scheduler with email/calendar notification hooks.
-- [ ] Upstream GitHub MCP server for direct project repository analysis.
-- [ ] Downstream LMS MCP server for Canvas and Notion assignment export.
-- [ ] Exportable PDF evaluation summaries for placement cell documentation.
-- [ ] Mobile responsive practice interface.
-
----
-
-## 👥 Team
-
-- Techashy Hackathon — EdTech Track
+- [x] Adaptive Self-Referential DSP Prosody Normalization
+- [x] Multimodal VAD-Gated Cognitive Search Vision Fusion
+- [x] Configurable Interviewer Archetypes
+- [x] Real GitHub Repository & PDF Resume Grounding
+- [x] Problem-First 30-Second Micro-Drills
+- [x] IndexedDB Turn-by-Turn Video Replay Vault
+- [x] Longitudinal Mastery Progression Engine
+- [x] One-Click Vector PDF Diagnostic Report Exporter
+- [ ] Multi-turn progressive learning pathways with cumulative skill certification.
+- [ ] Automated spaced-repetition scheduler with calendar notification webhooks.
+- [ ] Upstream GitHub MCP server for direct multi-branch code inspection.
+- [ ] Downstream LMS MCP server for Canvas, Google Classroom, and Notion assignment sync.
 
 ---
 
