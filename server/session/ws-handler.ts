@@ -65,6 +65,13 @@ export function handleWebSocketConnection(ws: WebSocket): void {
           break;
         }
 
+        case 'transcript:append': {
+          if (turnEngine && message.line) {
+            sessionManager.addLine(turnEngine.getSession().sessionId, message.line);
+          }
+          break;
+        }
+
         case 'session:end': {
           if (turnEngine) {
             await turnEngine.endSession();

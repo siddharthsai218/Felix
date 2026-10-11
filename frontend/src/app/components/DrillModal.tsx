@@ -39,23 +39,52 @@ export const DrillModal: React.FC<DrillModalProps> = ({
           </div>
         </div>
 
-        {/* Learning Outcome */}
-        <div className="mb-4 p-3.5 rounded-xl bg-violet-950/40 border border-violet-800/40 text-xs">
-          <span className="text-gray-400 font-medium block mb-1">Target Learning Outcome:</span>
-          <p className="text-violet-200 font-semibold">{drill.targetLearningOutcome}</p>
+        {/* Step 1: The Problem First */}
+        {drill.originalQuestion && (
+          <div className="mb-3 p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <div className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[10px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span>1. The Problem Asked:</span>
+            </div>
+            <p className="text-cyan-200 font-medium italic">"{drill.originalQuestion}"</p>
+          </div>
+        )}
+
+        {/* Step 2: The Mistake Explained on this Problem */}
+        {(drill.problemFirstExplanation || drill.studentMistake) && (
+          <div className="mb-3 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-xs">
+            <div className="flex items-center gap-1.5 text-rose-400 font-semibold mb-1 uppercase tracking-wider text-[10px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              <span>2. Mistake Identified On This Problem:</span>
+            </div>
+            <p className="text-rose-100 font-medium leading-relaxed">
+              {drill.problemFirstExplanation || drill.studentMistake}
+            </p>
+          </div>
+        )}
+
+        {/* Step 3: Next Part — Targeted Drill Challenge */}
+        <div className="mb-4 p-4 rounded-xl bg-violet-950/40 border border-violet-800/40 text-sm">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-mono font-bold text-violet-300 uppercase tracking-wider">
+              3. Next Part • 30-Second Practice Drill:
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 font-mono">
+              {drill.timeLimitSeconds}s Sprint
+            </span>
+          </div>
+          <p className="text-white font-semibold">"{drill.question}"</p>
         </div>
 
-        {/* Drill Question Preview */}
-        <div className="mb-5 p-4 rounded-xl bg-gray-950 border border-gray-800 text-sm">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-            Drill Challenge:
-          </span>
-          <p className="text-gray-100 font-medium italic">"{drill.question}"</p>
+        {/* Learning Outcome */}
+        <div className="mb-4 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] flex items-center gap-2">
+          <span className="text-slate-400 font-medium shrink-0">Target Outcome:</span>
+          <span className="text-violet-200 font-semibold truncate">{drill.targetLearningOutcome}</span>
         </div>
 
         {/* Hints */}
         {drill.hints && drill.hints.length > 0 && (
-          <div className="mb-6 space-y-1.5">
+          <div className="mb-5 space-y-1.5">
             <span className="text-xs font-semibold text-gray-400">Quick Tips for Retry:</span>
             <ul className="text-xs text-gray-300 space-y-1 pl-4 list-disc marker:text-violet-400">
               {drill.hints.map((hint, idx) => (

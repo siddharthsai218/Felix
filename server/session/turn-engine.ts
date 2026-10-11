@@ -50,6 +50,10 @@ export class TurnEngine {
     this.session = session;
   }
 
+  getSession(): ActiveSession {
+    return this.session;
+  }
+
   /**
    * Start the session: generate questions, then ask the first one.
    */
@@ -142,6 +146,17 @@ export class TurnEngine {
     this.sendMessage({ type: 'turn:state', state: 'asking' });
     sessionManager.updateState(this.session.sessionId, 'asking');
 
+    // Record interviewer question into session transcript
+    const line = sessionManager.addLine(this.session.sessionId, {
+      turnIndex: index + 1,
+      speaker: 'interviewer',
+      speakerName: 'Felix (Interviewer)',
+      text: question.text,
+      timestamp: new Date().toISOString(),
+      type: question.type === 'follow-up' ? 'follow-up' : 'question',
+    });
+    this.sendMessage({ type: 'transcript:line', line });
+
     // Send the question text
     this.sendMessage({
       type: 'question:text',
@@ -163,13 +178,29 @@ export class TurnEngine {
     this.sendMessage({ type: 'turn:state', state: 'drill' });
     sessionManager.updateState(this.session.sessionId, 'drill');
 
+    const problemText = drill.originalQuestion || this.session.questions[0]?.text || 'the technical problem from your earlier turn';
+    const mistakeText = drill.studentMistake || 'the response lacked structured STAR framing and measurable technical outcomes';
+    const explanationText = drill.problemFirstExplanation || `Looking back at the problem where you were asked "${problemText}": the primary mistake in your response was that ${mistakeText}. Interviewers specifically evaluate concrete engineering metrics and ownership.`;
+
+    const fullDrillPrompt = `${explanationText} Now, proceeding with the next part: ${drill.question}`;
+
+    const line = sessionManager.addLine(this.session.sessionId, {
+      turnIndex: this.session.currentQuestionIndex + 1,
+      speaker: 'interviewer',
+      speakerName: 'Felix (Micro-Drill)',
+      text: fullDrillPrompt,
+      timestamp: new Date().toISOString(),
+      type: 'drill',
+    });
+    this.sendMessage({ type: 'transcript:line', line });
+
     this.sendMessage({
       type: 'question:text',
-      text: drill.question,
+      text: fullDrillPrompt,
       questionIndex: -1, // -1 indicates a drill
     });
 
-    await this.speakText(drill.question);
+    await this.speakText(fullDrillPrompt);
     this.startListening();
   }
 
@@ -231,6 +262,40 @@ export class TurnEngine {
 
     sessionManager.addResponse(this.session.sessionId, record);
     this.sendMessage({ type: 'response:complete', record });
+
+    // Record candidate response into session transcript
+    const candLine = sessionManager.addLine(this.session.sessionId, {
+      turnIndex: questionIndex + 1,
+      speaker: 'candidate',
+      speakerName: 'Learner (Candidate)',
+      text,
+      timestamp: now.toISOString(),
+      type: 'response',
+      durationMs: record.durationMs,
+      wordTimestamps: timestamps,
+    });
+    this.sendMessage({ type: 'transcript:line', line: candLine });
+
+    // If this was a drill turn, evaluate candidate's drill response by the problem first itself
+    if (isDrill) {
+      const isWeak = text.length < 50 || text.toLowerCase().includes("don't know") || text.toLowerCase().includes("pass");
+      const drillFeedback = isWeak
+        ? `On this problem, you attempted the retry, but remember to cite concrete numbers and benchmarks. Proceeding to your updated assessment report.`
+        : `Excellent improvement! On this problem, you corrected the previous mistake by clearly establishing your technical actions and quantifiable impact. Proceeding to your updated assessment report.`;
+
+      const line = sessionManager.addLine(this.session.sessionId, {
+        turnIndex: questionIndex + 1,
+        speaker: 'interviewer',
+        speakerName: 'Felix (Drill Evaluation)',
+        text: drillFeedback,
+        timestamp: new Date().toISOString(),
+        type: 'drill',
+      });
+      this.sendMessage({ type: 'transcript:line', line });
+      await this.speakText(drillFeedback);
+      await this.endSession();
+      return;
+    }
 
     // Decide what's next: if unlimited or current index < questionCount, keep interviewing
     const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
@@ -315,10 +380,29 @@ export class TurnEngine {
         this.currentTranscript,
         question.targetCompetency,
       );
+      const line = sessionManager.addLine(this.session.sessionId, {
+        turnIndex: questionIndex + 1,
+        speaker: 'interviewer',
+        speakerName: 'Felix (Coach Hint)',
+        text: hint,
+        timestamp: new Date().toISOString(),
+        type: 'hint',
+      });
+      this.sendMessage({ type: 'transcript:line', line });
       this.sendMessage({ type: 'coach:hint', hint });
     } catch (error) {
       console.error('Failed to generate coach hint:', error);
-      this.sendMessage({ type: 'coach:hint', hint: 'Try using the STAR method: Situation, Task, Action, Result.' });
+      const fallbackHint = 'Try using the STAR method: Situation, Task, Action, Result.';
+      const line = sessionManager.addLine(this.session.sessionId, {
+        turnIndex: questionIndex + 1,
+        speaker: 'interviewer',
+        speakerName: 'Felix (Coach Hint)',
+        text: fallbackHint,
+        timestamp: new Date().toISOString(),
+        type: 'hint',
+      });
+      this.sendMessage({ type: 'transcript:line', line });
+      this.sendMessage({ type: 'coach:hint', hint: fallbackHint });
     }
   }
 

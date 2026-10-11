@@ -79,6 +79,15 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Problem-First Mistake Explanation in Mock Drills & Remediation Turns:
+  - Formative Coaching Protocol: Updated the AI interviewer's mock drill behavior across both live turns (`server/session/turn-engine.ts`, `server/session/prompts/followup.ts`) and client-side remediation sessions (`frontend/src/app/session/live/page.tsx`, `frontend/src/app/components/DrillModal.tsx`) so the interviewer always begins by explaining the candidate's mistake on the problem first itself before proceeding with the next part.
+  - DrillSpec & Remediation Plan Schema: Extended `DrillSpec` (`server/core/types.ts`, `frontend/src/app/lib/types.ts`, `docs/contracts/drill-spec.md`) and `RemediationPlanItem` (`server/learning/types.ts`, `server/learning/prompts/rubric-scoring.ts`, `frontend/src/report/FeedbackReport.tsx`) with `originalProblem`, `studentMistake`, and `problemFirstExplanation`.
+  - Dynamic Problem & Mistake Extraction: Updated `handleStartDrill` in `frontend/src/app/session/report/page.tsx` and `/api/evaluate` to dynamically pair each drill with the candidate's actual question asked, verbatim response, and critique deduction notes, persisting the active drill in `sessionStorage`.
+  - Three-Part Visual Breakdown in DrillModal: Enhanced `DrillModal.tsx` to clearly structure drill preparation into: (1) The Problem Asked, (2) Mistake Identified On This Problem, and (3) Next Part 30s Practice Sprint.
+  - Live Stage Drill Execution & Audio Synthesis: Configured `/session/live` to recognize `drillId` mode. When launched, the interviewer speaks the problem context, explains what mistake occurred in the previous response, and instructs the candidate on the next part challenge. Added a clean non-overlapping stage card displaying the problem, mistake analysis, and active sprint countdown timer (`⏱️ 30s Left`).
+  - Drill Evaluation & Seamless Progression: On drill submission, the interviewer evaluates the candidate's retry starting with the problem first itself, congratulates their improvement, auto-increments the overall score in history, and routes back to the report debrief.
+  - Verified clean TypeScript compilation across frontend/backend (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [2+3] — Interactive Result Telemetry & Pacing Graph:
   - Replaced the static hardcoded SVG waveform in `frontend/src/report/FeedbackReport.tsx` with a fully interactive Recharts data visualization component `frontend/src/report/InteractiveTelemetryGraph.tsx`.
   - Added 4 selectable biometric stream modes: Speaking Cadence (WPM with 120–160 optimal corridor), MediaPipe Gaze Alignment (0–100%), Parselmouth Vocal Jitter perturbation %, and Multi-Biometric Composite.
@@ -100,6 +109,12 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
   - Built dedicated `LearnerProgressionCard` component in `frontend/src/report/LearnerProgressionCard.tsx` featuring side-by-side prior vs current score comparisons (`3.6 ➔ 4.1 / 5.0`), visual trend indicators (`▲ +0.5 Mastery Growth`), and formative AI commentary highlighting specific areas where the candidate leveled up.
   - Integrated `LearnerProgressionCard` into the post-interview diagnostic debrief in `/session/report`, dynamically bound to the candidate's historical record and auto-persisted.
   - Added live progression delta badges to the interview timeline list and dialogue transcript modal in `/session/history`, showing immediate longitudinal trajectory per session.
+- 2026-10-11 [1+3] — Complete Conversation Transcript Storage & Dialogue Rehearsal Archive:
+  - Created standardized `TranscriptLine` and `SessionTranscript` interfaces across server (`server/core/types.ts`) and frontend (`frontend/src/app/lib/types.ts`).
+  - Updated server session manager (`server/session/session-manager.ts`) and WebSocket turn engine (`server/session/turn-engine.ts`) to record, timestamp, and index every line spoken by the interviewer (questions, follow-ups, coach hints, micro-drills) and every verbal answer from the student.
+  - Added REST endpoints `GET /api/sessions/:sessionId/transcript` and `POST /api/sessions/:sessionId/transcript` to sync and query full dialogue transcripts on demand (`server/session/routes.ts`).
+  - Wired live interview page (`frontend/src/app/session/live/page.tsx`) to capture every turn verbatim (both online WebSocket and offline local fallback mode), persisting chronologically to `sessionStorage` (`felix_session_transcript`).
+  - Integrated transcript archiving into persistent interview history (`frontend/src/app/lib/history-store.ts`), saving `transcriptLines` in `HistoricalSession` and rendering verbatim dialogue bubbles and copy-to-clipboard functionality in the Rehearsal History modal (`frontend/src/app/session/history/page.tsx`).
 - 2026-10-11 [1+3] — Added Synchronized Video Transcript & IndexedDB Replay Vault:
   - Engineered client-side IndexedDB video persistence engine `frontend/src/app/lib/video-store.ts` (`felix_video_vault_v1`) to archive WebM video blobs recorded via `MediaRecorder` per turn without hitting `localStorage` quotas.
   - Wired live interview handoff in `frontend/src/app/session/live/page.tsx` to automatically listen for `capture:video-handoff` events from `MediaCapture` and archive turn video clips locally.

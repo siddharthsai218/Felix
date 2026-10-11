@@ -188,7 +188,10 @@ Return ONLY a valid JSON object matching this schema:
   "remediationPlan": [
     {
       "topic": string,
-      "drillQuestion": string,
+      "originalProblem": string (the exact interviewer question asked above where the candidate struggled),
+      "studentMistake": string (the specific mistake or omission in the candidate's answer),
+      "problemFirstExplanation": string (a formative explanation starting with the problem first itself, explaining what mistake was made on that problem and what interviewers look for),
+      "drillQuestion": string (the next part: the targeted 30-second drill prompt for the student to practice),
       "targetOutcome": string
     }
   ]
@@ -527,6 +530,11 @@ Return ONLY a valid JSON object matching this schema:
       remediationPlan: [
         {
           topic: 'Mastering the STAR Method Under Pressure',
+          originalProblem: primaryResponse?.questionAsked || `Key technical challenge for ${roleTitle}`,
+          studentMistake: isShortOrSleepy
+            ? 'Response was brief, informal, and lacked structured STAR framing or architectural metrics.'
+            : 'Answer did not clearly outline quantifiable results or individual technical actions.',
+          problemFirstExplanation: `In the problem where you were asked "${primaryResponse?.questionAsked || `Key technical challenge for ${roleTitle}`}", the primary mistake was ${isShortOrSleepy ? 'offering an informal, brief answer without establishing the Situation, Task, Action, and Result' : 'omitting specific impact metrics and individual ownership boundaries'}. In technical interviews, panels evaluate structured depth.`,
           drillQuestion: `Explain a technical problem you solved for ${roleTitle}. State the Situation, your specific Task, Actions, and a measurable Result.`,
           targetOutcome: 'Structure your explanation in under 45 seconds with concrete metrics.',
         },

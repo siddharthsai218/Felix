@@ -3,6 +3,7 @@ import type {
   SessionConfig,
   SessionRecord,
   SessionResponseRecord,
+  TranscriptLine,
   TurnState,
   GeneratedQuestion,
   DrillSpec,
@@ -14,6 +15,7 @@ export interface ActiveSession {
   state: TurnState;
   questions: GeneratedQuestion[];
   responses: SessionResponseRecord[];
+  transcript: TranscriptLine[];
   currentQuestionIndex: number;
   startedAt: Date;
   pendingDrills: DrillSpec[];
@@ -35,6 +37,7 @@ class SessionManager {
       state: 'idle',
       questions: [],
       responses: [],
+      transcript: [],
       currentQuestionIndex: 0,
       startedAt: new Date(),
       pendingDrills: [],
@@ -78,6 +81,23 @@ class SessionManager {
     return undefined;
   }
 
+  addLine(sessionId: string, line: Omit<TranscriptLine, 'id'> | TranscriptLine): TranscriptLine {
+    const session = this.sessions.get(sessionId);
+    const fullLine: TranscriptLine = {
+      id: 'id' in line && line.id ? line.id : uuidv4(),
+      ...line,
+    };
+    if (session) {
+      session.transcript.push(fullLine);
+    }
+    return fullLine;
+  }
+
+  getTranscript(sessionId: string): TranscriptLine[] {
+    const session = this.sessions.get(sessionId);
+    return session ? session.transcript : [];
+  }
+
   toSessionRecord(sessionId: string): SessionRecord | undefined {
     const session = this.sessions.get(sessionId);
     if (!session) return undefined;
@@ -90,6 +110,7 @@ class SessionManager {
       endedAt: new Date().toISOString(),
       totalDurationMs: Date.now() - session.startedAt.getTime(),
       responses: session.responses,
+      transcript: session.transcript,
       sessionConfig: {
         questionCount: session.config.questionCount,
         difficulty: session.config.difficulty,

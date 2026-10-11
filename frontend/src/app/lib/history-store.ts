@@ -17,6 +17,7 @@ export interface HistoricalSession {
   questionCount: number;
   githubUrl?: string;
   responses: HistoryTurnResponse[];
+  transcriptLines?: import('./types').TranscriptLine[];
   telemetry?: {
     gazePercentage?: number;
     speakingRateWpm?: number;
@@ -32,6 +33,9 @@ export interface HistoricalSession {
       topic: string;
       drillQuestion: string;
       targetOutcome: string;
+      originalProblem?: string;
+      studentMistake?: string;
+      problemFirstExplanation?: string;
     }>;
   };
   progression?: LearnerProgression;

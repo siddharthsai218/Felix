@@ -49,6 +49,34 @@ sessionRouter.get('/:sessionId/responses/:index', (req, res) => {
   res.json(response);
 });
 
+// GET /api/sessions/:sessionId/transcript — get complete chronological dialogue transcript
+sessionRouter.get('/:sessionId/transcript', (req, res) => {
+  const session = sessionManager.get(req.params.sessionId);
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  const lines = sessionManager.getTranscript(req.params.sessionId);
+  res.json({ sessionId: session.sessionId, count: lines.length, lines });
+});
+
+// POST /api/sessions/:sessionId/transcript — append transcript lines
+sessionRouter.post('/:sessionId/transcript', (req, res) => {
+  const session = sessionManager.get(req.params.sessionId);
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  const { line, lines } = req.body;
+  if (Array.isArray(lines)) {
+    for (const l of lines) {
+      sessionManager.addLine(session.sessionId, l);
+    }
+  } else if (line) {
+    sessionManager.addLine(session.sessionId, line);
+  }
+  const updatedLines = sessionManager.getTranscript(req.params.sessionId);
+  res.json({ status: 'stored', count: updatedLines.length, lines: updatedLines });
+});
+
 // POST /api/sessions/:sessionId/drills — Part 3 posts a drill
 sessionRouter.post('/:sessionId/drills', (req, res) => {
   const session = sessionManager.get(req.params.sessionId);

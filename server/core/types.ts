@@ -22,6 +22,9 @@ export interface DrillSpec {
   timeLimitSeconds: number;
   context?: string;
   hints?: string[];
+  originalQuestion?: string;
+  studentMistake?: string;
+  problemFirstExplanation?: string;
 }
 
 /** Per-response record — emitted after each learner response */
@@ -43,6 +46,29 @@ export interface SessionResponseRecord {
   drillSpec?: DrillSpec;
 }
 
+/** A single spoken line/utterance in the session transcript */
+export interface TranscriptLine {
+  id: string;
+  turnIndex: number;
+  speaker: 'interviewer' | 'candidate';
+  speakerName: string;
+  text: string;
+  timestamp: string; // ISO 8601
+  type: 'question' | 'response' | 'follow-up' | 'hint' | 'greeting' | 'clarification' | 'drill';
+  durationMs?: number;
+  wordTimestamps?: SttWordTimestamp[];
+}
+
+/** Complete chronological session dialogue transcript */
+export interface SessionTranscript {
+  sessionId: string;
+  learnerId?: string;
+  targetRole?: string;
+  startedAt: string;
+  endedAt?: string;
+  lines: TranscriptLine[];
+}
+
 /** Complete session record — emitted when session ends */
 export interface SessionRecord {
   sessionId: string;
@@ -52,6 +78,7 @@ export interface SessionRecord {
   endedAt: string;
   totalDurationMs: number;
   responses: SessionResponseRecord[];
+  transcript?: TranscriptLine[];
   sessionConfig: {
     questionCount: number;
     difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -91,6 +118,7 @@ export type ClientMessage =
   | { type: 'stt:final'; text: string; timestamps?: SttWordTimestamp[] }
   | { type: 'coach:request' }              // request Coach Mode hint
   | { type: 'drill:start'; drillId: string }
+  | { type: 'transcript:append'; line: TranscriptLine }
   | { type: 'session:end' };
 
 /** WebSocket message types (server → client) */
@@ -103,6 +131,8 @@ export type ServerMessage =
   | { type: 'tts:audio'; data: string; isLast: boolean } // base64 audio chunk
   | { type: 'rescue:activate'; message: string }
   | { type: 'coach:hint'; hint: string }
+  | { type: 'transcript:line'; line: TranscriptLine }
+  | { type: 'transcript:sync'; lines: TranscriptLine[] }
   | { type: 'response:complete'; record: SessionResponseRecord }
   | { type: 'session:complete'; record: SessionRecord }
   | { type: 'error'; message: string };

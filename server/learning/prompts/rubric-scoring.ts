@@ -16,6 +16,7 @@ CRITICAL GUIDELINES:
 - In behavioral insights, cite the exact telemetry signals (e.g., MediaPipe eye contact %, Parselmouth WPM, jitter %, pause duration). Behavioral signals must ALWAYS be framed constructively as self-awareness coaching cues, NEVER as penalties.
 - For the Answer Transformer, take the candidate's real answer to a key question and produce a high-impact "Felix STAR Rewrite" showing how they can elevate what they said with concrete engineering metrics and ownership.
 - Recommend targeted micro-drills for the candidate's identified weak areas.
+- For each drill, identify the exact mistake done by the student on the problem. The explanation MUST address the problem first itself ("In the problem where you were asked [originalProblem], the key mistake was [studentMistake]..."), explain what interviewers expect, and then proceed with the next part (the targeted 30s drill practice question).
 
 SCHEMA:
 Return a valid JSON object matching this TypeScript structure:
@@ -61,7 +62,10 @@ Return a valid JSON object matching this TypeScript structure:
   "remediationPlan": [
     {
       "topic": string,
-      "drillQuestion": string,
+      "originalProblem": string, // The exact interview question where the mistake occurred
+      "studentMistake": string, // The specific mistake done by the student on that problem
+      "problemFirstExplanation": string, // Formative explanation starting with the problem first itself, explaining what went wrong and how to fix it
+      "drillQuestion": string, // The next part: the 30-second drill prompt for the student to practice
       "targetOutcome": string
     }
   ]

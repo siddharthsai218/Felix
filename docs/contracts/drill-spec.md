@@ -22,6 +22,9 @@ interface DrillSpec {
   timeLimitSeconds: number;      // typically 30 for micro-drills
   context?: string;              // optional setup/scenario for the question
   hints?: string[];              // optional Coach Mode hints Part 3 provides
+  originalQuestion?: string;     // original problem where the mistake occurred
+  studentMistake?: string;       // the specific mistake or omission made by the learner
+  problemFirstExplanation?: string; // interviewer starts explaining the mistake by the problem first itself, before proceeding to the next part
 }
 ```
 

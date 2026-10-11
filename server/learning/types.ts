@@ -97,6 +97,9 @@ export interface RemediationPlanItem {
   topic: string;
   drillQuestion: string;
   targetOutcome: string;
+  originalProblem?: string;
+  studentMistake?: string;
+  problemFirstExplanation?: string;
 }
 
 export interface GeneratedReportResult {

@@ -176,11 +176,17 @@ export function generateFallbackReport(
     remediationPlan: [
       {
         topic: 'Quantifying Engineering Impact (STAR Method)',
+        originalProblem: questionAsked,
+        studentMistake: 'Response lacked structured STAR articulation and omitted concrete quantitative impact metrics (latency, SLA, uptime).',
+        problemFirstExplanation: `In the problem where you were asked "${questionAsked}", the primary mistake was not structuring your answer using Situation, Task, Action, and measurable Result, leaving the engineering impact unquantified. Interviewers specifically evaluate concrete metrics.`,
         drillQuestion: `Explain a challenging technical trade-off in ${targetRole}. Focus on quantifying your final result in 30 seconds.`,
         targetOutcome: 'Master STAR structure with measurable benchmarks and personal agency.',
       },
       {
         topic: 'Architectural Trade-Off Justification',
+        originalProblem: questionAsked,
+        studentMistake: 'Did not explain alternative architectural patterns or why this specific design was chosen over other approaches.',
+        problemFirstExplanation: `Looking at the problem: "${questionAsked}", what was missing was a clear defense of trade-offs comparing alternatives before committing to a decision.`,
         drillQuestion: `Why did you select this specific architecture over alternative patterns? Defend your decision concisely.`,
         targetOutcome: 'Articulate technical trade-offs, memory/network overhead, and system constraints clearly.',
       },

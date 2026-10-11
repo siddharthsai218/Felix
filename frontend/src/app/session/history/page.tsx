@@ -74,12 +74,23 @@ export default function HistoryPage() {
   };
 
   const handleCopyTranscript = (session: HistoricalSession) => {
-    const text = session.responses
-      .map(
-        (r, i) =>
-          `[Question ${i + 1}]\nInterviewer: "${r.questionAsked}"\n\nCandidate Response:\n"${r.transcript}"\n`
-      )
-      .join('\n---\n\n');
+    let text = '';
+    if (session.transcriptLines && session.transcriptLines.length > 0) {
+      text = session.transcriptLines
+        .map((l, i) => {
+          const speakerLabel = l.speaker === 'interviewer' ? 'Felix (Interviewer)' : 'Candidate';
+          const typeTag = l.type ? ` [${l.type.toUpperCase()}]` : '';
+          return `${speakerLabel}${typeTag}:\n"${l.text}"\n`;
+        })
+        .join('\n');
+    } else {
+      text = session.responses
+        .map(
+          (r, i) =>
+            `[Question ${i + 1}]\nInterviewer: "${r.questionAsked}"\n\nCandidate Response:\n"${r.transcript}"\n`
+        )
+        .join('\n---\n\n');
+    }
 
     navigator.clipboard.writeText(text);
     setCopiedTranscript(true);
@@ -464,45 +475,119 @@ export default function HistoryPage() {
 
             {/* Modal Body: Dialogue Transcript */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 font-sans">
-              {activeTranscriptSession.responses.map((turn, idx) => (
-                <div key={idx} className="space-y-3">
-                  {/* Interviewer Question Bubble */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-[10px] font-bold font-mono text-white shrink-0 mt-0.5">
-                      F
-                    </div>
-                    <div className="flex-1 bg-violet-950/30 border border-violet-800/40 rounded-xl p-3.5 text-xs text-violet-100 leading-relaxed">
-                      <div className="text-[10px] font-mono text-violet-400 font-bold mb-1 uppercase tracking-wider">
-                        Interviewer Question {idx + 1}
-                      </div>
-                      {turn.questionAsked}
-                    </div>
-                  </div>
+              {activeTranscriptSession.transcriptLines && activeTranscriptSession.transcriptLines.length > 0 ? (
+                // Full verbatim dialogue stream
+                <div className="space-y-4">
+                  {activeTranscriptSession.transcriptLines.map((line, idx) => {
+                    const isInterviewer = line.speaker === 'interviewer';
+                    const isHint = line.type === 'hint';
+                    const isDrill = line.type === 'drill';
 
-                  {/* Candidate Answer Bubble */}
-                  <div className="flex items-start gap-3 pl-4">
-                    <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold font-mono text-slate-300 shrink-0 mt-0.5">
-                      YOU
-                    </div>
-                    <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-200 leading-relaxed space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                        <span>Spoken Transcript</span>
-                        {turn.durationMs && (
-                          <span>{(turn.durationMs / 1000).toFixed(1)}s turn</span>
-                        )}
-                      </div>
-                      <p className="text-slate-200">{turn.transcript}</p>
+                    return (
+                      <div
+                        key={line.lineId || idx}
+                        className={`flex items-start gap-3 ${isInterviewer ? '' : 'pl-4'}`}
+                      >
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold font-mono text-white shrink-0 mt-0.5 shadow-sm ${
+                            isInterviewer
+                              ? isHint
+                                ? 'bg-amber-600'
+                                : isDrill
+                                ? 'bg-cyan-600'
+                                : 'bg-violet-600'
+                              : 'bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          {isInterviewer ? (isHint ? '💡' : 'F') : 'YOU'}
+                        </div>
 
-                      <TurnVideoPlayer
-                        sessionId={activeTranscriptSession.sessionId}
-                        responseIndex={idx}
-                        turnLabel={`Question ${idx + 1}`}
-                        className="pt-2"
-                      />
-                    </div>
-                  </div>
+                        <div
+                          className={`flex-1 rounded-xl p-3.5 text-xs leading-relaxed space-y-1.5 ${
+                            isInterviewer
+                              ? isHint
+                                ? 'bg-amber-950/40 border border-amber-800/40 text-amber-100'
+                                : 'bg-violet-950/30 border border-violet-800/40 text-violet-100'
+                              : 'bg-slate-900/90 border border-slate-800 text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-mono">
+                            <span
+                              className={`font-bold uppercase tracking-wider ${
+                                isInterviewer
+                                  ? isHint
+                                    ? 'text-amber-400'
+                                    : 'text-violet-400'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {isInterviewer
+                                ? isHint
+                                  ? 'Coach Hint'
+                                  : isDrill
+                                  ? 'Micro-Drill Challenge'
+                                  : `Interviewer Turn ${idx + 1}`
+                                : 'Candidate Response'}
+                            </span>
+                            {line.timestamp && (
+                              <span className="text-slate-500">
+                                {new Date(line.timestamp).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                })}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="whitespace-pre-wrap">{line.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : (
+                // Fallback turn responses
+                activeTranscriptSession.responses.map((turn, idx) => (
+                  <div key={idx} className="space-y-3">
+                    {/* Interviewer Question Bubble */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-[10px] font-bold font-mono text-white shrink-0 mt-0.5">
+                        F
+                      </div>
+                      <div className="flex-1 bg-violet-950/30 border border-violet-800/40 rounded-xl p-3.5 text-xs text-violet-100 leading-relaxed">
+                        <div className="text-[10px] font-mono text-violet-400 font-bold mb-1 uppercase tracking-wider">
+                          Interviewer Question {idx + 1}
+                        </div>
+                        {turn.questionAsked}
+                      </div>
+                    </div>
+
+                    {/* Candidate Answer Bubble */}
+                    <div className="flex items-start gap-3 pl-4">
+                      <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold font-mono text-slate-300 shrink-0 mt-0.5">
+                        YOU
+                      </div>
+                      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-200 leading-relaxed space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                          <span>Spoken Transcript</span>
+                          {turn.durationMs && (
+                            <span>{(turn.durationMs / 1000).toFixed(1)}s turn</span>
+                          )}
+                        </div>
+                        <p className="text-slate-200">{turn.transcript}</p>
+
+                        <TurnVideoPlayer
+                          sessionId={activeTranscriptSession.sessionId}
+                          responseIndex={idx}
+                          turnLabel={`Question ${idx + 1}`}
+                          className="pt-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Modal Footer */}
