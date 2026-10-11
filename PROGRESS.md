@@ -79,6 +79,14 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [2+3] — Interactive Result Telemetry & Pacing Graph:
+  - Replaced the static hardcoded SVG waveform in `frontend/src/report/FeedbackReport.tsx` with a fully interactive Recharts data visualization component `frontend/src/report/InteractiveTelemetryGraph.tsx`.
+  - Added 4 selectable biometric stream modes: Speaking Cadence (WPM with 120–160 optimal corridor), MediaPipe Gaze Alignment (0–100%), Parselmouth Vocal Jitter perturbation %, and Multi-Biometric Composite.
+  - Built interactive hover tooltips displaying precise timestamps, active turn context, exact metric values with health badges, verbatim candidate speech excerpts at that instant, and formative coaching observations.
+  - Implemented turn filtering (`All Turns`, `Turn 1`, `Turn 2`...) that zooms the timeline and highlights turn boundaries, along with clickable event milestone pins (`💭 Pause`, `⚡ Peak Cadence`).
+  - Added an interactive timeline scrubber and playback simulation button (`▶ Replay Pacing` / `⏸ Pause Replay`) that animates through the interview with a real-time point inspection HUD card.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [1] — Removed Floating Felix Prompt & Speech Subtitle Banner: Removed the floating overlay banner (`FELIX PROMPT #...` and question text box) from the live session stage in `frontend/src/app/session/live/page.tsx`, keeping the avatar video stage clean and completely unobstructed.
 - 2026-10-11 [1+3] — Added 1-Click Formative PDF Coaching Portfolio Export:
   - Engineered client-side PDF document generation engine `frontend/src/app/lib/pdf-exporter.ts` formatting standard A4/Letter print documents for university career counseling and mentorship portfolios.

@@ -11,6 +11,7 @@ import {
   type ScoreRationaleData,
   type TurnTranscriptAudit,
 } from './TranscriptScoreAudit';
+import { InteractiveTelemetryGraph } from './InteractiveTelemetryGraph';
 
 export interface RubricScoreItem {
   criterion: string;
@@ -31,6 +32,9 @@ export interface RemediationPlanItem {
   topic: string;
   drillQuestion: string;
   targetOutcome: string;
+  originalProblem?: string;
+  studentMistake?: string;
+  problemFirstExplanation?: string;
 }
 
 export interface FeedbackReportProps {
@@ -72,7 +76,6 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
   progression,
   learnerName,
 }) => {
-  const [selectedMilestone, setSelectedMilestone] = useState<string | null>(null);
   const [showFullRubric, setShowFullRubric] = useState<boolean>(true);
 
   // Normalize score to 100-point scale
@@ -468,7 +471,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
         </div>
 
         <button
-          onClick={() => onStartDrill && onStartDrill(remediationPlan?.[0]?.drillQuestion || `Explain an architectural challenge for ${roleTitle} using STAR format.`)}
+          onClick={() => onStartDrill && onStartDrill(remediationPlan?.[0]?.originalProblem || remediationPlan?.[0]?.drillQuestion || `Explain an architectural challenge for ${roleTitle} using STAR format.`)}
           className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold font-mono text-sm transition-all shadow-xl shadow-violet-500/30 flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-center"
         >
           <span>Start 30-Second Micro-Drill</span>
@@ -494,95 +497,26 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
             </h3>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Optimal Cadence (125-145 WPM)</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span>Micro-Pause (&gt;2.0s)</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Dynamic Interactive SVG Waveform Stream */}
-        <div className="relative w-full h-36 bg-[#070b12] rounded-xl border border-slate-800/80 overflow-hidden px-4 py-3 flex flex-col justify-between">
-          {/* Subtle Grid Lines */}
-          <div className="absolute inset-0 grid grid-cols-6 divide-x divide-slate-800/30 pointer-events-none" />
-
-          {/* SVG Wave */}
-          <svg className="w-full h-24 overflow-visible" viewBox="0 0 800 100" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            {/* Area Fill */}
-            <path
-              d="M 0 60 Q 70 85, 140 50 T 280 75 T 420 30 T 560 65 T 700 45 T 800 60 L 800 100 L 0 100 Z"
-              fill="url(#waveGrad)"
-            />
-            {/* Wave Stroke */}
-            <path
-              d="M 0 60 Q 70 85, 140 50 T 280 75 T 420 30 T 560 65 T 700 45 T 800 60"
-              fill="none"
-              stroke="#10b981"
-              strokeWidth="2.5"
-            />
-
-            {/* Amber Milestone Pin 1: Cognitive Pause */}
-            <circle cx="280" cy="75" r="4.5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="280" y1="20" x2="280" y2="75" stroke="#f59e0b" strokeWidth="1" strokeDasharray="2,2" />
-
-            {/* Cyan Milestone Pin 2: Dynamic Pacing Peak */}
-            <circle cx="420" cy="30" r="4.5" fill="#06b6d4" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="420" y1="10" x2="420" y2="30" stroke="#06b6d4" strokeWidth="1" strokeDasharray="2,2" />
-          </svg>
-
-          {/* Floating Marker Badges over the wave */}
-          <div className="absolute top-2 left-[31%] -translate-x-1/2">
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono border border-amber-500/40 shadow">
-              ● {pauseCount > 0 ? `${pauseCount} Cognitive Pause${pauseCount === 1 ? '' : 's'} Detected` : 'Steady Articulation'}
-            </span>
-          </div>
-
-          <div className="absolute top-1 left-[52%] -translate-x-1/2">
-            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/40 shadow">
-              ● Cadence: {telemetry?.speakingRateWpm ?? (totalWordsSpoken > 0 ? 135 : 0)} WPM ({telemetry?.speakingRateWpm && telemetry.speakingRateWpm < 115 ? 'Sluggish' : 'Natural'})
-            </span>
-          </div>
-
-          {/* Timeline Axis Labels */}
-          <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-2 border-t border-slate-800/80 z-10">
-            <span>Interview Start</span>
-            {candidateResponses.length > 1 && <span>Turn 1</span>}
-            {candidateResponses.length > 2 && <span>Turn 2</span>}
-            <span>Session Concluded</span>
-          </div>
-        </div>
-
-        {/* Milestone Navigation Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 mr-1">
-            RECORDED INTERVIEW TURNS:
-          </span>
-          {(candidateResponses.length > 0 ? candidateResponses : [{ questionAsked: `Initial ${roleTitle} question`, transcript: actualWords }]).map((m, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedMilestone(`Turn ${idx + 1}`)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors flex items-center gap-1.5 border ${
-                selectedMilestone === `Turn ${idx + 1}`
-                  ? 'bg-violet-600 text-white border-violet-500'
-                  : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700'
-              }`}
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/session/dashboard?sessionId=${sessionId}`}
+              className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 text-xs font-mono font-medium transition-all flex items-center gap-1.5 shadow-sm"
+              title="Open multi-panel Parselmouth and MediaPipe telemetry analytics"
             >
-              <span className="font-bold text-violet-400">Q{idx + 1}</span>
-              <span className="truncate max-w-[200px]">{m.questionAsked || `Question ${idx + 1}`}</span>
-            </button>
-          ))}
+              <span>Full Biometric Suite</span>
+              <span>→</span>
+            </Link>
+          </div>
         </div>
+
+        {/* Dynamic Interactive Recharts Telemetry & Pacing Graph */}
+        <InteractiveTelemetryGraph
+          telemetry={telemetry}
+          candidateResponses={candidateResponses}
+          sessionDurationSeconds={computedDurationSecs}
+          roleTitle={roleTitle}
+        />
+
 
         {/* 4 Bottom Telemetry Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-800/80">
