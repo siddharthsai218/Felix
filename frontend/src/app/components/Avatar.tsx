@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import type { TurnState } from '../lib/types';
+import type { TurnState, InterviewerArchetype } from '../lib/types';
+import { INTERVIEWER_ARCHETYPES } from '../lib/types';
 
 interface AvatarProps {
   state: TurnState;
@@ -12,6 +13,7 @@ interface AvatarProps {
   beyondPresenceAgentId?: string;
   beyondPresenceUrl?: string;
   sessionId?: string;
+  archetype?: InterviewerArchetype;
 }
 
 /**
@@ -36,11 +38,13 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
   isSpeaking,
   beyondPresenceAgentId,
   beyondPresenceUrl,
+  archetype = 'supportive-coach',
 }) => {
   const [viewMode, setViewMode] = useState<'beyond' | 'interactive'>('beyond');
   const [isJoined, setIsJoined] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(0);
   const [blink, setBlink] = useState(false);
+  const archConfig = INTERVIEWER_ARCHETYPES[archetype] || INTERVIEWER_ARCHETYPES['supportive-coach'];
 
   // Beyond Presence agent ID strictly configured via environment
   const agentId =
@@ -254,7 +258,10 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
         ) : (
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
         )}
-        <span className="text-xs font-semibold text-gray-100">Felix — AI Coach</span>
+        <span className="text-xs font-semibold text-gray-100 flex items-center gap-1.5">
+          <span>{archConfig.icon}</span>
+          <span>{archConfig.name}</span>
+        </span>
         <span className={`text-[10px] px-2 py-0.5 rounded-full border ${status.color}`}>
           {status.text}
         </span>

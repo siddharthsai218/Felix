@@ -1,4 +1,5 @@
 import { config } from '../core/config.js';
+import type { InterviewerArchetype } from '../core/types.js';
 
 interface SyncAgentOptions {
   targetRole: string;
@@ -6,11 +7,12 @@ interface SyncAgentOptions {
   githubContext?: string;
   resumeText?: string;
   firstQuestion?: string;
+  archetype?: InterviewerArchetype;
 }
 
 /**
  * Synchronize Beyond Presence avatar agent on bey.dev with candidate role,
- * GitHub projects context, and custom interview greeting.
+ * GitHub projects context, Interviewer Archetype, and custom greeting.
  */
 export async function syncBeyondPresenceAgent(options: SyncAgentOptions): Promise<boolean> {
   const apiKey = config.beyondPresenceApiKey || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
@@ -21,9 +23,16 @@ export async function syncBeyondPresenceAgent(options: SyncAgentOptions): Promis
     return false;
   }
 
-  const { targetRole, difficulty, githubContext, resumeText, firstQuestion } = options;
+  const { targetRole, difficulty, githubContext, resumeText, firstQuestion, archetype = 'supportive-coach' } = options;
   const roleName = targetRole || 'Software Engineer';
   const diffLevel = difficulty || 'intermediate';
+
+  const archetypeName =
+    archetype === 'pragmatic-architect'
+      ? 'Pragmatic Staff Architect'
+      : archetype === 'rapid-fire-recruiter'
+      ? 'Rapid-Fire Recruiter'
+      : 'Supportive Felix';
 
   // Extract repo names if mentioned in githubContext
   const repoMatches = githubContext ? Array.from(githubContext.matchAll(/Project "([^"]+)"/g)).map((m) => m[1]) : [];
@@ -31,7 +40,15 @@ export async function syncBeyondPresenceAgent(options: SyncAgentOptions): Promis
   const hasGithub = repoMatches.length > 0;
   const hasResume = Boolean(resumeText?.trim());
 
-  let prompt = `You are Felix, an expert technical interview coaching AI. You are conducting an interactive live mock technical interview for a candidate practicing for the target role: "${roleName}" at ${diffLevel} level.\n\n`;
+  let prompt = `You are ${archetypeName}, an expert technical interview coaching AI. You are conducting an interactive live mock technical interview for a candidate practicing for the target role: "${roleName}" at ${diffLevel} level.\n\n`;
+
+  if (archetype === 'pragmatic-architect') {
+    prompt += `ARCHETYPE PERSONA: Pragmatic Staff Architect. You are rigorous, direct, and zero in on architectural edge cases, distributed failure states, data consistency models, p99 latencies, and explicit trade-offs. Challenge the candidate to defend their technical boundaries.\n\n`;
+  } else if (archetype === 'rapid-fire-recruiter') {
+    prompt += `ARCHETYPE PERSONA: Rapid-Fire Recruiter. You are fast-paced, concise, and executive-focused. You test time management, 30-to-60 second elevator summaries, and quantified business impact ($ / % / hours saved). You urge candidates to be succinct and eliminate fluff.\n\n`;
+  } else {
+    prompt += `ARCHETYPE PERSONA: Supportive Felix. You provide high reassurance, patience, and positive reinforcement. You build psychological safety, validate effort, and gently scaffold structured thinking.\n\n`;
+  }
 
   if (hasGithub) {
     prompt += `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext?.trim()}\n\n`;
@@ -68,20 +85,20 @@ CRITICAL GUIDELINE: Do NOT refer to "your GitHub", "your repository", "your resu
   let greeting = '';
   if (firstQuestion) {
     if (hasGithub) {
-      greeting = `Hello! I am Felix, your technical interviewer for ${roleName}. I reviewed your GitHub repositories including ${repoMatches.slice(0, 3).join(', ')}. Let's get started: ${firstQuestion}`;
+      greeting = `Hello! I am your interviewer for ${roleName}. I reviewed your GitHub repositories including ${repoMatches.slice(0, 3).join(', ')}. Let's get started: ${firstQuestion}`;
     } else if (hasResume) {
-      greeting = `Hello! I am Felix, your technical interviewer for ${roleName}. I reviewed your resume background. Let's get started: ${firstQuestion}`;
+      greeting = `Hello! I am your interviewer for ${roleName}. I reviewed your resume background. Let's get started: ${firstQuestion}`;
     } else {
-      greeting = `Hello! I am Felix, your technical interviewer for ${roleName}. Let's get started: ${firstQuestion}`;
+      greeting = `Hello! I am your interviewer for ${roleName}. Let's get started: ${firstQuestion}`;
     }
   } else if (hasGithub) {
     const featured = repoMatches.slice(0, 3).join(', ');
     const firstRepo = repoMatches[0];
-    greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your GitHub repositories including ${featured}. To begin, could you walk me through how you architected your ${firstRepo} project and the key technical trade-offs you made?`;
+    greeting = `Hello! I am your interviewer for the ${roleName} role. I reviewed your GitHub repositories including ${featured}. To begin, could you walk me through how you architected your ${firstRepo} project and the key technical trade-offs you made?`;
   } else if (hasResume) {
-    greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your resume experience. To begin, could you walk me through a technical accomplishment relevant to ${roleName}?`;
+    greeting = `Hello! I am your interviewer for the ${roleName} role. I reviewed your resume experience. To begin, could you walk me through a technical accomplishment relevant to ${roleName}?`;
   } else {
-    greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. To begin, how do you typically approach designing a resilient system architecture that can scale under high load?`;
+    greeting = `Hello! I am your interviewer for the ${roleName} role. To begin, how do you typically approach designing a resilient system architecture that can scale under high load?`;
   }
 
   try {

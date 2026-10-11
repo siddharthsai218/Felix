@@ -11,6 +11,7 @@ export interface HistoricalSession {
   sessionId: string;
   learnerId: string;
   roleTitle: string;
+  archetype?: import('./types').InterviewerArchetype;
   createdAt: string; // ISO string
   durationSeconds: number;
   overallScore: number;

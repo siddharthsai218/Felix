@@ -79,6 +79,17 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Configurable Interviewer Archetypes:
+  - Implemented 3 distinct coaching personas:
+    1. Supportive Felix: Patience, high psychological safety, warmth, normalizing hesitation, positive reinforcement, and step-by-step STAR scaffolding.
+    2. Pragmatic Staff Architect: Zeroes in on edge cases, distributed failure modes, p99 tail latencies, concurrency bottlenecks, and explicit architectural trade-offs.
+    3. Rapid-Fire Recruiter: Tests time management, executive summaries, bottom-line ROI, 30-45s elevator pitches, and eliminates conversational fluff.
+  - Setup Selection UI (`frontend/src/app/session/setup/page.tsx`): Added interactive archetype selection cards with trait badges and descriptions, storing choice in `sessionStorage` (`felix_session_archetype`) and passing to sync endpoints.
+  - Live Turn Engine & Prompt Directives (`server/session/turn-engine.ts`, `server/session/prompts/`): Grounded question generation, follow-up probe style, rescue mode tone, and coach hints in the active archetype. Dynamic interviewer speaker naming and role-tailored fallback questions.
+  - Avatar Synchronization (`server/session/beyond-presence-sync.ts`, `frontend/src/app/api/avatar/sync/route.ts`, `frontend/src/app/components/Avatar.tsx`): Synchronized Beyond Presence agent system prompt and dynamic greeting with archetype persona, and displayed live archetype badge on the interviewer avatar.
+  - Live HUD & Reporting (`frontend/src/app/session/live/page.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/app/session/report/page.tsx`, `frontend/src/app/session/history/page.tsx`): Rendered archetype indicator in live call header, injected archetype perspective into Gemini evaluation prompt (`/api/evaluate`), added archetype badge to formative feedback report, and persisted archetype in historical session archives and transcript cards.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [2+3] — Strict 0 WPM Reporting When Microphone Inactive / Candidate Silent:
   - Configured `frontend/src/report/InteractiveTelemetryGraph.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/app/session/report/page.tsx`, `frontend/src/app/api/evaluate/route.ts`, and `server/learning/rubric.ts` so when the candidate does not speak or the microphone does not capture audio (0 words spoken), the speaking cadence is strictly reported as `0 WPM` instead of falling back to default conversational constants.
   - Interactive Telemetry Waveform: When WPM is 0, the cadence curve cleanly rests at 0 WPM, displays `No Speech Detected (0 WPM)` in the tooltip HUD, and flags `0 WPM recorded: No speech detected from microphone (candidate was silent or microphone was disconnected)` in the inspection cue.

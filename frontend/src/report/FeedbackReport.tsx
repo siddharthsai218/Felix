@@ -7,6 +7,10 @@ import { LearnerProgressionCard } from './LearnerProgressionCard';
 import type { LearnerProgression } from '../app/lib/history-store';
 import { exportSessionToPdf } from '../app/lib/pdf-exporter';
 import {
+  type InterviewerArchetype,
+  INTERVIEWER_ARCHETYPES,
+} from '../app/lib/types';
+import {
   TranscriptScoreAudit,
   type ScoreRationaleData,
   type TurnTranscriptAudit,
@@ -42,6 +46,7 @@ export interface FeedbackReportProps {
   date?: string;
   roleTitle?: string;
   githubUrl?: string;
+  archetype?: InterviewerArchetype;
   overallScore?: number;
   rubricScores?: RubricScoreItem[];
   behavioralInsights?: BehavioralInsightItem[];
@@ -62,6 +67,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
   date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
   roleTitle = 'Senior Systems & Frontend Architect',
   githubUrl = '',
+  archetype,
   overallScore = 3.9,
   rubricScores = [],
   behavioralInsights = [],
@@ -253,6 +259,12 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
                 <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
                   {benchmarkLabel}
                 </span>
+                {archetype && INTERVIEWER_ARCHETYPES[archetype] && (
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border ${INTERVIEWER_ARCHETYPES[archetype].badgeClass}`}>
+                    <span>{INTERVIEWER_ARCHETYPES[archetype].icon}</span>
+                    <span>{INTERVIEWER_ARCHETYPES[archetype].name}</span>
+                  </span>
+                )}
                 {githubUrl && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/50">
                     <span>🐙</span>
