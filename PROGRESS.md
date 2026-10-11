@@ -79,6 +79,12 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [2+3] — Strict 0 WPM Reporting When Microphone Inactive / Candidate Silent:
+  - Configured `frontend/src/report/InteractiveTelemetryGraph.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/app/session/report/page.tsx`, `frontend/src/app/api/evaluate/route.ts`, and `server/learning/rubric.ts` so when the candidate does not speak or the microphone does not capture audio (0 words spoken), the speaking cadence is strictly reported as `0 WPM` instead of falling back to default conversational constants.
+  - Interactive Telemetry Waveform: When WPM is 0, the cadence curve cleanly rests at 0 WPM, displays `No Speech Detected (0 WPM)` in the tooltip HUD, and flags `0 WPM recorded: No speech detected from microphone (candidate was silent or microphone was disconnected)` in the inspection cue.
+  - Evaluation & Feedback: Rubric feedback and behavioral insight badges explicitly cite "0 WPM recorded" and advise the candidate to check their microphone input device and permissions.
+  - Verified clean TypeScript compilation across frontend/backend (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [1+3] — Problem-First Mistake Explanation in Mock Drills & Remediation Turns:
   - Formative Coaching Protocol: Updated the AI interviewer's mock drill behavior across both live turns (`server/session/turn-engine.ts`, `server/session/prompts/followup.ts`) and client-side remediation sessions (`frontend/src/app/session/live/page.tsx`, `frontend/src/app/components/DrillModal.tsx`) so the interviewer always begins by explaining the candidate's mistake on the problem first itself before proceeding with the next part.
   - DrillSpec & Remediation Plan Schema: Extended `DrillSpec` (`server/core/types.ts`, `frontend/src/app/lib/types.ts`, `docs/contracts/drill-spec.md`) and `RemediationPlanItem` (`server/learning/types.ts`, `server/learning/prompts/rubric-scoring.ts`, `frontend/src/report/FeedbackReport.tsx`) with `originalProblem`, `studentMistake`, and `problemFirstExplanation`.

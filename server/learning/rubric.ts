@@ -77,21 +77,21 @@ export function generateFallbackReport(
   const candidateTranscript = primaryResp?.transcript || 'I implemented the system using structured components and clean abstractions.';
   const questionAsked = primaryResp?.questionAsked || `Walk me through an engineering challenge in ${targetRole}.`;
 
+  const wordCount = candidateTranscript.split(/\s+/).filter(Boolean).length;
   const gazePct = signals?.gazePercentage || signals?.gazeStats?.lookingAtCameraPct || 86;
-  const wpm = signals?.speakingRateWpm || signals?.speakingRate || 135;
+  const wpm = wordCount === 0 ? 0 : (signals?.speakingRateWpm !== undefined ? signals.speakingRateWpm : (signals?.speakingRate !== undefined ? signals.speakingRate : 135));
   const jitter = signals?.jitterPercent || signals?.jitter || 0.85;
   const pauseCount = signals?.pauseCount || (signals?.pauseSegments ? signals.pauseSegments.length : 2);
 
   // Compute realistic scores based on answer length and depth
-  const wordCount = candidateTranscript.split(/\s+/).filter(Boolean).length;
-  const techScore = Math.min(4.8, Math.max(2.5, 3.2 + (wordCount > 60 ? 0.9 : wordCount > 25 ? 0.5 : 0.0)));
-  const starScore = Math.min(4.7, Math.max(2.4, 3.0 + (candidateTranscript.toLowerCase().includes('result') || candidateTranscript.toLowerCase().includes('improved') || candidateTranscript.toLowerCase().includes('%') ? 0.8 : 0.2)));
-  const commScore = Math.min(4.9, Math.max(2.8, wpm >= 115 && wpm <= 165 ? 4.3 : 3.6));
+  const techScore = wordCount === 0 ? 1.0 : Math.min(4.8, Math.max(2.5, 3.2 + (wordCount > 60 ? 0.9 : wordCount > 25 ? 0.5 : 0.0)));
+  const starScore = wordCount === 0 ? 1.0 : Math.min(4.7, Math.max(2.4, 3.0 + (candidateTranscript.toLowerCase().includes('result') || candidateTranscript.toLowerCase().includes('improved') || candidateTranscript.toLowerCase().includes('%') ? 0.8 : 0.2)));
+  const commScore = wpm === 0 ? 1.0 : Math.min(4.9, Math.max(2.8, wpm >= 115 && wpm <= 165 ? 4.3 : 3.6));
   const composureScore = Math.min(4.9, Math.max(3.0, gazePct >= 80 ? 4.5 : 3.8));
   const overall = Math.round(((techScore + starScore + commScore + composureScore) / 4) * 10) / 10;
 
   // Extract real quote slices
-  const quote1 = candidateTranscript.slice(0, Math.min(candidateTranscript.length, 90)) + (candidateTranscript.length > 90 ? '...' : '');
+  const quote1 = wordCount === 0 ? 'No speech detected (0 WPM).' : (candidateTranscript.slice(0, Math.min(candidateTranscript.length, 90)) + (candidateTranscript.length > 90 ? '...' : ''));
   const quote2 = candidateTranscript.length > 90 
     ? candidateTranscript.slice(Math.min(candidateTranscript.length, 90), Math.min(candidateTranscript.length, 180)) + '...'
     : quote1;
@@ -102,19 +102,19 @@ export function generateFallbackReport(
       {
         criterion: 'Technical Depth & Domain Competency',
         score: Math.round(techScore * 10) / 10,
-        feedback: `Evaluated technical reasoning for ${targetRole}. Candidate answered with relevant context but can provide deeper architectural trade-offs.`,
+        feedback: wordCount === 0 ? 'No response detected. Please verify microphone connectivity.' : `Evaluated technical reasoning for ${targetRole}. Candidate answered with relevant context but can provide deeper architectural trade-offs.`,
         quotes: [{ text: quote1, time: '00:35' }],
       },
       {
         criterion: 'STAR Structure & Impact Quantification',
         score: Math.round(starScore * 10) / 10,
-        feedback: 'Addressed the situation and action, but needs stronger quantification of end results (latency, throughput, or user adoption metrics).',
+        feedback: wordCount === 0 ? 'No STAR structure detected.' : 'Addressed the situation and action, but needs stronger quantification of end results (latency, throughput, or user adoption metrics).',
         quotes: [{ text: quote2, time: '01:15' }],
       },
       {
         criterion: 'Communication Pacing & Clarity',
         score: Math.round(commScore * 10) / 10,
-        feedback: `Conversational delivery averaging ${wpm} WPM. Speech was articulate with logical progression between ideas.`,
+        feedback: wpm === 0 ? '0 WPM recorded. No speech was detected during the rehearsal. Please verify microphone connection and permissions.' : `Conversational delivery averaging ${wpm} WPM. Speech was articulate with logical progression between ideas.`,
         quotes: [{ text: quote1, time: '00:40' }],
       },
       {
@@ -135,7 +135,7 @@ export function generateFallbackReport(
       {
         icon: '🗣️',
         title: 'Parselmouth Pacing',
-        text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence for complex explanations.`,
+        text: wpm === 0 ? '0 WPM recorded. No candidate speech was detected from the microphone during the rehearsal.' : `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence for complex explanations.`,
         metric: `${wpm} WPM`,
         status: wpm >= 120 && wpm <= 160 ? 'optimal' : 'attention',
       },

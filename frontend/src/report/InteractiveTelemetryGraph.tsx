@@ -101,7 +101,9 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
 
   // Derive true overall speaking rate from candidate's real spoken words and turn duration
   const calculatedSessionWpm = useMemo(() => {
-    if (telemetry?.speakingRateWpm && telemetry.speakingRateWpm > 0) {
+    // If telemetry explicitly provides a speakingRateWpm value, check it
+    if (telemetry && typeof telemetry.speakingRateWpm === 'number') {
+      if (telemetry.speakingRateWpm === 0) return 0;
       return telemetry.speakingRateWpm;
     }
     if (candidateResponses && candidateResponses.length > 0) {
@@ -109,17 +111,17 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
         (sum, r) => sum + (r.transcript || '').split(/\s+/).filter(Boolean).length,
         0
       );
+      if (totalWords === 0) return 0;
       const totalSeconds = candidateResponses.reduce(
         (sum, r) => sum + Math.max(5, (r.durationMs || 30000) / 1000),
         0
       );
-      if (totalSeconds > 0 && totalWords > 0) {
-        return Math.max(25, Math.min(220, Math.round(totalWords / (totalSeconds / 60))));
+      if (totalSeconds > 0) {
+        return Math.max(0, Math.min(220, Math.round(totalWords / (totalSeconds / 60))));
       }
-      if (totalWords === 0) return 0;
     }
-    return 130;
-  }, [telemetry?.speakingRateWpm, candidateResponses]);
+    return 0; // If user did not speak or microphone was inactive
+  }, [telemetry, candidateResponses]);
 
   const baseWpm = calculatedSessionWpm;
   const baseGaze = telemetry?.gazePercentage ?? 82;
@@ -135,7 +137,7 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
         : [
             {
               questionAsked: `Key technical challenge for ${roleTitle}`,
-              transcript: 'Spoken candidate explanation recorded during technical rehearsal.',
+              transcript: '',
               durationMs: totalDuration * 1000,
             },
           ];
@@ -178,8 +180,8 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
       const turnDurationSec = Math.max(5, (currentTurn.durationMs || turnDuration * 1000) / 1000);
       const measuredTurnWpm =
         turnWordsList.length > 0
-          ? Math.max(25, Math.min(220, Math.round(turnWordsList.length / (turnDurationSec / 60))))
-          : Math.min(60, baseWpm);
+          ? Math.max(10, Math.min(220, Math.round(turnWordsList.length / (turnDurationSec / 60))))
+          : 0;
 
       // Split transcript words for contextual snippet
       const turnProgress = (timeSec - turnIdx * turnDuration) / Math.max(1, turnDuration);
@@ -188,18 +190,21 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
       const snippetEnd = Math.min(turnWordsList.length, wordIdx + 7);
       const transcriptSnippet =
         turnWordsList.slice(snippetStart, snippetEnd).join(' ') ||
-        'Candidate articulating engineering solution';
+        (turnWordsList.length === 0 ? 'No speech detected / microphone silent' : 'Candidate articulating engineering solution');
 
       // Check if this time falls inside a pause window
       const inPause = pauseTimes.some((pt) => Math.abs(timeSec - pt) <= 1.5);
       const isPausePeak = pauseTimes.some((pt) => Math.abs(timeSec - pt) <= 0.8);
 
-      // Generate realistic cadence grounded in this turn's actual measured WPM
-      const oscillation = Math.sin(timeSec * 0.45) * 6 + Math.cos(timeSec * 0.2) * 4;
-      let wpm = inPause
-        ? Math.max(10, Math.round(measuredTurnWpm * 0.2 - (timeSec % 4)))
-        : Math.round(measuredTurnWpm + oscillation);
-      wpm = Math.max(0, Math.min(220, wpm));
+      // If user did not speak (0 words), WPM is strictly 0
+      let wpm = 0;
+      if (measuredTurnWpm > 0) {
+        const oscillation = Math.sin(timeSec * 0.45) * 6 + Math.cos(timeSec * 0.2) * 4;
+        wpm = inPause
+          ? Math.max(10, Math.round(measuredTurnWpm * 0.2 - (timeSec % 4)))
+          : Math.round(measuredTurnWpm + oscillation);
+        wpm = Math.max(0, Math.min(220, wpm));
+      }
 
       // Gaze curve
       const gazeWave = Math.sin(timeSec * 0.3 + 1.2) * 7 + Math.cos(timeSec * 0.15) * 4;
@@ -212,14 +217,16 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
       jitter = Math.max(0.3, Math.min(3.5, jitter));
 
       // Normalized composite scores (0 to 100)
-      const cadenceScore = Math.min(100, Math.max(10, Math.round(wpm >= 120 && wpm <= 160 ? 95 : 100 - Math.abs(140 - wpm))));
+      const cadenceScore = wpm === 0 ? 0 : Math.min(100, Math.max(10, Math.round(wpm >= 120 && wpm <= 160 ? 95 : 100 - Math.abs(140 - wpm))));
       const gazeScore = Math.min(100, Math.max(10, gaze));
       const stabilityScore = Math.min(100, Math.max(10, Math.round(100 - jitter * 28)));
       const compositeScore = Math.round(cadenceScore * 0.4 + gazeScore * 0.35 + stabilityScore * 0.25);
 
       // Coaching cue for this moment
       let coachingCue = 'Conversational rhythm aligns with senior engineering standards.';
-      if (inPause) {
+      if (wpm === 0) {
+        coachingCue = '0 WPM recorded: No speech detected from microphone (candidate was silent or microphone was disconnected).';
+      } else if (inPause) {
         coachingCue = 'Cognitive pause: Formulating structural technical points.';
       } else if (wpm > 165) {
         coachingCue = 'Accelerated delivery: Maintain deliberate pacing for panel clarity.';
@@ -228,6 +235,7 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
       } else if (gaze < 60) {
         coachingCue = 'Eye contact dipped: Refocus toward camera plane to project presence.';
       }
+
 
       // Detect milestone events
       let isMilestone = false;
@@ -343,7 +351,11 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
             <span className="text-slate-500">•</span>
             <span className="text-violet-400">{pt.turnName}</span>
           </div>
-          {pt.isPause ? (
+          {pt.wpm === 0 ? (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+              No Speech Detected (0 WPM)
+            </span>
+          ) : pt.isPause ? (
             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
               Cognitive Pause
             </span>
@@ -361,8 +373,10 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
               <span className="text-slate-400 flex items-center gap-1">
                 <Mic className="w-3 h-3 text-emerald-400" /> Cadence:
               </span>
-              <span className="font-bold text-emerald-300">
-                {pt.wpm} WPM {pt.wpm >= 120 && pt.wpm <= 160 ? '(Optimal)' : pt.wpm > 160 ? '(Fast)' : '(Sluggish)'}
+              <span className={`font-bold ${pt.wpm === 0 ? 'text-rose-400' : 'text-emerald-300'}`}>
+                {pt.wpm === 0
+                  ? '0 WPM (Microphone Inactive / No Speech)'
+                  : `${pt.wpm} WPM ${pt.wpm >= 120 && pt.wpm <= 160 ? '(Optimal)' : pt.wpm > 160 ? '(Fast)' : '(Sluggish)'}`}
               </span>
             </div>
           )}
@@ -945,9 +959,12 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
           <div className="flex items-center gap-4 shrink-0 border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-5">
             <div className="text-center">
               <span className="text-[10px] font-mono text-slate-400 block">CADENCE</span>
-              <span className="text-base font-bold font-mono text-emerald-400">
+              <span className={`text-base font-bold font-mono ${activeInspectedPoint.wpm === 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {activeInspectedPoint.wpm} <span className="text-[10px] font-normal">WPM</span>
               </span>
+              {activeInspectedPoint.wpm === 0 && (
+                <span className="text-[9px] text-rose-400 block font-mono">No Speech (0 WPM)</span>
+              )}
             </div>
 
             <div className="text-center">

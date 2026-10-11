@@ -72,6 +72,7 @@ Candidate's Measured Behavioral Telemetry:
 - Gaze & telemetry evaluation:
   If gaze was low (< 50%) or face was not visible: Point out that looking away from the camera or not showing direct eye contact reduces engagement.
   If vocal energy was low, monotone, or sluggish WPM: Point out how raising vocal energy and projection conveys enthusiasm and confidence.
+  If the candidate did not speak, word count is 0, or microphone did not capture speech: Speaking rate MUST be reported as 0 WPM. State clearly in behavioral insights and rubric that 0 WPM was recorded because no speech was detected.
 
 3. REQUIRED JSON OUTPUT FORMAT:
 Return ONLY a valid JSON object matching this schema:
@@ -344,11 +345,11 @@ Return ONLY a valid JSON object matching this schema:
     }
 
     // Dynamic fallback grounded in candidate's actual words
-    const candidateWords = primaryResponse?.transcript || 'I spoke informally during the interview.';
+    const candidateWords = primaryResponse?.transcript || '';
     const wordCount = candidateWords.split(/\s+/).filter(Boolean).length;
     const isShortOrSleepy = wordCount < 25 || candidateWords.toLowerCase().includes('sleep') || candidateWords.toLowerCase().includes('tired') || candidateWords.toLowerCase().includes("don't know");
     const gazeScore = telemetry.gazePercentage ?? 0;
-    const wpm = telemetry.speakingRateWpm ?? (wordCount > 0 ? 80 : 0);
+    const wpm = wordCount === 0 ? 0 : (telemetry.speakingRateWpm !== undefined && telemetry.speakingRateWpm >= 0 ? telemetry.speakingRateWpm : 0);
     const jitter = telemetry.jitterPercent ?? 1.2;
 
     const fallbackScore = isShortOrSleepy ? 2.3 : 3.8;
@@ -441,13 +442,15 @@ Return ONLY a valid JSON object matching this schema:
         },
         {
           criterion: 'Communication Pacing & Clarity',
-          score: isShortOrSleepy ? 2.5 : 4.0,
-          feedback: wpm < 100
+          score: wpm === 0 ? 1.0 : (isShortOrSleepy ? 2.5 : 4.0),
+          feedback: wpm === 0
+            ? '0 WPM recorded. No speech was detected during the rehearsal. Please check your microphone input permissions.'
+            : wpm < 100
             ? `Cadence was sluggish at ${wpm} WPM. Increase projection and energetic pacing to engage the interviewer.`
             : `Pacing was measured at ${wpm} WPM with clear articulation.`,
           quotes: [
             {
-              text: wpm < 100 ? 'Low speaking cadence and sluggish delivery observed.' : 'Consistent pacing maintained.',
+              text: wpm === 0 ? 'No speech detected / microphone inactive (0 WPM).' : wpm < 100 ? 'Low speaking cadence and sluggish delivery observed.' : 'Consistent pacing maintained.',
               time: 'Prosody',
             },
           ],
@@ -479,7 +482,9 @@ Return ONLY a valid JSON object matching this schema:
         {
           icon: '🗣️',
           title: 'Parselmouth Pacing',
-          text: wpm >= 115 && wpm <= 165
+          text: wpm === 0
+            ? '0 WPM recorded. No speech was detected from the microphone during the response.'
+            : wpm >= 115 && wpm <= 165
             ? `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence.`
             : `Speaking cadence averaged ${wpm} WPM (${wpm < 115 ? 'Sluggish / low vocal energy' : 'Fast pace'}). Aim for 120-150 WPM.`,
           metric: `${wpm} WPM`,

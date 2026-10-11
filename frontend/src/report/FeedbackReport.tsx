@@ -96,12 +96,11 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
   const totalWordsSpoken =
     candidateResponses && candidateResponses.length > 0
       ? candidateResponses.reduce((sum, r) => sum + (r.transcript || '').split(/\s+/).filter(Boolean).length, 0)
-      : 40;
-  const estimatedSpeakingTimeSecs = Math.max(10, Math.round(totalWordsSpoken * 0.45));
-  const speakingRatioVal = Math.min(
-    95,
-    Math.max(35, Math.round((estimatedSpeakingTimeSecs / Math.max(1, computedDurationSecs)) * 100))
-  );
+      : 0;
+  const estimatedSpeakingTimeSecs = totalWordsSpoken > 0 ? Math.max(5, Math.round(totalWordsSpoken * 0.45)) : 0;
+  const speakingRatioVal = totalWordsSpoken > 0
+    ? Math.min(95, Math.max(10, Math.round((estimatedSpeakingTimeSecs / Math.max(1, computedDurationSecs)) * 100)))
+    : 0;
 
   const pauseCount =
     telemetry?.pauseCount ??
@@ -177,7 +176,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
       competency: 'Technical Action Clarity & Incident Leadership',
       scoreImprovement: isWeak ? '+65% Impact Rating' : '+32% Impact Rating',
       timeRange: '00:15 – 01:10',
-      wpm: telemetry?.speakingRateWpm ?? (wordCount > 0 ? 125 : 80),
+      wpm: telemetry?.speakingRateWpm ?? (wordCount > 0 ? Math.round(wordCount / (computedDurationSecs / 60)) : 0),
     },
   ];
 
@@ -230,7 +229,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
       progression,
       telemetry: {
         gazePercentage: telemetry?.gazePercentage ?? 84,
-        speakingRateWpm: telemetry?.speakingRateWpm ?? (wordCount > 0 ? 125 : 120),
+        speakingRateWpm: telemetry?.speakingRateWpm ?? (wordCount > 0 ? Math.round(wordCount / (computedDurationSecs / 60)) : 0),
         jitterPercent: telemetry?.jitterPercent ?? 1.8,
         composureScore: telemetry?.composureScore ?? 88,
       },

@@ -250,15 +250,17 @@ function ReportContent() {
 
       // Dynamic fallback strictly based on candidate's actual words
       const primaryResp = storedResponses.length > 0 ? storedResponses[0] : null;
-      const candidateText =
-        primaryResp?.transcript ||
-        'Spoken explanation recorded during the technical rehearsal.';
-
-      const gaze = storedTelemetry?.gazePercentage ?? 82;
-      const wpm = storedTelemetry?.speakingRateWpm ?? 142;
-      const jitter = storedTelemetry?.jitterPercent ?? 0.94;
+      const candidateText = primaryResp?.transcript || '';
       const words = candidateText.split(/\s+/).filter(Boolean).length;
       const isWeak = words < 20 || candidateText.toLowerCase().includes('sleep') || candidateText.toLowerCase().includes('tired');
+
+      const gaze = storedTelemetry?.gazePercentage ?? 82;
+      const wpm = words === 0
+        ? 0
+        : (storedTelemetry?.speakingRateWpm !== undefined && storedTelemetry.speakingRateWpm >= 0
+            ? storedTelemetry.speakingRateWpm
+            : Math.round(words / (Math.max(15, storedDuration) / 60)));
+      const jitter = storedTelemetry?.jitterPercent ?? 0.94;
 
       const fallbackScore = isWeak ? 2.4 : 3.9;
       const fallbackRubrics: RubricScoreItem[] = [
@@ -268,7 +270,7 @@ function ReportContent() {
           feedback: isWeak
             ? `The response lacked architectural precision, domain terminology, and metrics for ${storedRole}.`
             : `Demonstrated solid domain understanding for ${storedRole} with clear intuition of component failure modes.`,
-          quotes: [{ text: candidateText.slice(0, 85) + '...', time: 'Evidence' }],
+          quotes: [{ text: words > 0 ? candidateText.slice(0, 85) + '...' : 'No spoken response recorded.', time: 'Evidence' }],
         },
         {
           criterion: 'STAR Structure & Impact Quantification',
@@ -276,15 +278,17 @@ function ReportContent() {
           feedback: isWeak
             ? 'Missing Situation, Task, Action, and measurable Result. Casual phrasing without clear ownership boundaries.'
             : 'Good structural framing. Elevate by citing explicit latency reductions and revenue impact benchmarks.',
-          quotes: [{ text: candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText, time: 'Evidence' }],
+          quotes: [{ text: words > 0 ? (candidateText.slice(Math.min(candidateText.length, 30), Math.min(candidateText.length, 110)) || candidateText) : 'No STAR components detected.', time: 'Evidence' }],
         },
         {
           criterion: 'Communication Pacing & Clarity',
-          score: wpm < 100 ? 2.5 : 4.1,
-          feedback: wpm < 100
+          score: wpm === 0 ? 1.0 : wpm < 100 ? 2.5 : 4.1,
+          feedback: wpm === 0
+            ? '0 WPM recorded. No candidate speech was detected during the rehearsal. Please check your microphone connection and permissions.'
+            : wpm < 100
             ? `Speaking rate was sluggish at ${wpm} WPM. Increase vocal energy and projection to engage the panel.`
             : `Conversational pacing at ${wpm} WPM with clear articulation across technical concepts.`,
-          quotes: [{ text: wpm < 100 ? 'Low vocal cadence and sluggish articulation.' : 'Steady pacing maintained.', time: 'Prosody' }],
+          quotes: [{ text: wpm === 0 ? 'No speech detected / microphone inactive (0 WPM).' : wpm < 100 ? 'Low vocal cadence and sluggish articulation.' : 'Steady pacing maintained.', time: 'Prosody' }],
         },
         {
           criterion: 'Composure & Behavioral Presence',
@@ -307,7 +311,9 @@ function ReportContent() {
         {
           icon: '🗣️',
           title: 'Parselmouth Pacing',
-          text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence.`,
+          text: wpm === 0
+            ? '0 WPM recorded. No speech was detected from the microphone during the response.'
+            : `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence.`,
           metric: `${wpm} WPM`,
           status: (wpm >= 115 && wpm <= 165 ? 'optimal' : 'attention') as 'optimal' | 'attention',
         },
@@ -351,7 +357,7 @@ function ReportContent() {
           competency: 'Technical Action Clarity & Incident Leadership',
           scoreImprovement: isWeak ? '+65% Impact Rating' : '+32% Impact Rating',
           timeRange: '00:15 – 01:10',
-          wpm: storedTelemetry?.speakingRateWpm ?? (words > 0 ? 125 : 80),
+          wpm: words === 0 ? 0 : (storedTelemetry?.speakingRateWpm ?? 125),
         },
       ];
 
