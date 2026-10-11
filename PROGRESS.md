@@ -79,6 +79,25 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Exact AI Question Grounding, Full Spoken Answer Capture & Comprehensive Transcript Vault:
+  - Fixed AI Question Mismatch & Loss:
+    - Resolved critical turn index bug in `server/session/turn-engine.ts` where `this.session.currentQuestionIndex` was never incremented when advancing turns or updated in `askQuestion`, causing the engine to repeatedly cycle through question 0.
+    - Synchronized opening question between Beyond Presence avatar greeting and session stage in `frontend/src/app/session/setup/page.tsx` (`felix_opening_question`), ensuring the exact question spoken by the interviewer avatar is tracked and grounded into the evaluation report.
+    - Added automatic response and question repair in `frontend/src/app/session/report/page.tsx` that cross-references chronological transcript lines and restores the exact interviewer question rather than fallback placeholders.
+  - Fixed Candidate Spoken Answer Truncation:
+    - Eliminated state-race and truncation bug in `frontend/src/app/session/live/page.tsx` (`handleSubmitResponse`, `handleFinishInterview`) where `(learnerTranscript || partialTranscript)` dropped active interim speech chunks and read stale React closures.
+    - Added synchronous `learnerTranscriptRef` and `partialTranscriptRef` that update on every speech recognition result and combine finalized and interim utterances without dropping words.
+    - Guaranteed that concluding an interview via "Leave & View Report" always captures active turn speech and question context into `sessionStorage`.
+  - Built Comprehensive Transcript Storage & Interactive Dialogue Archive:
+    - Engineered `FullConversationTranscript` component (`frontend/src/report/FullConversationTranscript.tsx`) embedded directly into `FeedbackReport.tsx` and `/session/report`, featuring:
+      1. Turn-by-turn conversational dialogue bubbles with speaker avatars, archetype badges, and timestamps.
+      2. Multi-tier filter controls (`All Dialogue`, `Interviewer Only`, `Candidate Only`) and real-time keyword search.
+      3. 1-click "Copy Transcript" formatted in GitHub markdown for placement portfolios.
+      4. 1-click "Export .TXT" dialogue file downloader.
+      5. Synchronized turn video playback attached to candidate response lines.
+    - Created permanent local transcript vault in `localStorage` (`felix_all_transcripts_vault_v1`) keyed by session ID, persisting all spoken utterances across browser restarts, navigation, and page refreshes.
+  - Verified clean TypeScript compilation and successful production builds across frontend and server.
+
 - 2026-10-11 [1+3] — Configurable Interviewer Archetypes:
   - Implemented 3 distinct coaching personas:
     1. Supportive Felix: Patience, high psychological safety, warmth, normalizing hesitation, positive reinforcement, and step-by-step STAR scaffolding.

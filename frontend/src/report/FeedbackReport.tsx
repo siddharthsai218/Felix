@@ -15,6 +15,7 @@ import {
   type ScoreRationaleData,
   type TurnTranscriptAudit,
 } from './TranscriptScoreAudit';
+import { FullConversationTranscript } from './FullConversationTranscript';
 import { InteractiveTelemetryGraph } from './InteractiveTelemetryGraph';
 
 export interface RubricScoreItem {
@@ -60,6 +61,7 @@ export interface FeedbackReportProps {
   sessionDurationSeconds?: number;
   progression?: LearnerProgression | null;
   learnerName?: string;
+  transcriptLines?: import('../app/lib/types').TranscriptLine[];
 }
 
 export const FeedbackReport: React.FC<FeedbackReportProps> = ({
@@ -81,6 +83,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
   sessionDurationSeconds,
   progression,
   learnerName,
+  transcriptLines = [],
 }) => {
   const [showFullRubric, setShowFullRubric] = useState<boolean>(true);
 
@@ -450,6 +453,16 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
         scoreRationale={scoreRationale}
         transcriptAudit={transcriptAudit}
         candidateResponses={candidateResponses}
+        roleTitle={roleTitle}
+      />
+
+      {/* Complete Dialogue Conversation Transcript Archive */}
+      <FullConversationTranscript
+        sessionId={sessionId}
+        transcriptLines={transcriptLines}
+        candidateResponses={candidateResponses}
+        archetype={archetype}
+        learnerName={learnerName}
         roleTitle={roleTitle}
       />
 

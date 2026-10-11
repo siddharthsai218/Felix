@@ -192,6 +192,20 @@ export default function SessionSetupPage() {
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
         console.log('Avatar successfully synced:', data);
+        if (data && data.greeting) {
+          sessionStorage.setItem('felix_avatar_greeting', data.greeting);
+          // Extract the concrete question part
+          let qPart = data.greeting;
+          if (qPart.includes(': ')) {
+            const split = qPart.split(': ');
+            qPart = split.slice(1).join(': ');
+          } else if (qPart.includes('?')) {
+            const lastSentences = qPart.split(/(?<=[.?!])\s+/);
+            const questionSentence = lastSentences.find((s: string) => s.includes('?')) || lastSentences[lastSentences.length - 1];
+            if (questionSentence) qPart = questionSentence;
+          }
+          sessionStorage.setItem('felix_opening_question', qPart.trim());
+        }
       }
     } catch (err) {
       console.warn('Avatar sync failed, proceeding to session:', err);

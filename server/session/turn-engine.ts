@@ -127,6 +127,7 @@ export class TurnEngine {
    * Ask a specific question by index. Dynamically generates additional questions if needed.
    */
   async askQuestion(index: number): Promise<void> {
+    this.session.currentQuestionIndex = index;
     const isUnlimited = !this.session.config.questionCount || this.session.config.questionCount <= 0;
     if (!isUnlimited && index >= this.session.config.questionCount) {
       // Completed configured number of questions
@@ -343,6 +344,7 @@ export class TurnEngine {
         await this.askFollowUp(question?.text || '', text);
       } else {
         // Move to next question
+        this.session.currentQuestionIndex++;
         await this.askQuestion(this.session.currentQuestionIndex);
       }
     } else {

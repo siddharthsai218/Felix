@@ -39,6 +39,7 @@ function ReportContent() {
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
   const [telemetry, setTelemetry] = useState<any>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState<number>(0);
+  const [transcriptLines, setTranscriptLines] = useState<any[]>([]);
 
   useEffect(() => {
     // 1. Check if this session already exists in History (e.g. opened from History view or refreshed)
@@ -54,6 +55,9 @@ function ReportContent() {
       setBehavioralInsights(existingSession.evaluation.behavioralInsights || []);
       setTransformations(existingSession.evaluation.transformations || []);
       setCandidateResponses(existingSession.responses || []);
+      if (existingSession.transcriptLines) {
+        setTranscriptLines(existingSession.transcriptLines);
+      }
       if (existingSession.telemetry) {
         setTelemetry(existingSession.telemetry);
       }
@@ -130,6 +134,51 @@ function ReportContent() {
         if (rawTrans) storedTranscript = JSON.parse(rawTrans);
       } catch (e) {}
 
+      // Cross-reference permanent all-transcripts vault in localStorage if sessionStorage was cleared or incomplete
+      try {
+        if (!storedTranscript || storedTranscript.length === 0) {
+          const rawVault = localStorage.getItem('felix_all_transcripts_vault_v1');
+          if (rawVault) {
+            const vault = JSON.parse(rawVault);
+            if (vault[sessionId] && Array.isArray(vault[sessionId])) {
+              storedTranscript = vault[sessionId];
+            }
+          }
+        }
+      } catch (e) {}
+
+      // If storedResponses is missing turns, reconstruct directly from storedTranscript
+      if ((!storedResponses || storedResponses.length === 0) && Array.isArray(storedTranscript) && storedTranscript.length > 0) {
+        const reconstructed: any[] = [];
+        let pendingQuestion = '';
+        storedTranscript.forEach((line: any) => {
+          if (line.speaker === 'interviewer' && line.text) {
+            pendingQuestion = line.text;
+          } else if (line.speaker === 'candidate' && line.text) {
+            reconstructed.push({
+              responseIndex: reconstructed.length,
+              questionAsked: pendingQuestion || `Technical Interview Question ${reconstructed.length + 1}`,
+              transcript: line.text,
+              durationMs: line.durationMs || 30000,
+            });
+            pendingQuestion = '';
+          }
+        });
+        if (reconstructed.length > 0) {
+          storedResponses = reconstructed;
+        }
+      }
+
+      // If storedResponses has generic question placeholder ("Technical interview question") but storedTranscript has the real interviewer question, repair it!
+      if (Array.isArray(storedResponses) && Array.isArray(storedTranscript) && storedTranscript.length > 0) {
+        const interviewerLines = storedTranscript.filter((l: any) => l.speaker === 'interviewer' && l.text);
+        storedResponses.forEach((r: any, idx: number) => {
+          if ((!r.questionAsked || r.questionAsked.toLowerCase().includes('technical interview question')) && interviewerLines[idx]) {
+            r.questionAsked = interviewerLines[idx].text;
+          }
+        });
+      }
+
       try {
         const rawTelem = sessionStorage.getItem('felix_session_telemetry');
         if (rawTelem) storedTelemetry = JSON.parse(rawTelem);
@@ -145,6 +194,7 @@ function ReportContent() {
     setArchetype(storedArchetype);
     setGithubUrl(storedGithub);
     setCandidateResponses(storedResponses);
+    setTranscriptLines(storedTranscript);
     setTelemetry(storedTelemetry);
     setSessionDurationSeconds(storedDuration);
 
@@ -710,6 +760,7 @@ function ReportContent() {
           sessionDurationSeconds={sessionDurationSeconds}
           progression={progression}
           learnerName={learnerName}
+          transcriptLines={transcriptLines}
           onStartDrill={(targetQ) => handleStartDrill(targetQ)}
         />
       </div>

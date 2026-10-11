@@ -155,6 +155,8 @@ function LiveInterviewContent() {
   const activeQuestionRef = useRef<string>('');
   const turnStateRef = useRef<TurnState>('idle');
   const transcriptRef = useRef<TranscriptLine[]>([]);
+  const learnerTranscriptRef = useRef<string>('');
+  const partialTranscriptRef = useRef<string>('');
 
   // Helper to record every spoken dialogue line (interviewer & candidate)
   const recordTranscriptLine = useCallback(
@@ -201,10 +203,14 @@ function LiveInterviewContent() {
       current.push(newLine);
       transcriptRef.current = current;
 
-      // Persist immediately to sessionStorage
+      // Persist immediately to sessionStorage AND permanent all-transcripts vault in localStorage
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.setItem('felix_session_transcript', JSON.stringify(current));
+          const rawVault = localStorage.getItem('felix_all_transcripts_vault_v1') || '{}';
+          const vault = JSON.parse(rawVault);
+          vault[sessionId] = current;
+          localStorage.setItem('felix_all_transcripts_vault_v1', JSON.stringify(vault));
         } catch (e) {}
       }
 
@@ -424,6 +430,7 @@ function LiveInterviewContent() {
         }
 
         if (interim) {
+          partialTranscriptRef.current = interim;
           setPartialTranscript(interim);
           resetSilenceTimer();
 
@@ -435,13 +442,19 @@ function LiveInterviewContent() {
         }
 
         if (final) {
-          setLearnerTranscript((prev) => (prev ? `${prev} ${final}` : final));
+          const trimmedFinal = final.trim();
+          learnerTranscriptRef.current = learnerTranscriptRef.current
+            ? `${learnerTranscriptRef.current} ${trimmedFinal}`
+            : trimmedFinal;
+          partialTranscriptRef.current = '';
+
+          setLearnerTranscript((prev) => (prev ? `${prev} ${trimmedFinal}` : trimmedFinal));
           setPartialTranscript('');
           resetSilenceTimer();
 
           const now = Date.now();
           currentTimestampsRef.current.push({
-            text: final.trim(),
+            text: trimmedFinal,
             start: Math.max(0, now - turnStartTimeRef.current - 1000),
             end: now - turnStartTimeRef.current,
             confidence: 0.95,
@@ -481,8 +494,15 @@ function LiveInterviewContent() {
       } catch (e) {}
     }
 
-    const rawAnswer = (learnerTranscript || partialTranscript || '').trim();
+    // Combine both refs and state to guarantee not a single word is dropped or truncated
+    const combinedFromRefs = `${learnerTranscriptRef.current} ${partialTranscriptRef.current}`.trim();
+    const combinedFromState = `${learnerTranscript} ${partialTranscript}`.trim();
+    const rawAnswer = (combinedFromRefs || combinedFromState || '').trim();
     const finalAnswer = rawAnswer || '[No verbal response captured during turn]';
+
+    // Reset transcript refs for the next turn
+    learnerTranscriptRef.current = '';
+    partialTranscriptRef.current = '';
 
     if (currentAudioRef.current) {
       try {
@@ -495,9 +515,11 @@ function LiveInterviewContent() {
     }
 
     // Retrieve active question BEFORE resetting
+    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
     const currentQ =
       activeQuestionRef.current ||
       currentQuestionText ||
+      (currentQuestionIndex <= 1 ? openingFromSetup : '') ||
       fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
       'Technical interview question';
 
@@ -537,7 +559,12 @@ function LiveInterviewContent() {
     if (typeof window !== 'undefined') {
       try {
         const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
-        stored.push(newRecord);
+        const existingIdx = stored.findIndex((r: any) => r.responseIndex === currentQuestionIndex - 1);
+        if (existingIdx !== -1) {
+          stored[existingIdx] = newRecord;
+        } else {
+          stored.push(newRecord);
+        }
         sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
         sessionStorage.setItem('felix_session_duration_seconds', elapsedSeconds.toString());
 
@@ -637,26 +664,43 @@ function LiveInterviewContent() {
       sessionStorage.setItem('felix_session_duration_seconds', elapsedSeconds.toString());
     }
 
-    // If the learner has spoken in the current turn, preserve it for the report
-    const rawAnswer = (learnerTranscript || partialTranscript || '').trim();
-    if (rawAnswer) {
-      const currentQ =
-        activeQuestionRef.current ||
-        currentQuestionText ||
-        fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
-        'Technical interview question';
+    // Combine both refs and state to preserve every spoken word
+    const combinedFromRefs = `${learnerTranscriptRef.current} ${partialTranscriptRef.current}`.trim();
+    const combinedFromState = `${learnerTranscript} ${partialTranscript}`.trim();
+    const rawAnswer = (combinedFromRefs || combinedFromState || '').trim();
+
+    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
+    const currentQ =
+      activeQuestionRef.current ||
+      currentQuestionText ||
+      (currentQuestionIndex <= 1 ? openingFromSetup : '') ||
+      fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] ||
+      'Technical interview question';
+
+    let stored: any[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
+      } catch (e) {}
+    }
+
+    // If candidate spoke in current turn, or if stored is completely empty, record this turn
+    if (rawAnswer || stored.length === 0) {
+      const finalTurnAnswer = rawAnswer || (stored.length === 0 ? '[Candidate completed initial rehearsal turn]' : '');
       const now = Date.now();
       const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 25000;
       const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
       const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
       
       // Record candidate line in conversation transcript
-      recordTranscriptLine('candidate', rawAnswer, 'response', {
-        turnIndex: currentQuestionIndex - 1,
-        questionIndex: currentQuestionIndex,
-        durationMs: actualDurationMs,
-        timestamps: currentTimestampsRef.current,
-      });
+      if (rawAnswer) {
+        recordTranscriptLine('candidate', rawAnswer, 'response', {
+          turnIndex: currentQuestionIndex - 1,
+          questionIndex: currentQuestionIndex,
+          durationMs: actualDurationMs,
+          timestamps: currentTimestampsRef.current,
+        });
+      }
 
       const record: SessionResponseRecord = {
         sessionId,
@@ -664,7 +708,7 @@ function LiveInterviewContent() {
         responseIndex: currentQuestionIndex - 1,
         questionAsked: currentQ,
         questionType: 'behavioral',
-        transcript: rawAnswer,
+        transcript: finalTurnAnswer,
         timestamps: currentTimestampsRef.current,
         startedAt: turnStartIso,
         endedAt: new Date(now).toISOString(),
@@ -675,8 +719,12 @@ function LiveInterviewContent() {
       };
       if (typeof window !== 'undefined') {
         try {
-          const stored = JSON.parse(sessionStorage.getItem('felix_session_responses') || '[]');
-          stored.push(record);
+          const existingIdx = stored.findIndex((r: any) => r.responseIndex === currentQuestionIndex - 1);
+          if (existingIdx !== -1) {
+            stored[existingIdx] = record;
+          } else {
+            stored.push(record);
+          }
           sessionStorage.setItem('felix_session_responses', JSON.stringify(stored));
 
           // Sync signals to backend API
@@ -754,26 +802,27 @@ function LiveInterviewContent() {
     }
 
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
-    const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
-
-    let firstQ = fallbackQuestionsRef.current[0];
-    if (archetype === 'pragmatic-architect') {
-      if (effectiveGithub || effectiveResume) {
-        firstQ = `Looking at the architectural choices in your ${effectiveGithub ? 'GitHub repositories' : 'resume projects'}, what were the most critical failure states and edge cases you had to guard against for ${targetRole}? How did you handle fallback mechanisms?`;
+    const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
+    let firstQ = openingFromSetup || fallbackQuestionsRef.current[0];
+    if (!openingFromSetup) {
+      if (archetype === 'pragmatic-architect') {
+        if (effectiveGithub || effectiveResume) {
+          firstQ = `Looking at the architectural choices in your ${effectiveGithub ? 'GitHub repositories' : 'resume projects'}, what were the most critical failure states and edge cases you had to guard against for ${targetRole}? How did you handle fallback mechanisms?`;
+        } else {
+          firstQ = `When architecting distributed systems for ${targetRole}, how do you systematically defend against cascading failures, cache stampedes, and partition splits? Walk me through your concrete trade-offs.`;
+        }
+      } else if (archetype === 'rapid-fire-recruiter') {
+        if (effectiveGithub || effectiveResume) {
+          firstQ = `In 60 seconds, give me the executive elevator pitch of the single most impactful project from your ${effectiveGithub ? 'GitHub work' : 'resume'}. What was the bottom-line business or technical ROI?`;
+        } else {
+          firstQ = `In 60 seconds, give me your executive pitch as a ${targetRole}: what is your engineering core strength, and what is the biggest measurable impact you delivered on your last team?`;
+        }
       } else {
-        firstQ = `When architecting distributed systems for ${targetRole}, how do you systematically defend against cascading failures, cache stampedes, and partition splits? Walk me through your concrete trade-offs.`;
-      }
-    } else if (archetype === 'rapid-fire-recruiter') {
-      if (effectiveGithub || effectiveResume) {
-        firstQ = `In 60 seconds, give me the executive elevator pitch of the single most impactful project from your ${effectiveGithub ? 'GitHub work' : 'resume'}. What was the bottom-line business or technical ROI?`;
-      } else {
-        firstQ = `In 60 seconds, give me your executive pitch as a ${targetRole}: what is your engineering core strength, and what is the biggest measurable impact you delivered on your last team?`;
-      }
-    } else {
-      if (effectiveGithub || effectiveResume) {
-        firstQ = `In the technical work on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
-      } else {
-        firstQ = `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`;
+        if (effectiveGithub || effectiveResume) {
+          firstQ = `In the technical work on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+        } else {
+          firstQ = `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`;
+        }
       }
     }
 
@@ -871,6 +920,8 @@ function LiveInterviewContent() {
               }
               setLearnerTranscript('');
               setPartialTranscript('');
+              learnerTranscriptRef.current = '';
+              partialTranscriptRef.current = '';
               setRescueActive(false);
               currentTimestampsRef.current = [];
               recordTranscriptLine('interviewer', msg.text, 'question', {

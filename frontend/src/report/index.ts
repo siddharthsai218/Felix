@@ -5,3 +5,4 @@ export * from './AnswerTransformer';
 export * from './TranscriptScoreAudit';
 export * from './LearnerProgressionCard';
 export * from './InteractiveTelemetryGraph';
+export * from './FullConversationTranscript';
