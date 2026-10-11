@@ -106,7 +106,7 @@ $$\text{Engagement State} = \begin{cases}
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features:
 
 ### Configurable Interviewer Archetypes
 Candidates can rehearse against three distinct coaching personas tailored to specific interview styles:
