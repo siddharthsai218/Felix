@@ -25,7 +25,8 @@ const StableIframe = React.memo<{ url: string }>(({ url }) => {
     <iframe
       src={url}
       title="Beyond Presence AI Avatar"
-      allow="camera; microphone; autoplay; display-capture; encrypted-media; fullscreen; speaker-selection; camera *; microphone *;"
+      // Remove camera permission from iframe to prevent Linux V4L2 device lock collisions with local MediaCapture
+      allow="microphone; autoplay; display-capture; encrypted-media; fullscreen; speaker-selection; microphone *;"
       allowFullScreen
       className="w-full h-full border-none object-cover pointer-events-auto"
     />
@@ -40,7 +41,8 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
   beyondPresenceUrl,
   archetype = 'supportive-coach',
 }) => {
-  const [viewMode, setViewMode] = useState<'beyond' | 'interactive'>('beyond');
+  // Default to native interactive avatar for instant reliability (< 1.5s latency, no cloud WebRTC crashes)
+  const [viewMode, setViewMode] = useState<'beyond' | 'interactive'>('interactive');
   const [isJoined, setIsJoined] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(0);
   const [blink, setBlink] = useState(false);
@@ -62,15 +64,19 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
     return customUrl || `https://bey.chat/${agentId}?transparent=1`;
   }, [agentId, customUrl]);
 
-  // Listen to postMessage from bey.chat for lifecycle events
+  // Listen to postMessage from bey.chat for lifecycle events with safe error handling
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && typeof event.data === 'object') {
-        if (event.data.type === 'CALL_STARTED' || event.data.type === 'AGENT_JOINED') {
-          setIsJoined(true);
-        } else if (event.data.type === 'CALL_ENDED') {
-          setIsJoined(false);
+      try {
+        if (event.data && typeof event.data === 'object') {
+          if (event.data.type === 'CALL_STARTED' || event.data.type === 'AGENT_JOINED') {
+            setIsJoined(true);
+          } else if (event.data.type === 'CALL_ENDED') {
+            setIsJoined(false);
+          }
         }
+      } catch (e) {
+        // Safe fallback for cross-origin postMessage errors
       }
     };
 

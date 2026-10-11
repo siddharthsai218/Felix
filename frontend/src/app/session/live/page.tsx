@@ -7,6 +7,7 @@ import { Avatar } from '../../components/Avatar';
 import { MediaCapture } from '../../components/MediaCapture';
 import { AudioVisualizer } from '../../components/AudioVisualizer';
 import { LiveTelemetryHud } from '../../components/LiveTelemetryHud';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { captureEventBus, type VideoHandoff } from '../../lib/event-bus';
 import { saveVideoBlob } from '../../lib/video-store';
 import {
@@ -1266,11 +1267,13 @@ function LiveInterviewContent() {
       <div className="w-full flex-1 my-2 flex flex-col md:flex-row items-stretch gap-3 overflow-hidden">
         {/* Main Left Stage: The Avatar (Pinned Speaker) */}
         <div className="flex-1 relative rounded-2xl overflow-hidden bg-[#0a0f19] border border-slate-800/90 shadow-2xl flex items-center justify-center min-h-0">
-          <Avatar
-            state={turnState}
-            isSpeaking={isAvatarSpeaking}
-            archetype={archetype}
-          />
+          <ErrorBoundary>
+            <Avatar
+              state={turnState}
+              isSpeaking={isAvatarSpeaking}
+              archetype={archetype}
+            />
+          </ErrorBoundary>
 
           {/* Mock Drill Problem & Mistake Analysis Banner */}
           {isDrillMode && drillSpec && (
@@ -1329,13 +1332,15 @@ function LiveInterviewContent() {
 
           {/* Bottom Card: Live Behavioral Telemetry HUD (Docked cleanly below camera) */}
           <div className="flex-1 min-h-[220px]">
-            <LiveTelemetryHud
-              isActive={true}
-              isListening={turnState === 'listening'}
-              transcript={learnerTranscript || partialTranscript}
-              audioStream={mediaStream}
-              className="h-full"
-            />
+            <ErrorBoundary>
+              <LiveTelemetryHud
+                isActive={true}
+                isListening={turnState === 'listening'}
+                transcript={learnerTranscript || partialTranscript}
+                audioStream={mediaStream}
+                className="h-full"
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </div>
@@ -1398,14 +1403,16 @@ function LiveInterviewContent() {
 
 export default function LiveInterviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-          Loading Felix interview session…
-        </div>
-      }
-    >
-      <LiveInterviewContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+            Loading Felix interview session…
+          </div>
+        }
+      >
+        <LiveInterviewContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

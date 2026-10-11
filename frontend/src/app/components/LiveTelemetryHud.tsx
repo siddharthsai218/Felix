@@ -101,16 +101,30 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
         );
 
-        const landmarker = await FaceLandmarker.createFromOptions(fileset, {
-          baseOptions: {
-            modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-            delegate: 'GPU',
-          },
-          runningMode: 'IMAGE',
-          numFaces: 1,
-          outputFaceBlendshapes: true,
-        });
+        let landmarker: any;
+        try {
+          // Use CPU delegate on Linux/Wayland to prevent WebGL/GPU context loss when WebRTC starts
+          landmarker = await FaceLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath:
+                'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+              delegate: 'CPU',
+            },
+            runningMode: 'IMAGE',
+            numFaces: 1,
+            outputFaceBlendshapes: true,
+          });
+        } catch (cpuErr) {
+          landmarker = await FaceLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath:
+                'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            },
+            runningMode: 'IMAGE',
+            numFaces: 1,
+            outputFaceBlendshapes: true,
+          });
+        }
 
         if (isMounted) {
           landmarkerRef.current = landmarker;
