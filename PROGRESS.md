@@ -79,6 +79,12 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Question Clarity & Transcript Grounding in Report:
+  - Answer Transformer Question Tabs (`frontend/src/report/AnswerTransformer.tsx`): Renamed `Prompt 0x` to `Question 0x` across tab pills and header cards to clearly indicate that each card corresponds to the exact question asked by the interviewer rather than prompt templates.
+  - Report Overview Metric Clarification (`frontend/src/report/FeedbackReport.tsx`): Updated the `CORE PROMPTS` card to `QUESTIONS ANSWERED` (`N Questions Recorded`), directly reflecting the real number of questions completed.
+  - TypeScript & Hydration Fixes (`frontend/src/app/session/live/page.tsx`, `frontend/src/report/FullConversationTranscript.tsx`): Resolved undefined `effectiveResume` reference and safeguarded `speakerName` during search filtering.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production build (`npm run build`).
+
 - 2026-10-11 [1+3] — Distraction-Free Live Interview Stage & Dedicated History Transcript Archive:
   - Streamlined Live Interview Experience (`frontend/src/app/session/live/page.tsx`):
     - Per user requirement, stripped all live transcript drawers, subtitle overlays, and in-call CC buttons from `/session/live` to maintain a completely clean, realistic, distraction-free stage.

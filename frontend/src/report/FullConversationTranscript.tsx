@@ -113,7 +113,7 @@ export function FullConversationTranscript({
       const matchesSearch =
         !searchQuery.trim() ||
         line.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        line.speakerName.toLowerCase().includes(searchQuery.toLowerCase());
+        (line.speakerName || '').toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
   }, [effectiveLines, filter, searchQuery]);

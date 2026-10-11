@@ -106,7 +106,7 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
         {/* Tab switcher if multiple questions */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           {transformations.map((t, idx) => {
-            const label = `Prompt 0${idx + 1}`;
+            const label = `Question 0${idx + 1}`;
             const isActive = selectedIndex === idx;
             return (
               <button
@@ -127,11 +127,11 @@ export const AnswerTransformer: React.FC<AnswerTransformerProps> = ({
 
       {/* Main Transformer Container */}
       <div className="rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-2xl overflow-hidden">
-        {/* Prompt Header Bar */}
+        {/* Question Header Bar */}
         <div className="px-5 py-3.5 bg-slate-900/80 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start sm:items-center gap-2.5">
             <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono font-bold border border-slate-700 shrink-0">
-              PROMPT 0{selectedIndex + 1}
+              QUESTION 0{selectedIndex + 1}
             </span>
             <p className="text-xs sm:text-sm font-medium text-slate-200 italic line-clamp-2">
               "{active.questionAsked}"
