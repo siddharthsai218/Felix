@@ -23,6 +23,12 @@ function DashboardContent() {
         </Link>
         <div className="flex gap-3">
           <Link
+            href="/session/history"
+            className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 border border-gray-800 transition-colors"
+          >
+            Interview History 📜
+          </Link>
+          <Link
             href={`/session/report?sessionId=${sessionId}`}
             className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 border border-gray-800 transition-colors"
           >

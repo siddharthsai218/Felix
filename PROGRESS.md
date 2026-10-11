@@ -79,6 +79,11 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Added Persistent Interview History Archive & Transcript Modal:
+  - Created persistent local session repository `frontend/src/app/lib/history-store.ts` (`felix_interview_history_v1`) capturing session metadata, candidate learner profile, full question-and-answer transcripts, duration, telemetry metrics (MediaPipe gaze, Parselmouth WPM, vocal jitter), and Gemini assessment reports. Pre-seeded with realistic sample sessions for out-of-the-box demo readiness.
+  - Implemented `/session/history` dashboard with longitudinal summary metrics (total sessions completed, average rubric mastery score, latest target track), real-time search filtering by role or transcript keywords, and learner profile switcher pills (`All`, `Siddharth`, `Guest`).
+  - Integrated interactive turn-by-turn dialogue transcript modal with "Copy All" functionality and direct deep-linking into `/session/report?sessionId=...&fromHistory=true` for instant report retrieval without re-running LLM generation.
+  - Wired auto-save hook in `/session/report` to persist completed interview evaluations into history on generation, updated `/session/setup` with lightweight learner profile selection and history navigation, and linked history across top navigation bars.
 - 2026-10-11 [1+2+3] — Implemented Real-Time Computer Vision Gaze Tracking, Acoustic Prosody Jitter, and Grounded Gemini Evaluation:
   - Replaced fake/randomized telemetry in `LiveTelemetryHud` with real MediaPipe iris/gaze tracking and deterministic pixel-level skin/eye-luminance gradient computer vision. Looking away, turning the head, or not showing eyes to the camera now immediately drops focus to 0–25% ("Eyes Not Detected" / "Looking Away") instead of an inaccurate 88%.
   - Replaced hardcoded jitter math with real Web Audio Autocorrelation fundamental frequency ($F_0$) tracking, calculating cycle-to-cycle perturbation jitter percentage and pitch variance ($\sigma(F_0)$). Sleepy, monotone, or fatigued speech is accurately detected with elevated jitter / vocal fry, sluggish speaking rate (WPM), and "Monotone / Low Energy" classifications.

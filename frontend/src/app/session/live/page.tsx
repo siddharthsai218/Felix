@@ -345,9 +345,10 @@ function LiveInterviewContent() {
 
     // Save response record to sessionStorage for instant, rich report generation
     const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+    const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
     const newRecord: SessionResponseRecord = {
       sessionId,
-      learnerId: 'learner_1',
+      learnerId: currentLearner,
       responseIndex: currentQuestionIndex - 1,
       questionAsked: currentQ,
       questionType: turnState === 'drill' ? 'drill' : 'behavioral',
@@ -407,9 +408,10 @@ function LiveInterviewContent() {
     if (learnerTranscript || partialTranscript) {
       const finalAnswer = learnerTranscript || partialTranscript;
       const currentQ = currentQuestionText || fallbackQuestionsRef.current[Math.max(0, currentQuestionIndex - 1)] || 'Technical interview question';
+      const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
       const record: SessionResponseRecord = {
         sessionId,
-        learnerId: 'learner_1',
+        learnerId: currentLearner,
         responseIndex: currentQuestionIndex - 1,
         questionAsked: currentQ,
         questionType: 'behavioral',

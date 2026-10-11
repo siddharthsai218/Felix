@@ -28,6 +28,12 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <Link
+              href="/session/history"
+              className="text-xs font-mono text-slate-400 hover:text-white transition-colors hidden sm:inline-block"
+            >
+              Interview History
+            </Link>
+            <Link
               href="/session/report?sessionId=FLX-98219"
               className="text-xs font-mono text-slate-400 hover:text-white transition-colors hidden sm:inline-block"
             >
@@ -74,10 +80,10 @@ export default function HomePage() {
             Launch Engineering Rehearsal →
           </Link>
           <Link
-            href="/session/report?sessionId=FLX-98219"
+            href="/session/history"
             className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-mono text-xs transition-colors"
           >
-            View Sample Assessment Report
+            Past Sessions & Transcripts 📜
           </Link>
         </div>
 

@@ -7,6 +7,11 @@ import { DrillModal } from '../../components/DrillModal';
 import { FeedbackReport, type RubricScoreItem, type BehavioralInsightItem } from '../../../report';
 import type { StarResponseTransformation } from '../../../report/AnswerTransformer';
 import type { DrillSpec } from '../../lib/types';
+import {
+  getHistoricalSessionById,
+  saveHistoricalSession,
+  type HistoricalSession,
+} from '../../lib/history-store';
 
 function ReportContent() {
   const searchParams = useSearchParams();
@@ -26,6 +31,33 @@ function ReportContent() {
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
 
   useEffect(() => {
+    // 1. Check if this session already exists in History (e.g. opened from History view or refreshed)
+    const existingSession = getHistoricalSessionById(sessionId);
+    if (existingSession) {
+      setRoleTitle(existingSession.roleTitle);
+      setGithubUrl(existingSession.githubUrl || '');
+      setOverallScore(existingSession.overallScore);
+      setRubricScores(existingSession.evaluation.rubricScores || []);
+      setBehavioralInsights(existingSession.evaluation.behavioralInsights || []);
+      setTransformations(existingSession.evaluation.transformations || []);
+      if (existingSession.evaluation.remediationPlan && existingSession.evaluation.remediationPlan.length > 0) {
+        const plan = existingSession.evaluation.remediationPlan[0];
+        setActiveDrill({
+          drillId: 'remediation-drill-1',
+          sessionId,
+          responseIndex: 0,
+          targetLearningOutcome: plan.targetOutcome || 'Master STAR Response Delivery',
+          targetCompetency: plan.topic || 'technical-communication',
+          gapSeverity: 'high',
+          question: plan.drillQuestion || `Explain a technical challenge in ${existingSession.roleTitle} using STAR format.`,
+          timeLimitSeconds: 30,
+        });
+      }
+      setIsEvaluating(false);
+      return;
+    }
+
+    // 2. Otherwise, read session data from sessionStorage and evaluate via Gemini API / Grounded Fallback
     let storedRole = 'Senior Systems & Frontend Architect';
     let storedGithub = '';
     let storedResponses: any[] = [];
@@ -66,29 +98,70 @@ function ReportContent() {
         if (res.ok) {
           const data = await res.json();
           if (data && data.success) {
-            setOverallScore(data.overallScore || 3.9);
-            if (Array.isArray(data.rubricScores) && data.rubricScores.length > 0) {
-              setRubricScores(data.rubricScores);
-            }
-            if (Array.isArray(data.behavioralInsights) && data.behavioralInsights.length > 0) {
-              setBehavioralInsights(data.behavioralInsights);
-            }
-            if (Array.isArray(data.transformations) && data.transformations.length > 0) {
-              setTransformations(data.transformations);
-            }
-            if (Array.isArray(data.remediationPlan) && data.remediationPlan.length > 0) {
-              const plan = data.remediationPlan[0];
+            const score = data.overallScore || 3.9;
+            const rubrics: RubricScoreItem[] = Array.isArray(data.rubricScores) ? data.rubricScores : [];
+            const insights: BehavioralInsightItem[] = Array.isArray(data.behavioralInsights) ? data.behavioralInsights : [];
+            const transforms: StarResponseTransformation[] = Array.isArray(data.transformations) ? data.transformations : [];
+            const plan = Array.isArray(data.remediationPlan) && data.remediationPlan.length > 0 ? data.remediationPlan : [];
+
+            setOverallScore(score);
+            if (rubrics.length > 0) setRubricScores(rubrics);
+            if (insights.length > 0) setBehavioralInsights(insights);
+            if (transforms.length > 0) setTransformations(transforms);
+            if (plan.length > 0) {
+              const p = plan[0];
               setActiveDrill({
                 drillId: 'remediation-drill-1',
                 sessionId,
                 responseIndex: 0,
-                targetLearningOutcome: plan.targetOutcome || 'Master STAR Response Delivery',
-                targetCompetency: plan.topic || 'technical-communication',
+                targetLearningOutcome: p.targetOutcome || 'Master STAR Response Delivery',
+                targetCompetency: p.topic || 'technical-communication',
                 gapSeverity: 'high',
-                question: plan.drillQuestion || `Explain a technical challenge in ${storedRole} using STAR format.`,
+                question: p.drillQuestion || `Explain a technical challenge in ${storedRole} using STAR format.`,
                 timeLimitSeconds: 30,
               });
             }
+
+            // Save to persistent interview history
+            const learner = (typeof window !== 'undefined' && localStorage.getItem('felix_learner_name')) || 'Siddharth';
+            const histSession: HistoricalSession = {
+              sessionId,
+              learnerId: learner,
+              roleTitle: storedRole,
+              createdAt: new Date().toISOString(),
+              durationSeconds: Math.max(60, storedResponses.length * 45),
+              overallScore: score,
+              questionCount: Math.max(1, storedResponses.length),
+              githubUrl: storedGithub,
+              responses: storedResponses.length > 0
+                ? storedResponses.map((r: any) => ({
+                    questionAsked: r.questionAsked || 'Technical Interview Question',
+                    transcript: r.transcript || '',
+                    durationMs: r.durationMs || 30000,
+                  }))
+                : [
+                    {
+                      questionAsked: 'Describe a time an unplanned infrastructure outage threatened your core product release.',
+                      transcript: 'Initial candidate response captured during session rehearsal.',
+                      durationMs: 30000,
+                    },
+                  ],
+              telemetry: {
+                gazePercentage: storedTelemetry?.gazePercentage ?? 82,
+                speakingRateWpm: storedTelemetry?.speakingRateWpm ?? 142,
+                jitterPercent: storedTelemetry?.jitterPercent ?? 0.94,
+                composureScore: 88,
+              },
+              evaluation: {
+                overallScore: score,
+                rubricScores: rubrics,
+                behavioralInsights: insights,
+                transformations: transforms,
+                remediationPlan: plan,
+              },
+            };
+            saveHistoricalSession(histSession);
+
             setIsEvaluating(false);
             return;
           }
@@ -109,8 +182,8 @@ function ReportContent() {
       const words = candidateText.split(/\s+/).filter(Boolean).length;
       const isWeak = words < 20 || candidateText.toLowerCase().includes('sleep') || candidateText.toLowerCase().includes('tired');
 
-      setOverallScore(isWeak ? 2.4 : 3.9);
-      setRubricScores([
+      const fallbackScore = isWeak ? 2.4 : 3.9;
+      const fallbackRubrics: RubricScoreItem[] = [
         {
           criterion: 'Technical Depth & Domain Competency',
           score: isWeak ? 2.1 : 4.2,
@@ -143,40 +216,40 @@ function ReportContent() {
             : `Maintained consistent visual engagement (${gaze}%) with steady vocal prosody.`,
           quotes: [{ text: gaze < 50 ? 'Eyes not consistently focused on camera.' : 'Steady camera plane focus maintained.', time: 'Telemetry' }],
         },
-      ]);
+      ];
 
-      setBehavioralInsights([
+      const fallbackInsights: BehavioralInsightItem[] = [
         {
           icon: '👁️',
           title: 'MediaPipe Eye Contact',
           text: `${gaze}% Camera focus maintained throughout responses. High direct engagement.`,
           metric: `${gaze}% Gaze`,
-          status: gaze >= 70 ? 'optimal' : 'attention',
+          status: (gaze >= 70 ? 'optimal' : 'attention') as 'optimal' | 'attention',
         },
         {
           icon: '🗣️',
           title: 'Parselmouth Pacing',
           text: `Speaking rate averaged ${wpm} WPM. Optimal conversational cadence.`,
           metric: `${wpm} WPM`,
-          status: wpm >= 115 && wpm <= 165 ? 'optimal' : 'attention',
+          status: (wpm >= 115 && wpm <= 165 ? 'optimal' : 'attention') as 'optimal' | 'attention',
         },
         {
           icon: '📊',
           title: 'Vocal Perturbation (Jitter)',
           text: `Vocal stability steady at ${jitter}%. Minimal vocal strain or trailing volume.`,
           metric: `${jitter}% Jitter`,
-          status: jitter <= 1.5 ? 'optimal' : 'attention',
+          status: (jitter <= 1.5 ? 'optimal' : 'attention') as 'optimal' | 'attention',
         },
         {
           icon: '⏱️',
           title: 'Cognitive Hesitation',
           text: `1 thinking pause detected during problem decomposition.`,
           metric: `1 Pause`,
-          status: 'optimal',
+          status: 'optimal' as 'optimal',
         },
-      ]);
+      ];
 
-      setTransformations([
+      const fallbackTransforms: StarResponseTransformation[] = [
         {
           questionAsked: primaryResp?.questionAsked || 'Describe a time an unplanned infrastructure outage threatened your core product release.',
           originalTranscript: candidateText,
@@ -200,7 +273,12 @@ function ReportContent() {
           timeRange: '03:22 – 04:48',
           wpm: 142,
         },
-      ]);
+      ];
+
+      setOverallScore(fallbackScore);
+      setRubricScores(fallbackRubrics);
+      setBehavioralInsights(fallbackInsights);
+      setTransformations(fallbackTransforms);
 
       setActiveDrill({
         drillId: 'p0-drill-star-1',
@@ -212,6 +290,45 @@ function ReportContent() {
         question: `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
         timeLimitSeconds: 30,
       });
+
+      // Save fallback evaluation to history as well
+      const learner = (typeof window !== 'undefined' && localStorage.getItem('felix_learner_name')) || 'Siddharth';
+      const histSession: HistoricalSession = {
+        sessionId,
+        learnerId: learner,
+        roleTitle: storedRole,
+        createdAt: new Date().toISOString(),
+        durationSeconds: Math.max(60, storedResponses.length * 45),
+        overallScore: fallbackScore,
+        questionCount: Math.max(1, storedResponses.length),
+        githubUrl: storedGithub,
+        responses: storedResponses.length > 0
+          ? storedResponses.map((r: any) => ({
+              questionAsked: r.questionAsked || 'Technical Interview Question',
+              transcript: r.transcript || '',
+              durationMs: r.durationMs || 30000,
+            }))
+          : [
+              {
+                questionAsked: 'Describe a time an unplanned infrastructure outage threatened your core product release.',
+                transcript: candidateText,
+                durationMs: 45000,
+              },
+            ],
+        telemetry: {
+          gazePercentage: gaze,
+          speakingRateWpm: wpm,
+          jitterPercent: jitter,
+          composureScore: 88,
+        },
+        evaluation: {
+          overallScore: fallbackScore,
+          rubricScores: fallbackRubrics,
+          behavioralInsights: fallbackInsights,
+          transformations: fallbackTransforms,
+        },
+      };
+      saveHistoricalSession(histSession);
 
       setIsEvaluating(false);
     }
@@ -265,10 +382,11 @@ function ReportContent() {
               Post-Interview Assessment
             </span>
             <Link
-              href={`/session/dashboard?sessionId=${sessionId}`}
-              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors hidden md:inline-block"
+              href="/session/history"
+              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
-              Session History
+              <span>📜</span>
+              <span>Interview History</span>
             </Link>
           </nav>
 
@@ -282,9 +400,13 @@ function ReportContent() {
               <span>⚡</span>
               <span>18ms</span>
             </div>
-            <div className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-xs font-bold text-violet-300">
+            <Link
+              href="/session/history"
+              className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-500/50 flex items-center justify-center text-xs font-bold text-violet-300 hover:bg-violet-600/50 transition-colors"
+              title="View Interview History"
+            >
               👤
-            </div>
+            </Link>
           </div>
         </div>
 
@@ -295,6 +417,13 @@ function ReportContent() {
             <span>Formative coaching cues for self-awareness — not a proctoring penalty or mechanical score.</span>
           </div>
           <div className="flex items-center gap-3 text-[10px] text-slate-500 shrink-0">
+            <Link
+              href="/session/history"
+              className="text-violet-400 hover:text-violet-300 font-bold transition-colors"
+            >
+              ← Past Sessions
+            </Link>
+            <span>•</span>
             <span className="text-emerald-400 font-bold">FELIX ENGINE v2.4 REVIEW READY</span>
             <span>•</span>
             <span>SESSION ID: #{sessionId}</span>
