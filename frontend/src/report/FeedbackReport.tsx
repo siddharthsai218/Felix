@@ -276,15 +276,30 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                className="px-3 py-1.5 rounded-lg bg-violet-600/90 hover:bg-violet-600 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-md shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                title="Download formative assessment report formatted for university career services"
-              >
-                <span>📄</span>
-                <span>Export Coaching PDF</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('dialogue-transcript-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  title="Jump directly to complete dialogue conversation transcript"
+                >
+                  <span>📜</span>
+                  <span>View Full Transcript</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  className="px-3 py-1.5 rounded-lg bg-violet-600/90 hover:bg-violet-600 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-md shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  title="Download formative assessment report formatted for university career services"
+                >
+                  <span>📄</span>
+                  <span>Export Coaching PDF</span>
+                </button>
+              </div>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -457,14 +472,16 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
       />
 
       {/* Complete Dialogue Conversation Transcript Archive */}
-      <FullConversationTranscript
-        sessionId={sessionId}
-        transcriptLines={transcriptLines}
-        candidateResponses={candidateResponses}
-        archetype={archetype}
-        learnerName={learnerName}
-        roleTitle={roleTitle}
-      />
+      <div id="dialogue-transcript-section" className="scroll-mt-6">
+        <FullConversationTranscript
+          sessionId={sessionId}
+          transcriptLines={transcriptLines}
+          candidateResponses={candidateResponses}
+          archetype={archetype}
+          learnerName={learnerName}
+          roleTitle={roleTitle}
+        />
+      </div>
 
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* 3. TARGETED REMEDIATION SPRINT (30s MICRO-DRILL BANNER)                   */}

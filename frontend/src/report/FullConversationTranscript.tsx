@@ -29,15 +29,54 @@ export function FullConversationTranscript({
 
   const archConfig = INTERVIEWER_ARCHETYPES[archetype] || INTERVIEWER_ARCHETYPES['supportive-coach'];
 
-  // Synthesize normalized dialogue lines from either transcriptLines or candidateResponses
+  const [vaultLines, setVaultLines] = useState<TranscriptLine[]>([]);
+
+  // Resiliently check localStorage and sessionStorage if props are momentarily unhydrated
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && (!transcriptLines || transcriptLines.length === 0)) {
+      try {
+        const rawSess = sessionStorage.getItem('felix_session_transcript');
+        if (rawSess) {
+          const parsed = JSON.parse(rawSess);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setVaultLines(parsed);
+            return;
+          }
+        }
+        if (sessionId) {
+          const rawVault = localStorage.getItem('felix_all_transcripts_vault_v1');
+          if (rawVault) {
+            const vault = JSON.parse(rawVault);
+            if (vault[sessionId] && Array.isArray(vault[sessionId]) && vault[sessionId].length > 0) {
+              setVaultLines(vault[sessionId]);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }, [sessionId, transcriptLines]);
+
+  // Synthesize normalized dialogue lines from transcriptLines, vault, or candidateResponses
   const effectiveLines: TranscriptLine[] = useMemo(() => {
     if (transcriptLines && transcriptLines.length > 0) {
       return transcriptLines;
     }
+    if (vaultLines && vaultLines.length > 0) {
+      return vaultLines;
+    }
 
     // Fallback synthesis from candidateResponses
     const lines: TranscriptLine[] = [];
-    (candidateResponses || []).forEach((r, idx) => {
+    let responsesSource = candidateResponses;
+    if ((!responsesSource || responsesSource.length === 0) && typeof window !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem('felix_session_responses');
+        if (raw) responsesSource = JSON.parse(raw);
+      } catch (e) {}
+    }
+
+    (responsesSource || []).forEach((r, idx) => {
       if (r.questionAsked) {
         lines.push({
           lineId: `syn-q-${idx}`,
@@ -66,7 +105,7 @@ export function FullConversationTranscript({
     });
 
     return lines;
-  }, [transcriptLines, candidateResponses, archConfig.name, learnerName]);
+  }, [transcriptLines, vaultLines, candidateResponses, archConfig.name, learnerName]);
 
   const filteredLines = useMemo(() => {
     return effectiveLines.filter((line) => {

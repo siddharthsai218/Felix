@@ -55,9 +55,46 @@ function ReportContent() {
       setBehavioralInsights(existingSession.evaluation.behavioralInsights || []);
       setTransformations(existingSession.evaluation.transformations || []);
       setCandidateResponses(existingSession.responses || []);
-      if (existingSession.transcriptLines) {
-        setTranscriptLines(existingSession.transcriptLines);
+
+      let lines = existingSession.transcriptLines;
+      if (!lines || lines.length === 0) {
+        try {
+          const rawVault = localStorage.getItem('felix_all_transcripts_vault_v1');
+          if (rawVault) {
+            const vault = JSON.parse(rawVault);
+            if (vault[sessionId] && Array.isArray(vault[sessionId]) && vault[sessionId].length > 0) {
+              lines = vault[sessionId];
+            }
+          }
+        } catch (e) {}
       }
+      if (!lines || lines.length === 0) {
+        // Synthesize full dialogue lines from responses
+        lines = (existingSession.responses || []).flatMap((r, i) => [
+          {
+            lineId: `line-q-${i}`,
+            speaker: 'interviewer' as const,
+            speakerName: existingSession.archetype ? (existingSession.archetype === 'pragmatic-architect' ? 'Staff Architect' : existingSession.archetype === 'rapid-fire-recruiter' ? 'Recruiter' : 'Felix Coach') : 'Interviewer',
+            text: r.questionAsked,
+            timestamp: new Date().toISOString(),
+            turnIndex: i,
+            questionIndex: i + 1,
+            type: 'question' as const,
+          },
+          {
+            lineId: `line-a-${i}`,
+            speaker: 'candidate' as const,
+            speakerName: existingSession.learnerId || 'Candidate',
+            text: r.transcript,
+            timestamp: new Date().toISOString(),
+            turnIndex: i,
+            questionIndex: i + 1,
+            type: 'response' as const,
+            durationMs: r.durationMs,
+          },
+        ]);
+      }
+      setTranscriptLines(lines || []);
       if (existingSession.telemetry) {
         setTelemetry(existingSession.telemetry);
       }
