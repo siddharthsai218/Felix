@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { AnswerTransformer, type StarResponseTransformation } from './AnswerTransformer';
+import { LearnerProgressionCard } from './LearnerProgressionCard';
+import type { LearnerProgression } from '../app/lib/history-store';
 import {
   TranscriptScoreAudit,
   type ScoreRationaleData,
@@ -46,6 +48,8 @@ export interface FeedbackReportProps {
   onStartDrill?: (question: string) => void;
   telemetry?: any;
   sessionDurationSeconds?: number;
+  progression?: LearnerProgression | null;
+  learnerName?: string;
 }
 
 export const FeedbackReport: React.FC<FeedbackReportProps> = ({
@@ -64,6 +68,8 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
   onStartDrill,
   telemetry,
   sessionDurationSeconds,
+  progression,
+  learnerName,
 }) => {
   const [selectedMilestone, setSelectedMilestone] = useState<string | null>(null);
   const [showFullRubric, setShowFullRubric] = useState<boolean>(true);
@@ -354,6 +360,12 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Longitudinal Learner Progression Card (Improvement vs Prior Rehearsal) */}
+      <LearnerProgressionCard
+        progression={progression}
+        learnerName={learnerName}
+      />
 
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* 2. THE ANSWER TRANSFORMER                                                 */}

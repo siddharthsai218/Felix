@@ -10,7 +10,9 @@ import type { DrillSpec } from '../../lib/types';
 import {
   getHistoricalSessionById,
   saveHistoricalSession,
+  getLearnerProgression,
   type HistoricalSession,
+  type LearnerProgression,
 } from '../../lib/history-store';
 
 function ReportContent() {
@@ -23,6 +25,7 @@ function ReportContent() {
   const [activeDrill, setActiveDrill] = useState<DrillSpec | null>(null);
 
   const [roleTitle, setRoleTitle] = useState<string>('Senior Systems & Frontend Architect');
+  const [learnerName, setLearnerName] = useState<string>('Siddharth');
   const [githubUrl, setGithubUrl] = useState<string>('');
   const [overallScore, setOverallScore] = useState<number>(3.9);
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
@@ -31,6 +34,7 @@ function ReportContent() {
   const [scoreRationale, setScoreRationale] = useState<any>(null);
   const [transcriptAudit, setTranscriptAudit] = useState<any[]>([]);
   const [candidateResponses, setCandidateResponses] = useState<any[]>([]);
+  const [progression, setProgression] = useState<LearnerProgression | null>(null);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(true);
   const [telemetry, setTelemetry] = useState<any>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState<number>(0);
@@ -45,6 +49,20 @@ function ReportContent() {
       setRubricScores(existingSession.evaluation.rubricScores || []);
       setBehavioralInsights(existingSession.evaluation.behavioralInsights || []);
       setTransformations(existingSession.evaluation.transformations || []);
+      if (existingSession.learnerId) {
+        setLearnerName(existingSession.learnerId);
+      }
+      if (existingSession.progression) {
+        setProgression(existingSession.progression);
+      } else {
+        const prog = getLearnerProgression(
+          existingSession.learnerId || 'Siddharth',
+          existingSession.sessionId,
+          existingSession.overallScore,
+          existingSession.roleTitle
+        );
+        setProgression(prog);
+      }
       if (existingSession.evaluation.remediationPlan && existingSession.evaluation.remediationPlan.length > 0) {
         const plan = existingSession.evaluation.remediationPlan[0];
         setActiveDrill({
@@ -161,7 +179,11 @@ function ReportContent() {
             }
 
             // Save to persistent interview history
-            const learner = (typeof window !== 'undefined' && localStorage.getItem('felix_learner_name')) || 'Siddharth';
+            const learner = (typeof window !== 'undefined' && (localStorage.getItem('felix_learner_name') || sessionStorage.getItem('felix_learner_name'))) || 'Siddharth';
+            setLearnerName(learner);
+            const prog = getLearnerProgression(learner, sessionId, score, storedRole);
+            setProgression(prog);
+
             const histSession: HistoricalSession = {
               sessionId,
               learnerId: learner,
@@ -197,6 +219,7 @@ function ReportContent() {
                 transformations: strictlyGroundedTransformations,
                 remediationPlan: plan,
               },
+              progression: prog,
             };
             saveHistoricalSession(histSession);
 
@@ -388,7 +411,11 @@ function ReportContent() {
       });
 
       // Save fallback evaluation to history as well
-      const learner = (typeof window !== 'undefined' && localStorage.getItem('felix_learner_name')) || 'Siddharth';
+      const learner = (typeof window !== 'undefined' && (localStorage.getItem('felix_learner_name') || sessionStorage.getItem('felix_learner_name'))) || 'Siddharth';
+      setLearnerName(learner);
+      const prog = getLearnerProgression(learner, sessionId, fallbackScore, storedRole);
+      setProgression(prog);
+
       const histSession: HistoricalSession = {
         sessionId,
         learnerId: learner,
@@ -423,6 +450,7 @@ function ReportContent() {
           behavioralInsights: fallbackInsights,
           transformations: fallbackTransforms,
         },
+        progression: prog,
       };
       saveHistoricalSession(histSession);
 
@@ -564,6 +592,8 @@ function ReportContent() {
           candidateResponses={candidateResponses}
           telemetry={telemetry}
           sessionDurationSeconds={sessionDurationSeconds}
+          progression={progression}
+          learnerName={learnerName}
           onStartDrill={() => handleStartDrill()}
         />
       </div>

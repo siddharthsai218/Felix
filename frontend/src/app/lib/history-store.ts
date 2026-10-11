@@ -34,6 +34,7 @@ export interface HistoricalSession {
       targetOutcome: string;
     }>;
   };
+  progression?: LearnerProgression;
 }
 
 const STORAGE_KEY = 'felix_interview_history_v1';
@@ -161,6 +162,24 @@ const SAMPLE_SESSIONS: HistoricalSession[] = [
           scoreImprovement: '+45% Executive Delivery',
         },
       ],
+    },
+    progression: {
+      hasPriorSession: true,
+      priorSessionId: 'FLX-41092',
+      priorRoleTitle: 'Distributed Systems & Backend Engineer',
+      priorCreatedAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+      priorOverallScore: 3.6,
+      currentOverallScore: 4.1,
+      scoreDelta: 0.5,
+      trend: 'improved',
+      growthHighlights: [
+        'Overall mastery score improved by +0.5 points (3.6 ➔ 4.1 / 5.0)',
+        'Technical Depth gained +0.5 points with concrete WebRTC architecture metrics (12ms benchmark)',
+        'Gaze focus improved from 73% to 84% sustained camera eye contact',
+        'Vocal jitter stabilized from 1.15% to 0.92% (smoother, more confident projection)',
+      ],
+      feedbackCommentary:
+        'Substantial growth compared to your previous rehearsal on "Distributed Systems & Backend Engineer" (Score: 3.6/5.0). You successfully eliminated passive phrases, took direct technical ownership of your decisions, and cited concrete benchmark metrics (12ms latency). Non-verbal presence was visibly more focused with 84% camera engagement.',
     },
   },
   {
@@ -360,4 +379,124 @@ export function clearAllHistoricalSessions(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (err) {}
+}
+
+export interface LearnerProgression {
+  hasPriorSession: boolean;
+  priorSessionId?: string;
+  priorRoleTitle?: string;
+  priorCreatedAt?: string;
+  priorOverallScore?: number;
+  currentOverallScore: number;
+  scoreDelta: number; // e.g. +0.5 or -0.2
+  trend: 'improved' | 'steady' | 'needs_calibration';
+  growthHighlights: string[];
+  feedbackCommentary: string;
+}
+
+/**
+ * Get prior historical session for a learner and calculate longitudinal progression.
+ */
+export function getLearnerProgression(
+  learnerId: string,
+  currentSessionId: string,
+  currentScore: number,
+  roleTitle?: string
+): LearnerProgression {
+  if (typeof window === 'undefined') {
+    return {
+      hasPriorSession: false,
+      currentOverallScore: currentScore,
+      scoreDelta: 0,
+      trend: 'steady',
+      growthHighlights: [],
+      feedbackCommentary: 'Baseline rehearsal established.',
+    };
+  }
+
+  try {
+    const all = getHistoricalSessions(learnerId);
+    // Find prior session excluding currentSessionId
+    const priors = all.filter(
+      s => s.sessionId.toUpperCase() !== currentSessionId.toUpperCase()
+    );
+
+    if (priors.length === 0) {
+      return {
+        hasPriorSession: false,
+        currentOverallScore: currentScore,
+        scoreDelta: 0,
+        trend: 'steady',
+        growthHighlights: [
+          'First recorded interview session for this profile',
+          'Baseline competency metrics recorded across technical depth and STAR structure',
+        ],
+        feedbackCommentary:
+          'Baseline rehearsal recorded. Your next interview attempt will compare against this baseline to track longitudinal score progression, pacing improvements, and non-verbal composure gains.',
+      };
+    }
+
+    // Pick the most recent prior session
+    const prior = priors[0];
+    const priorScore = prior.overallScore;
+    const scoreDelta = Number((currentScore - priorScore).toFixed(1));
+    const trend: 'improved' | 'steady' | 'needs_calibration' =
+      scoreDelta > 0.1 ? 'improved' : scoreDelta < -0.1 ? 'needs_calibration' : 'steady';
+
+    const highlights: string[] = [];
+
+    if (scoreDelta > 0.2) {
+      highlights.push(
+        `Overall competency score improved by +${scoreDelta} points (${priorScore.toFixed(1)} ➔ ${currentScore.toFixed(1)})`
+      );
+    } else if (scoreDelta < -0.2) {
+      highlights.push(
+        `Delivery cadence and structure dipped by ${scoreDelta} points compared to prior attempt (${priorScore.toFixed(1)} ➔ ${currentScore.toFixed(1)})`
+      );
+    } else {
+      highlights.push(
+        `Sustained steady performance within 0.1 points of prior baseline (${priorScore.toFixed(1)} ➔ ${currentScore.toFixed(1)})`
+      );
+    }
+
+    if (prior.roleTitle) {
+      highlights.push(`Prior rehearsal was for "${prior.roleTitle}"`);
+    }
+
+    if (prior.telemetry?.gazePercentage) {
+      highlights.push(`Prior gaze focus baseline: ${prior.telemetry.gazePercentage}% camera contact`);
+    }
+
+    let commentary = '';
+    if (trend === 'improved') {
+      commentary = `Noticeable progression since your previous rehearsal on "${prior.roleTitle || 'prior track'}": You increased your overall mastery score by +${scoreDelta} points. Your responses demonstrated tighter ownership, fewer hesitation pauses, and clearer technical articulation.`;
+    } else if (trend === 'steady') {
+      commentary = `Consistent performance relative to your rehearsal on "${prior.roleTitle || 'prior track'}": You held your mastery baseline at ${currentScore.toFixed(1)} / 5.0. To break through to the distinguished tier, focus on quantifying engineering results with concrete percentages and explicit benchmark numbers.`;
+    } else {
+      commentary = `Performance calibration alert: Your score dipped by ${Math.abs(scoreDelta)} points compared to your rehearsal on "${prior.roleTitle || 'prior track'}". The responses were more informal or brief. Review the side-by-side STAR Answer Transformer below to restore structured delivery.`;
+    }
+
+    return {
+      hasPriorSession: true,
+      priorSessionId: prior.sessionId,
+      priorRoleTitle: prior.roleTitle,
+      priorCreatedAt: prior.createdAt,
+      priorOverallScore: priorScore,
+      currentOverallScore: currentScore,
+      scoreDelta,
+      trend,
+      growthHighlights: highlights,
+      feedbackCommentary: commentary,
+    };
+  } catch (err) {
+    console.warn('Failed to compute learner progression:', err);
+    return {
+      hasPriorSession: false,
+      currentOverallScore: currentScore,
+      scoreDelta: 0,
+      trend: 'steady',
+      growthHighlights: [],
+      feedbackCommentary: 'Baseline rehearsal recorded.',
+    };
+  }
 }

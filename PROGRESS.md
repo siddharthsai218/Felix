@@ -79,6 +79,11 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Added Longitudinal Learner Progression & Improvement Tracking:
+  - Added longitudinal analysis engine in `frontend/src/app/lib/history-store.ts` (`getLearnerProgression`) that compares a candidate's current rehearsal against their immediately preceding session for that profile, computing exact score deltas ($\Delta \text{Overall Score}$), mastery trends (`improved`, `steady`, `needs_calibration`), and behavioral deltas.
+  - Built dedicated `LearnerProgressionCard` component in `frontend/src/report/LearnerProgressionCard.tsx` featuring side-by-side prior vs current score comparisons (`3.6 ➔ 4.1 / 5.0`), visual trend indicators (`▲ +0.5 Mastery Growth`), and formative AI commentary highlighting specific areas where the candidate leveled up.
+  - Integrated `LearnerProgressionCard` into the post-interview diagnostic debrief in `/session/report`, dynamically bound to the candidate's historical record and auto-persisted.
+  - Added live progression delta badges to the interview timeline list and dialogue transcript modal in `/session/history`, showing immediate longitudinal trajectory per session.
 - 2026-10-11 [1+3] — Added Synchronized Video Transcript & IndexedDB Replay Vault:
   - Engineered client-side IndexedDB video persistence engine `frontend/src/app/lib/video-store.ts` (`felix_video_vault_v1`) to archive WebM video blobs recorded via `MediaRecorder` per turn without hitting `localStorage` quotas.
   - Wired live interview handoff in `frontend/src/app/session/live/page.tsx` to automatically listen for `capture:video-handoff` events from `MediaCapture` and archive turn video clips locally.

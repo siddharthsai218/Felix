@@ -336,6 +336,23 @@ export default function HistoryPage() {
                       >
                         {session.overallScore.toFixed(1)} <span className="text-xs text-slate-500 font-normal">/ 5.0</span>
                       </div>
+                      {session.progression && session.progression.hasPriorSession && (
+                        <div
+                          className={`text-[10px] font-mono font-bold mt-0.5 ${
+                            session.progression.trend === 'improved'
+                              ? 'text-emerald-400'
+                              : session.progression.trend === 'needs_calibration'
+                              ? 'text-amber-400'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {session.progression.scoreDelta > 0
+                            ? `▲ +${session.progression.scoreDelta.toFixed(1)} Growth`
+                            : session.progression.scoreDelta < 0
+                            ? `▼ ${session.progression.scoreDelta.toFixed(1)} Dip`
+                            : '● Baseline'}
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}
@@ -470,9 +487,28 @@ export default function HistoryPage() {
 
             {/* Modal Footer */}
             <div className="px-6 py-3 border-t border-slate-800/80 bg-slate-900/40 flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-500">
-                Score: <strong className="text-violet-400">{activeTranscriptSession.overallScore.toFixed(1)}/5.0</strong>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-slate-500">
+                  Score: <strong className="text-violet-400">{activeTranscriptSession.overallScore.toFixed(1)}/5.0</strong>
+                </span>
+                {activeTranscriptSession.progression && activeTranscriptSession.progression.hasPriorSession && (
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                      activeTranscriptSession.progression.trend === 'improved'
+                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
+                        : activeTranscriptSession.progression.trend === 'needs_calibration'
+                        ? 'bg-amber-950 text-amber-300 border border-amber-800/40'
+                        : 'bg-slate-800 text-slate-300'
+                    }`}
+                  >
+                    {activeTranscriptSession.progression.scoreDelta > 0
+                      ? `▲ +${activeTranscriptSession.progression.scoreDelta.toFixed(1)} vs Prior`
+                      : activeTranscriptSession.progression.scoreDelta < 0
+                      ? `▼ ${activeTranscriptSession.progression.scoreDelta.toFixed(1)} vs Prior`
+                      : '● Steady'}
+                  </span>
+                )}
+              </div>
 
               <Link
                 href={`/session/report?sessionId=${activeTranscriptSession.sessionId}&fromHistory=true`}
