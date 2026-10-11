@@ -541,6 +541,15 @@ export default function HistoryPage() {
                           </div>
 
                           <p className="whitespace-pre-wrap">{line.text}</p>
+
+                          {!isInterviewer && (
+                            <TurnVideoPlayer
+                              sessionId={activeTranscriptSession.sessionId}
+                              responseIndex={line.turnIndex > 0 ? line.turnIndex - 1 : 0}
+                              turnLabel={line.questionIndex ? `Question ${line.questionIndex}` : `Turn ${line.turnIndex || 1}`}
+                              className="pt-2"
+                            />
+                          )}
                         </div>
                       </div>
                     );

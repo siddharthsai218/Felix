@@ -96,6 +96,11 @@ export class TurnEngine {
         firstQuestion: questions[0]?.text,
       }).catch((err) => console.warn('Beyond Presence avatar sync error:', err));
 
+      // If a drill was initiated concurrently, preserve drill mode and do not overwrite with question 0
+      if (this.session.state === 'drill') {
+        return;
+      }
+
       // Ask the first question
       await this.askQuestion(0);
     } catch (error) {

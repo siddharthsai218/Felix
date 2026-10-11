@@ -79,6 +79,14 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+2+3] — Post-Pull Audit & Bug Fixes:
+  - Fixed History Report Hydration: Resolved a critical data omission in `frontend/src/app/session/report/page.tsx` where viewing past interview reports or returning from a drill did not populate `candidateResponses`, `telemetry`, `sessionDurationSeconds`, or `transcriptAudit`, causing the interactive telemetry chart, speaking ratio, and evidence audit table to render blank or default to 0.
+  - Restored Video Replay in History Dialogue Modal: Re-added `TurnVideoPlayer` to the new `transcriptLines` verbatim dialogue view in `frontend/src/app/session/history/page.tsx`, ensuring candidates can watch their synchronized video replays for each spoken response.
+  - Resolved Drill Start Race Condition: Added a guard in `server/session/turn-engine.ts` (`startSession`) preventing the initial question generation from overwriting an active mock drill when launched via WebSocket.
+  - Drill Completion Feedback & Score Progression: Ensured that completing a mock drill over WebSocket correctly triggers score boosting in local history and renders a celebratory progress notification banner in the report debrief.
+  - Turbopack PDF Parser Resolution & Graph Safeguards: Installed `pdf-parse` in frontend to resolve Next.js Turbopack build warning, and safeguarded optional `candidateResponses` array access in `InteractiveTelemetryGraph.tsx`.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [2+3] — Strict 0 WPM Reporting When Microphone Inactive / Candidate Silent:
   - Configured `frontend/src/report/InteractiveTelemetryGraph.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/app/session/report/page.tsx`, `frontend/src/app/api/evaluate/route.ts`, and `server/learning/rubric.ts` so when the candidate does not speak or the microphone does not capture audio (0 words spoken), the speaking cadence is strictly reported as `0 WPM` instead of falling back to default conversational constants.
   - Interactive Telemetry Waveform: When WPM is 0, the cadence curve cleanly rests at 0 WPM, displays `No Speech Detected (0 WPM)` in the tooltip HUD, and flags `0 WPM recorded: No speech detected from microphone (candidate was silent or microphone was disconnected)` in the inspection cue.

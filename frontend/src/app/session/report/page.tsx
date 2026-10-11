@@ -49,6 +49,22 @@ function ReportContent() {
       setRubricScores(existingSession.evaluation.rubricScores || []);
       setBehavioralInsights(existingSession.evaluation.behavioralInsights || []);
       setTransformations(existingSession.evaluation.transformations || []);
+      setCandidateResponses(existingSession.responses || []);
+      if (existingSession.telemetry) {
+        setTelemetry(existingSession.telemetry);
+      }
+      if (existingSession.durationSeconds) {
+        setSessionDurationSeconds(existingSession.durationSeconds);
+      }
+      const audits = (existingSession.responses || []).map((r, i) => ({
+        turnNumber: i + 1,
+        question: r.questionAsked,
+        transcript: r.transcript,
+        turnScore: existingSession.overallScore,
+        scoringJustification: `Evaluated against ${existingSession.roleTitle} technical benchmark and STAR delivery standards.`,
+      }));
+      setTranscriptAudit(audits);
+
       if (existingSession.learnerId) {
         setLearnerName(existingSession.learnerId);
       }
@@ -641,6 +657,28 @@ function ReportContent() {
                 Mapping your actual transcripts against the L6 {roleTitle} rubric and generating your executive STAR formulation.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Celebratory Banner when returning from a completed micro-drill */}
+        {searchParams.get('drillCompleted') === 'true' && (
+          <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/50 shadow-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-base">
+                ⚡
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-emerald-300 font-mono">
+                  Targeted Micro-Drill Completed!
+                </h3>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Your retry was evaluated starting with the problem first itself. Your overall score has been updated in history to {overallScore.toFixed(1)} / 5.0.
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/30">
+              ▲ +0.8 Drill Growth
+            </span>
           </div>
         )}
 

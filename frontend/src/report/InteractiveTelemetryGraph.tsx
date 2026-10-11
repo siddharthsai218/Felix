@@ -126,7 +126,7 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
   const baseWpm = calculatedSessionWpm;
   const baseGaze = telemetry?.gazePercentage ?? 82;
   const baseJitter = telemetry?.jitterPercent ?? 0.94;
-  const pauseCount = telemetry?.pauseCount ?? Math.max(1, Math.round(candidateResponses.length * 0.8));
+  const pauseCount = telemetry?.pauseCount ?? Math.max(1, Math.round((candidateResponses?.length || 1) * 0.8));
 
   // Build high-resolution timeline data (1 sample every 1.5 seconds)
   const fullTimelineData = useMemo(() => {
@@ -335,7 +335,7 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
   };
 
   // Turn count
-  const turns = candidateResponses.length > 0 ? candidateResponses : [{ questionAsked: `Rehearsal Opening for ${roleTitle}` }];
+  const turns = candidateResponses && candidateResponses.length > 0 ? candidateResponses : [{ questionAsked: `Rehearsal Opening for ${roleTitle}` }];
 
   // Custom Interactive Tooltip
   const CustomTooltip = ({ active, payload }: any) => {

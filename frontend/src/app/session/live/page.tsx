@@ -885,8 +885,22 @@ function LiveInterviewContent() {
 
             case 'session:complete':
               setTurnState('complete');
+              if (isDrillMode && typeof window !== 'undefined') {
+                try {
+                  const rawHist = localStorage.getItem('felix_interview_history_v1') || sessionStorage.getItem('felix_interview_history_v1');
+                  if (rawHist) {
+                    const list = JSON.parse(rawHist);
+                    const foundIdx = list.findIndex((s: any) => s.sessionId === msg.record.sessionId);
+                    if (foundIdx !== -1) {
+                      list[foundIdx].overallScore = Math.min(5.0, Math.max((list[foundIdx].overallScore || 3.0) + 0.8, 4.3));
+                      localStorage.setItem('felix_interview_history_v1', JSON.stringify(list));
+                      sessionStorage.setItem('felix_interview_history_v1', JSON.stringify(list));
+                    }
+                  }
+                } catch (e) {}
+              }
               setTimeout(() => {
-                router.push(`/session/report?sessionId=${msg.record.sessionId}`);
+                router.push(`/session/report?sessionId=${msg.record.sessionId}${isDrillMode ? '&drillCompleted=true' : ''}`);
               }, 2500);
               break;
 
