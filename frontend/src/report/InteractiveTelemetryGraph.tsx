@@ -99,8 +99,29 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
     return 75;
   }, [sessionDurationSeconds, candidateResponses]);
 
-  // Nominal baseline values from real telemetry
-  const baseWpm = telemetry?.speakingRateWpm ?? 136;
+  // Derive true overall speaking rate from candidate's real spoken words and turn duration
+  const calculatedSessionWpm = useMemo(() => {
+    if (telemetry?.speakingRateWpm && telemetry.speakingRateWpm > 0) {
+      return telemetry.speakingRateWpm;
+    }
+    if (candidateResponses && candidateResponses.length > 0) {
+      const totalWords = candidateResponses.reduce(
+        (sum, r) => sum + (r.transcript || '').split(/\s+/).filter(Boolean).length,
+        0
+      );
+      const totalSeconds = candidateResponses.reduce(
+        (sum, r) => sum + Math.max(5, (r.durationMs || 30000) / 1000),
+        0
+      );
+      if (totalSeconds > 0 && totalWords > 0) {
+        return Math.max(25, Math.min(220, Math.round(totalWords / (totalSeconds / 60))));
+      }
+      if (totalWords === 0) return 0;
+    }
+    return 130;
+  }, [telemetry?.speakingRateWpm, candidateResponses]);
+
+  const baseWpm = calculatedSessionWpm;
   const baseGaze = telemetry?.gazePercentage ?? 82;
   const baseJitter = telemetry?.jitterPercent ?? 0.94;
   const pauseCount = telemetry?.pauseCount ?? Math.max(1, Math.round(candidateResponses.length * 0.8));
@@ -152,24 +173,32 @@ export const InteractiveTelemetryGraph: React.FC<InteractiveTelemetryGraphProps>
       const currentTurn = validResponses[turnIdx];
       const turnName = `Turn ${turnIdx + 1}`;
 
+      // Calculate turn-specific measured WPM from actual candidate words and duration
+      const turnWordsList = (currentTurn.transcript || '').split(/\s+/).filter(Boolean);
+      const turnDurationSec = Math.max(5, (currentTurn.durationMs || turnDuration * 1000) / 1000);
+      const measuredTurnWpm =
+        turnWordsList.length > 0
+          ? Math.max(25, Math.min(220, Math.round(turnWordsList.length / (turnDurationSec / 60))))
+          : Math.min(60, baseWpm);
+
       // Split transcript words for contextual snippet
-      const words = (currentTurn.transcript || '').split(/\s+/).filter(Boolean);
       const turnProgress = (timeSec - turnIdx * turnDuration) / Math.max(1, turnDuration);
-      const wordIdx = Math.min(words.length - 1, Math.floor(turnProgress * words.length));
+      const wordIdx = Math.min(turnWordsList.length - 1, Math.floor(turnProgress * turnWordsList.length));
       const snippetStart = Math.max(0, wordIdx - 3);
-      const snippetEnd = Math.min(words.length, wordIdx + 7);
+      const snippetEnd = Math.min(turnWordsList.length, wordIdx + 7);
       const transcriptSnippet =
-        words.slice(snippetStart, snippetEnd).join(' ') ||
+        turnWordsList.slice(snippetStart, snippetEnd).join(' ') ||
         'Candidate articulating engineering solution';
 
       // Check if this time falls inside a pause window
       const inPause = pauseTimes.some((pt) => Math.abs(timeSec - pt) <= 1.5);
       const isPausePeak = pauseTimes.some((pt) => Math.abs(timeSec - pt) <= 0.8);
 
-      // Generate realistic natural cadence curve
-      // Harmonic modulation + gentle deterministic oscillation
-      const oscillation = Math.sin(timeSec * 0.45) * 8 + Math.cos(timeSec * 0.2) * 5;
-      let wpm = inPause ? Math.max(15, Math.round(baseWpm * 0.25 - (timeSec % 5))) : Math.round(baseWpm + oscillation);
+      // Generate realistic cadence grounded in this turn's actual measured WPM
+      const oscillation = Math.sin(timeSec * 0.45) * 6 + Math.cos(timeSec * 0.2) * 4;
+      let wpm = inPause
+        ? Math.max(10, Math.round(measuredTurnWpm * 0.2 - (timeSec % 4)))
+        : Math.round(measuredTurnWpm + oscillation);
       wpm = Math.max(0, Math.min(220, wpm));
 
       // Gaze curve

@@ -64,7 +64,9 @@ function ReportContent() {
         setProgression(prog);
       }
       if (existingSession.evaluation.remediationPlan && existingSession.evaluation.remediationPlan.length > 0) {
-        const plan = existingSession.evaluation.remediationPlan[0];
+        const plan: any = existingSession.evaluation.remediationPlan[0];
+        const origQ = plan.originalProblem || existingSession.responses?.[0]?.questionAsked || `Technical question for ${existingSession.roleTitle}`;
+        const mistake = plan.studentMistake || 'Response lacked structured STAR delivery and concrete production impact metrics.';
         setActiveDrill({
           drillId: 'remediation-drill-1',
           sessionId,
@@ -74,6 +76,9 @@ function ReportContent() {
           gapSeverity: 'high',
           question: plan.drillQuestion || `Explain a technical challenge in ${existingSession.roleTitle} using STAR format.`,
           timeLimitSeconds: 30,
+          originalQuestion: origQ,
+          studentMistake: mistake,
+          problemFirstExplanation: plan.problemFirstExplanation || `In the problem where you were asked "${origQ}", the primary mistake was ${mistake} Interviewers specifically look for structured engineering reasoning.`,
         });
       }
       setIsEvaluating(false);
@@ -84,6 +89,7 @@ function ReportContent() {
     let storedRole = 'Senior Systems & Frontend Architect';
     let storedGithub = '';
     let storedResponses: any[] = [];
+    let storedTranscript: any[] = [];
     let storedTelemetry: any = null;
     let storedDuration = 0;
 
@@ -94,6 +100,11 @@ function ReportContent() {
       try {
         const rawResp = sessionStorage.getItem('felix_session_responses');
         if (rawResp) storedResponses = JSON.parse(rawResp);
+      } catch (e) {}
+
+      try {
+        const rawTrans = sessionStorage.getItem('felix_session_transcript');
+        if (rawTrans) storedTranscript = JSON.parse(rawTrans);
       } catch (e) {}
 
       try {
@@ -165,7 +176,9 @@ function ReportContent() {
 
             const plan = Array.isArray(data.remediationPlan) && data.remediationPlan.length > 0 ? data.remediationPlan : [];
             if (plan.length > 0) {
-              const p = plan[0];
+              const p: any = plan[0];
+              const origQ = p.originalProblem || storedResponses[0]?.questionAsked || `Key technical challenge for ${storedRole}`;
+              const mistake = p.studentMistake || 'Response lacked structured STAR articulation and quantifiable results.';
               setActiveDrill({
                 drillId: 'remediation-drill-1',
                 sessionId,
@@ -175,6 +188,9 @@ function ReportContent() {
                 gapSeverity: 'high',
                 question: p.drillQuestion || `Explain a technical challenge in ${storedRole} using STAR format.`,
                 timeLimitSeconds: 30,
+                originalQuestion: origQ,
+                studentMistake: mistake,
+                problemFirstExplanation: p.problemFirstExplanation || `In the problem where you were asked "${origQ}", the primary mistake was ${mistake} Interviewers specifically look for structured engineering depth.`,
               });
             }
 
@@ -193,6 +209,7 @@ function ReportContent() {
               overallScore: score,
               questionCount: Math.max(1, storedResponses.length),
               githubUrl: storedGithub,
+              transcriptLines: Array.isArray(storedTranscript) && storedTranscript.length > 0 ? storedTranscript : undefined,
               responses: storedResponses.length > 0
                 ? storedResponses.map((r: any) => ({
                     questionAsked: r.questionAsked || 'Technical Interview Question',
@@ -399,6 +416,10 @@ function ReportContent() {
         })
       );
 
+      const fallbackOrigQ = primaryResp?.questionAsked || `Key technical challenge for ${storedRole}`;
+      const fallbackMistake = isWeak
+        ? 'Response was brief and casual, omitting the Situation, Task, Actions, and measurable Result.'
+        : 'Missing quantitative production metrics and comparison of engineering trade-offs.';
       setActiveDrill({
         drillId: 'p0-drill-star-1',
         sessionId,
@@ -408,6 +429,9 @@ function ReportContent() {
         gapSeverity: 'high',
         question: `Explain a challenging technical trade-off in ${storedRole}. Use STAR structure with a measurable outcome in 30 seconds.`,
         timeLimitSeconds: 30,
+        originalQuestion: fallbackOrigQ,
+        studentMistake: fallbackMistake,
+        problemFirstExplanation: `In the problem where you were asked "${fallbackOrigQ}", the key mistake was that ${fallbackMistake} Technical interviewers look for structured rigor and concrete metrics.`,
       });
 
       // Save fallback evaluation to history as well
@@ -425,6 +449,7 @@ function ReportContent() {
         overallScore: fallbackScore,
         questionCount: Math.max(1, storedResponses.length),
         githubUrl: storedGithub,
+        transcriptLines: Array.isArray(storedTranscript) && storedTranscript.length > 0 ? storedTranscript : undefined,
         responses: storedResponses.length > 0
           ? storedResponses.map((r: any) => ({
               questionAsked: r.questionAsked || 'Technical Interview Question',
@@ -460,11 +485,46 @@ function ReportContent() {
     evaluateCandidate();
   }, [sessionId]);
 
-  const handleStartDrill = (drillId?: string) => {
+  const handleStartDrill = (targetProblemOrQuestion?: string) => {
+    if (targetProblemOrQuestion) {
+      const lower = targetProblemOrQuestion.toLowerCase();
+      const matchedTrans = transformations.find(
+        (t) => t.questionAsked.toLowerCase().includes(lower) || lower.includes(t.questionAsked.toLowerCase())
+      );
+      const matchedResp = candidateResponses.find(
+        (r) => r.questionAsked.toLowerCase().includes(lower) || lower.includes(r.questionAsked.toLowerCase())
+      );
+      const matchedAudit = transcriptAudit.find(
+        (a) => a.question.toLowerCase().includes(lower) || lower.includes(a.question.toLowerCase())
+      );
+
+      const problemAsked = matchedTrans?.questionAsked || matchedResp?.questionAsked || matchedAudit?.question || targetProblemOrQuestion;
+      const mistake =
+        matchedTrans?.critiqueNotes?.join('. ') ||
+        matchedAudit?.deductionEvidence?.map((d: any) => d.critique).join('. ') ||
+        'Response lacked structured STAR delivery and concrete production impact metrics.';
+
+      setActiveDrill({
+        drillId: `drill-${Date.now()}`,
+        sessionId,
+        responseIndex: 0,
+        targetLearningOutcome: 'Master STAR Delivery & Metric Quantification',
+        targetCompetency: 'technical-communication',
+        gapSeverity: 'high',
+        question: `Practice delivering your technical solution for: "${problemAsked}". Structure your answer with Situation, Action, and a measurable Result in 30 seconds.`,
+        timeLimitSeconds: 30,
+        originalQuestion: problemAsked,
+        studentMistake: mistake,
+        problemFirstExplanation: `In the problem where you were asked "${problemAsked}", the primary mistake was: ${mistake} Interviewers expect clear engineering ownership and quantifiable benchmarks.`,
+      });
+    }
     setDrillModalOpen(true);
   };
 
   const handleExecuteDrillTurn = (drillId: string) => {
+    if (activeDrill && typeof window !== 'undefined') {
+      sessionStorage.setItem('felix_active_drill', JSON.stringify(activeDrill));
+    }
     router.push(`/session/live?drillId=${drillId}&sessionId=${sessionId}`);
   };
 
@@ -594,7 +654,7 @@ function ReportContent() {
           sessionDurationSeconds={sessionDurationSeconds}
           progression={progression}
           learnerName={learnerName}
-          onStartDrill={() => handleStartDrill()}
+          onStartDrill={(targetQ) => handleStartDrill(targetQ)}
         />
       </div>
 

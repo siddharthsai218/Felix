@@ -29,6 +29,9 @@ export interface DrillSpec {
   timeLimitSeconds: number;
   context?: string;
   hints?: string[];
+  originalQuestion?: string;
+  studentMistake?: string;
+  problemFirstExplanation?: string;
 }
 
 export interface SessionResponseRecord {
@@ -49,6 +52,32 @@ export interface SessionResponseRecord {
   drillSpec?: DrillSpec;
 }
 
+/** A single spoken line/utterance in the session transcript */
+export interface TranscriptLine {
+  id?: string;
+  lineId?: string;
+  turnIndex: number;
+  questionIndex?: number;
+  speaker: 'interviewer' | 'candidate';
+  speakerName?: string;
+  text: string;
+  timestamp: string; // ISO 8601
+  type: 'question' | 'response' | 'follow-up' | 'followup' | 'hint' | 'greeting' | 'clarification' | 'drill';
+  durationMs?: number;
+  wordTimestamps?: SttWordTimestamp[];
+  timestamps?: any;
+}
+
+/** Complete chronological session dialogue transcript */
+export interface SessionTranscript {
+  sessionId: string;
+  learnerId?: string;
+  targetRole?: string;
+  startedAt: string;
+  endedAt?: string;
+  lines: TranscriptLine[];
+}
+
 export interface SessionRecord {
   sessionId: string;
   learnerId: string;
@@ -57,6 +86,7 @@ export interface SessionRecord {
   endedAt: string;
   totalDurationMs: number;
   responses: SessionResponseRecord[];
+  transcript?: TranscriptLine[];
   sessionConfig: {
     questionCount: number;
     difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -83,6 +113,7 @@ export type ClientMessage =
   | { type: 'stt:final'; text: string; timestamps?: SttWordTimestamp[] }
   | { type: 'coach:request' }
   | { type: 'drill:start'; drillId: string }
+  | { type: 'transcript:append'; line: TranscriptLine }
   | { type: 'session:end' };
 
 export type ServerMessage =
@@ -94,6 +125,8 @@ export type ServerMessage =
   | { type: 'tts:audio'; data: string; isLast: boolean }
   | { type: 'rescue:activate'; message: string }
   | { type: 'coach:hint'; hint: string }
+  | { type: 'transcript:line'; line: TranscriptLine }
+  | { type: 'transcript:sync'; lines: TranscriptLine[] }
   | { type: 'response:complete'; record: SessionResponseRecord }
   | { type: 'session:complete'; record: SessionRecord }
   | { type: 'error'; message: string };

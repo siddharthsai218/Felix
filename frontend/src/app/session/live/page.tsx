@@ -17,6 +17,7 @@ import type {
   SessionRecord,
   DrillSpec,
   SttWordTimestamp,
+  TranscriptLine,
 } from '../../lib/types';
 
 function LiveInterviewContent() {
@@ -33,12 +34,21 @@ function LiveInterviewContent() {
   const rawGithubParam = searchParams.get('github') || '';
   const initialGithub = rawGithubParam ? decodeURIComponent(rawGithubParam) : '';
 
+  // Targeted Drill parameters
+  const drillParam = searchParams.get('drillId');
+  const isDrillMode = Boolean(drillParam);
+  const [drillSpec, setDrillSpec] = useState<DrillSpec | null>(null);
+  const [drillCountdown, setDrillCountdown] = useState<number>(30);
+
   // State
+  const sessionParam = searchParams.get('session');
+  const [sessionId, setSessionId] = useState<string>(sessionParam || `felix-${Date.now()}`);
+  const [turnState, setTurnState] = useState<TurnState>('idle');
   const [githubUrl, setGithubUrl] = useState<string>(initialGithub);
   const [resumeText, setResumeText] = useState<string>('');
   const [jobDescription, setJobDescription] = useState<string>('');
 
-  // Load saved context from sessionStorage if available
+  // Load saved context and drill spec from sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedGithub = sessionStorage.getItem('felix_session_github') || '';
@@ -47,12 +57,51 @@ function LiveInterviewContent() {
       if (!githubUrl && storedGithub) setGithubUrl(storedGithub);
       if (storedResume) setResumeText(storedResume);
       if (storedJd) setJobDescription(storedJd);
-    }
-  }, [githubUrl]);
 
-  const sessionParam = searchParams.get('session');
-  const [sessionId, setSessionId] = useState<string>(sessionParam || `felix-${Date.now()}`);
-  const [turnState, setTurnState] = useState<TurnState>('idle');
+      if (isDrillMode) {
+        try {
+          const rawDrill = sessionStorage.getItem('felix_active_drill');
+          if (rawDrill) {
+            setDrillSpec(JSON.parse(rawDrill));
+            return;
+          }
+        } catch (e) {}
+
+        // Fallback drill spec grounded in current role
+        setDrillSpec({
+          drillId: drillParam || 'drill-default',
+          sessionId: sessionParam || `felix-${Date.now()}`,
+          responseIndex: 0,
+          targetLearningOutcome: 'Quantify Results Using the STAR Method',
+          targetCompetency: 'structural-communication',
+          gapSeverity: 'high',
+          question: `Explain a challenging technical trade-off in ${targetRole}. Focus on quantifying your final result in 30 seconds.`,
+          timeLimitSeconds: 30,
+          originalQuestion: `Key architectural challenge for ${targetRole}`,
+          studentMistake: 'Response lacked structured STAR articulation and quantifiable results.',
+          problemFirstExplanation: `In the problem where you were asked about the architectural challenge for ${targetRole}, the primary mistake was omitting quantifiable metrics and structured STAR framing. Technical interviewers evaluate concrete engineering depth.`,
+        });
+      }
+    }
+  }, [githubUrl, isDrillMode, drillParam, sessionParam, targetRole]);
+
+  // Drill countdown timer while learner is speaking
+  useEffect(() => {
+    if (isDrillMode && turnState === 'listening') {
+      setDrillCountdown(drillSpec?.timeLimitSeconds || 30);
+      const interval = setInterval(() => {
+        setDrillCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isDrillMode, turnState, drillSpec]);
+
   const [currentQuestionText, setCurrentQuestionText] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState<boolean>(false);
@@ -93,6 +142,65 @@ function LiveInterviewContent() {
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const activeQuestionRef = useRef<string>('');
   const turnStateRef = useRef<TurnState>('idle');
+  const transcriptRef = useRef<TranscriptLine[]>([]);
+
+  // Helper to record every spoken dialogue line (interviewer & candidate)
+  const recordTranscriptLine = useCallback(
+    (
+      speaker: 'interviewer' | 'candidate',
+      text: string,
+      type: 'greeting' | 'question' | 'response' | 'followup' | 'hint' | 'drill' = 'question',
+      extra?: {
+        turnIndex?: number;
+        questionIndex?: number;
+        durationMs?: number;
+        timestamps?: SttWordTimestamp[];
+      }
+    ) => {
+      const clean = (text || '').trim();
+      if (!clean) return;
+
+      const current = transcriptRef.current;
+      const last = current[current.length - 1];
+
+      // Deduplicate exact duplicate immediate lines from the same speaker
+      if (last && last.speaker === speaker && last.text.trim().toLowerCase() === clean.toLowerCase()) {
+        return;
+      }
+
+      const newLine: TranscriptLine = {
+        lineId: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        speaker,
+        text: clean,
+        timestamp: new Date().toISOString(),
+        turnIndex: extra?.turnIndex ?? (currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0),
+        questionIndex: extra?.questionIndex ?? currentQuestionIndex,
+        type,
+        durationMs: extra?.durationMs,
+        timestamps: extra?.timestamps,
+      };
+
+      current.push(newLine);
+      transcriptRef.current = current;
+
+      // Persist immediately to sessionStorage
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('felix_session_transcript', JSON.stringify(current));
+        } catch (e) {}
+      }
+
+      // Sync line to backend server API (fire-and-forget)
+      if (sessionId) {
+        fetch(`/api/sessions/${sessionId}/transcript`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line: newLine }),
+        }).catch(() => {});
+      }
+    },
+    [currentQuestionIndex, sessionId]
+  );
 
   // Fallback preset questions for offline/direct demo resiliency
   const fallbackQuestionsRef = useRef<string[]>([
@@ -362,6 +470,15 @@ function LiveInterviewContent() {
     turnStartTimeRef.current = now;
 
     const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
+    
+    // Record candidate line in conversation transcript
+    recordTranscriptLine('candidate', finalAnswer, turnState === 'drill' ? 'drill' : 'response', {
+      turnIndex: currentQuestionIndex - 1,
+      questionIndex: currentQuestionIndex,
+      durationMs: actualDurationMs,
+      timestamps: currentTimestampsRef.current,
+    });
+
     const newRecord: SessionResponseRecord = {
       sessionId,
       learnerId: currentLearner,
@@ -406,6 +523,45 @@ function LiveInterviewContent() {
         } as ClientMessage)
       );
     } else {
+      // If in mock drill mode, evaluate response by the problem first itself
+      if (isDrillMode || turnState === 'drill') {
+        const isWeak = finalAnswer.length < 40 || finalAnswer.toLowerCase().includes("don't know") || finalAnswer.toLowerCase().includes("pass");
+        const drillEvaluation = isWeak
+          ? `On this problem, you attempted the retry, but remember to cite concrete numbers and benchmarks. Proceeding to your updated assessment report.`
+          : `Excellent work! On this problem, you corrected the previous mistake by clearly establishing your technical actions and quantifiable impact. Proceeding to your updated assessment report.`;
+
+        setCurrentQuestionText('');
+        setTurnState('complete');
+        turnStateRef.current = 'complete';
+
+        recordTranscriptLine('interviewer', drillEvaluation, 'drill', {
+          turnIndex: currentQuestionIndex,
+          questionIndex: -1,
+        });
+
+        playAudio(drillEvaluation);
+
+        // Boost/update historical score for completed drill
+        if (typeof window !== 'undefined') {
+          try {
+            const rawHist = localStorage.getItem('felix_interview_history_v1') || sessionStorage.getItem('felix_interview_history_v1');
+            if (rawHist) {
+              const list = JSON.parse(rawHist);
+              const foundIdx = list.findIndex((s: any) => s.sessionId === sessionId);
+              if (foundIdx !== -1) {
+                list[foundIdx].overallScore = Math.min(5.0, Math.max((list[foundIdx].overallScore || 3.0) + 0.8, 4.3));
+                localStorage.setItem('felix_interview_history_v1', JSON.stringify(list));
+                sessionStorage.setItem('felix_interview_history_v1', JSON.stringify(list));
+              }
+            }
+          } catch (e) {}
+        }
+
+        setTimeout(() => {
+          router.push(`/session/report?sessionId=${sessionId}&drillCompleted=true`);
+        }, 3500);
+        return;
+      }
       // Local fallback turn progression
       const nextIndex = currentQuestionIndex;
       const hasNext = isUnlimited || nextIndex < questionCount;
@@ -419,6 +575,10 @@ function LiveInterviewContent() {
           setCurrentQuestionText(nextQ);
           setLearnerTranscript('');
           setPartialTranscript('');
+          recordTranscriptLine('interviewer', nextQ, 'question', {
+            turnIndex: nextIndex,
+            questionIndex: nextIndex + 1,
+          });
           playAudio(nextQ);
         }, 1200);
       } else {
@@ -429,7 +589,7 @@ function LiveInterviewContent() {
         }, 1500);
       }
     }
-  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio, currentQuestionText, turnState, elapsedSeconds]);
+  }, [learnerTranscript, partialTranscript, currentQuestionIndex, questionCount, isUnlimited, sessionId, router, playAudio, currentQuestionText, turnState, elapsedSeconds, recordTranscriptLine]);
 
   // Gracefully Finish Interview & View Report at any time
   const handleFinishInterview = useCallback(() => {
@@ -449,6 +609,15 @@ function LiveInterviewContent() {
       const actualDurationMs = turnStartTimeRef.current > 0 ? Math.max(3000, now - turnStartTimeRef.current) : 25000;
       const turnStartIso = turnStartTimeRef.current > 0 ? new Date(turnStartTimeRef.current).toISOString() : new Date(now - actualDurationMs).toISOString();
       const currentLearner = (typeof window !== 'undefined' && (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) || 'Siddharth';
+      
+      // Record candidate line in conversation transcript
+      recordTranscriptLine('candidate', rawAnswer, 'response', {
+        turnIndex: currentQuestionIndex - 1,
+        questionIndex: currentQuestionIndex,
+        durationMs: actualDurationMs,
+        timestamps: currentTimestampsRef.current,
+      });
+
       const record: SessionResponseRecord = {
         sessionId,
         learnerId: currentLearner,
@@ -500,6 +669,50 @@ function LiveInterviewContent() {
     setTurnState('processing');
     turnStateRef.current = 'processing';
     setCurrentQuestionText('');
+
+    if (isDrillMode) {
+      let activeD: DrillSpec = drillSpec || {
+        drillId: drillParam || 'drill-001',
+        sessionId,
+        responseIndex: 0,
+        targetLearningOutcome: 'Quantify Results Using the STAR Method',
+        targetCompetency: 'structural-communication',
+        gapSeverity: 'high',
+        question: `Explain a challenging technical trade-off in ${targetRole}. Focus on quantifying your final result in 30 seconds.`,
+        timeLimitSeconds: 30,
+        originalQuestion: `Key architectural challenge for ${targetRole}`,
+        studentMistake: 'Response lacked structured STAR delivery and concrete production impact metrics.',
+        problemFirstExplanation: `In the problem where you were asked about the architectural challenge for ${targetRole}, the primary mistake was omitting quantifiable metrics and structured STAR framing. Technical interviewers evaluate concrete engineering depth.`,
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = sessionStorage.getItem('felix_active_drill');
+          if (raw) activeD = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      const problemText = activeD.originalQuestion || `the problem from your previous turn`;
+      const mistakeText = activeD.studentMistake || `the response lacked structured STAR framing and measurable technical outcomes`;
+      const explanationText = activeD.problemFirstExplanation || `Looking back at the problem where you were asked "${problemText}": the primary mistake in your response was that ${mistakeText}. Interviewers specifically evaluate concrete engineering metrics and ownership.`;
+
+      // The interviewer starts explaining the mistakes by the problem first itself, and then proceeds with the next part
+      const drillPrompt = `${explanationText} Now, proceeding with the next part: ${activeD.question}`;
+
+      setTimeout(() => {
+        setTurnState('drill');
+        turnStateRef.current = 'drill';
+        activeQuestionRef.current = drillPrompt;
+        setCurrentQuestionText(drillPrompt);
+        setCurrentQuestionIndex(1);
+        recordTranscriptLine('interviewer', drillPrompt, 'drill', {
+          turnIndex: 0,
+          questionIndex: -1,
+        });
+        playAudio(drillPrompt);
+      }, 800);
+      return;
+    }
+
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
     const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
 
@@ -514,9 +727,13 @@ function LiveInterviewContent() {
       activeQuestionRef.current = firstQ;
       setCurrentQuestionText(firstQ);
       setCurrentQuestionIndex(1);
+      recordTranscriptLine('interviewer', firstQ, 'question', {
+        turnIndex: 0,
+        questionIndex: 1,
+      });
       playAudio(firstQ);
     }, 800);
-  }, [playAudio, githubUrl, resumeText, targetRole]);
+  }, [playAudio, githubUrl, resumeText, targetRole, recordTranscriptLine, isDrillMode, drillSpec, drillParam, sessionId]);
 
   // WebSocket Connection & Turn loop
   useEffect(() => {
@@ -541,7 +758,7 @@ function LiveInterviewContent() {
             config: {
               targetRole,
               learnerId: 'learner-demo-1',
-              questionCount,
+              questionCount: isDrillMode ? 1 : questionCount,
               difficulty,
               coachModeEnabled,
               githubUrl: activeGithub,
@@ -550,6 +767,15 @@ function LiveInterviewContent() {
             },
           } as ClientMessage)
         );
+
+        if (isDrillMode) {
+          socket.send(
+            JSON.stringify({
+              type: 'drill:start',
+              drillId: drillParam || 'drill-001',
+            } as ClientMessage)
+          );
+        }
       };
 
       socket.onmessage = (event) => {
@@ -559,8 +785,10 @@ function LiveInterviewContent() {
           switch (msg.type) {
             case 'session:started':
               setSessionId(msg.sessionId);
+              transcriptRef.current = [];
               if (typeof window !== 'undefined') {
                 sessionStorage.setItem('felix_session_responses', '[]');
+                sessionStorage.setItem('felix_session_transcript', '[]');
               }
               break;
 
@@ -590,6 +818,37 @@ function LiveInterviewContent() {
               setPartialTranscript('');
               setRescueActive(false);
               currentTimestampsRef.current = [];
+              recordTranscriptLine('interviewer', msg.text, 'question', {
+                turnIndex: msg.questionIndex >= 0 ? msg.questionIndex : (currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0),
+                questionIndex: msg.questionIndex >= 0 ? msg.questionIndex + 1 : currentQuestionIndex,
+              });
+              break;
+
+            case 'transcript:line':
+              if (msg.line) {
+                const current = transcriptRef.current;
+                const last = current[current.length - 1];
+                if (!last || last.lineId !== msg.line.lineId) {
+                  current.push(msg.line);
+                  transcriptRef.current = current;
+                  if (typeof window !== 'undefined') {
+                    try {
+                      sessionStorage.setItem('felix_session_transcript', JSON.stringify(current));
+                    } catch (e) {}
+                  }
+                }
+              }
+              break;
+
+            case 'transcript:sync':
+              if (Array.isArray(msg.lines)) {
+                transcriptRef.current = msg.lines;
+                if (typeof window !== 'undefined') {
+                  try {
+                    sessionStorage.setItem('felix_session_transcript', JSON.stringify(msg.lines));
+                  } catch (e) {}
+                }
+              }
               break;
 
             case 'tts:audio':
@@ -712,10 +971,17 @@ function LiveInterviewContent() {
             </span>
           </Link>
           <div className="h-4 w-[1px] bg-slate-800 hidden sm:block" />
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-mono text-cyan-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span>{targetRole} • LIVE REHEARSAL</span>
-          </div>
+          {isDrillMode ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-950/80 border border-violet-500/60 text-[10px] font-mono text-violet-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span>MOCK DRILL • 30s REMEDIATION</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-mono text-cyan-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>{targetRole} • LIVE REHEARSAL</span>
+            </div>
+          )}
           {githubUrl && (
             <div className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-[10px] font-mono text-slate-300">
               <span>🐙</span>
@@ -732,10 +998,17 @@ function LiveInterviewContent() {
             <span>{formatElapsed(elapsedSeconds)}</span>
           </div>
 
-          {/* Question Index Pill */}
-          <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-mono font-bold text-violet-300">
-            {isUnlimited ? `Prompt 0${currentQuestionIndex}` : `Prompt 0${currentQuestionIndex} / 0${questionCount}`}
-          </div>
+          {/* Question Index / Drill Countdown Pill */}
+          {isDrillMode ? (
+            <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-xs font-mono font-bold text-amber-300 flex items-center gap-1.5">
+              <span>⏱️</span>
+              <span>{drillCountdown}s Sprint</span>
+            </div>
+          ) : (
+            <div className="px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/30 text-xs font-mono font-bold text-violet-300">
+              {isUnlimited ? `Prompt 0${currentQuestionIndex}` : `Prompt 0${currentQuestionIndex} / 0${questionCount}`}
+            </div>
+          )}
 
           {/* Finish & View Report Button */}
           <button
@@ -768,6 +1041,40 @@ function LiveInterviewContent() {
             isSpeaking={isAvatarSpeaking}
           />
 
+          {/* Mock Drill Problem & Mistake Analysis Banner */}
+          {isDrillMode && drillSpec && (
+            <div className="absolute top-3 left-3 right-3 z-20 pointer-events-none flex flex-col gap-1.5 animate-in fade-in duration-300">
+              <div className="bg-[#090d16]/95 backdrop-blur-md border border-violet-500/40 rounded-xl p-3 shadow-2xl flex flex-col gap-1.5 text-left pointer-events-auto">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-[10px] font-mono font-bold text-violet-300 uppercase tracking-wider">
+                      MOCK DRILL • PROBLEM & MISTAKE ANALYSIS
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                    ⏱️ {drillCountdown}s Left
+                  </span>
+                </div>
+                {drillSpec.originalQuestion && (
+                  <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                    <strong className="text-cyan-400 font-mono text-[10px] uppercase">1. Problem: </strong>
+                    <span className="italic text-slate-200">"{drillSpec.originalQuestion}"</span>
+                  </p>
+                )}
+                {(drillSpec.problemFirstExplanation || drillSpec.studentMistake) && (
+                  <p className="text-[11px] text-rose-300 font-sans leading-relaxed">
+                    <strong className="text-rose-400 font-mono text-[10px] uppercase">2. Mistake Explained: </strong>
+                    <span>{drillSpec.studentMistake || drillSpec.problemFirstExplanation}</span>
+                  </p>
+                )}
+                <p className="text-[11px] text-violet-200 font-sans leading-relaxed">
+                  <strong className="text-violet-400 font-mono text-[10px] uppercase">3. Next Part Challenge: </strong>
+                  <span className="font-semibold text-white">"{drillSpec.question}"</span>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar: Camera PiP + Live Behavioral Telemetry HUD (Clean Stack, Zero Overlap) */}
@@ -830,12 +1137,12 @@ function LiveInterviewContent() {
               onClick={handleSubmitResponse}
               className="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-mono text-xs transition-all shadow-md shadow-emerald-500/25 flex items-center gap-1.5"
             >
-              <span>Done Speaking</span>
+              <span>{isDrillMode ? 'Submit Drill Response' : 'Done Speaking'}</span>
               <span>→</span>
             </button>
           ) : (
             <div className="px-4 py-2 rounded-full bg-slate-800/80 text-slate-400 text-xs font-mono font-medium border border-slate-700/60">
-              {turnState === 'speaking' ? 'Interviewer Speaking…' : 'Synthesizing Prompt…'}
+              {turnState === 'speaking' ? (isDrillMode ? 'Interviewer Explaining Problem & Mistake…' : 'Interviewer Speaking…') : 'Synthesizing Prompt…'}
             </div>
           )}
 
