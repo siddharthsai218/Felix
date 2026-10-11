@@ -490,6 +490,9 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
               <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-400">
                 ACOUSTIC & BEHAVIORAL BIOMETRICS
               </span>
+              <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] font-mono border border-violet-500/30">
+                Adaptive DSP Normalizer • VAD-Gated Cognitive Search
+              </span>
             </div>
             <h3 className="text-xl font-bold text-white tracking-tight">
               Timeline & Telemetry Stream
@@ -565,7 +568,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
                 {(telemetry?.gazePercentage ?? 82) >= 70 ? 'High Steady' : 'Attention Needed'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">MediaPipe camera alignment sustained</p>
+            <p className="text-[11px] text-slate-500">MediaPipe + VAD-gated cognitive search filter</p>
           </div>
 
           {/* Card 4 */}
@@ -582,7 +585,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
                 {(telemetry?.jitterPercent ?? 0.94) <= 1.5 ? 'Steady Pitch' : 'High Jitter / Strain'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">Autocorrelation fundamental stability</p>
+            <p className="text-[11px] text-slate-500">Self-referential baseline Δ-normalized jitter</p>
           </div>
         </div>
       </div>

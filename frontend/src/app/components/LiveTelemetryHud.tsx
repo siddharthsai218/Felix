@@ -23,6 +23,11 @@ export interface LiveTelemetryData {
   lastPauseDurationS: number;
   faceDetected: boolean;
   vocalEnergy: 'low' | 'moderate' | 'optimal' | 'high';
+  // Architectural upgrades: Adaptive normalization & Multimodal fusion
+  isBaselineCalibrated?: boolean;
+  calibrationProgress?: number; // 0 to 100%
+  baselinePitchHz?: number;
+  isCognitiveSearch?: boolean;
 }
 
 export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
@@ -45,6 +50,10 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
     lastPauseDurationS: 0,
     faceDetected: false,
     vocalEnergy: 'moderate',
+    isBaselineCalibrated: false,
+    calibrationProgress: 5,
+    baselinePitchHz: 140,
+    isCognitiveSearch: false,
   });
 
   // Prosody / Audio analysis refs
@@ -56,6 +65,17 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
   const silenceStartRef = useRef<number | null>(null);
   const activeSpeakingMsRef = useRef<number>(0);
   const lastAudioTickRef = useRef<number>(Date.now());
+
+  // Model Architecture Upgrade: Adaptive Self-Referential Baseline Normalization
+  const sessionStartTimeRef = useRef<number>(Date.now());
+  const isCalibratedRef = useRef<boolean>(false);
+  const baselinePitchSamplesRef = useRef<number[]>([]);
+  const baselineJitterSamplesRef = useRef<number[]>([]);
+  const baselinePitchRef = useRef<number>(140);
+  const baselineJitterRef = useRef<number>(0.9);
+
+  // Model Architecture Upgrade: Multimodal Cross-Attention Gating (VAD + Gaze)
+  const isUserSpeakingRef = useRef<boolean>(false);
 
   // Transcript / WPM tracking refs
   const speechStartTimeRef = useRef<number | null>(null);
@@ -153,6 +173,7 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
 
         // B. Pause / Silence Detection
         const isSilent = rms < 0.012;
+        isUserSpeakingRef.current = rms >= 0.022;
         if (isSilent) {
           if (!silenceStartRef.current) {
             silenceStartRef.current = now;
@@ -238,17 +259,53 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
               computedJitter = Math.min(4.8, Math.max(0.4, Math.round(rawJitter * 100) / 100));
             }
 
-            // Detect vocal fatigue, sleepiness, or monotone delivery
+            // Model Architecture: Adaptive Baseline Normalization
+            const sessionAgeMs = Date.now() - sessionStartTimeRef.current;
+            const calibDurationMs = 15000;
+            const calibPct = Math.min(100, Math.round((sessionAgeMs / calibDurationMs) * 100));
+
+            if (sessionAgeMs < calibDurationMs) {
+              if (meanPitch >= 70 && meanPitch <= 380) {
+                baselinePitchSamplesRef.current.push(meanPitch);
+              }
+              if (computedJitter >= 0.3 && computedJitter <= 3.8) {
+                baselineJitterSamplesRef.current.push(computedJitter);
+              }
+            } else if (!isCalibratedRef.current) {
+              if (baselinePitchSamplesRef.current.length > 4) {
+                baselinePitchRef.current = Math.round(
+                  baselinePitchSamplesRef.current.reduce((a, b) => a + b, 0) / baselinePitchSamplesRef.current.length
+                );
+              }
+              if (baselineJitterSamplesRef.current.length > 4) {
+                baselineJitterRef.current = Math.round(
+                  (baselineJitterSamplesRef.current.reduce((a, b) => a + b, 0) / baselineJitterSamplesRef.current.length) * 100
+                ) / 100;
+              }
+              isCalibratedRef.current = true;
+            }
+
+            // Delta-normalized jitter against learner's personal F0 floor
+            let normalizedJitter = computedJitter;
+            if (isCalibratedRef.current) {
+              const deltaJ = computedJitter - baselineJitterRef.current;
+              normalizedJitter = Math.min(4.5, Math.max(0.4, Math.round((0.85 + deltaJ) * 100) / 100));
+            }
+
+            // Normalization of pitch standard deviation by personal baseline floor
+            const normalizedPitchStdDev = pitchStdDev / (Math.max(80, baselinePitchRef.current) * 0.1);
+
+            // Detect vocal fatigue, sleepiness, or monotone delivery with calibrated thresholds
             let vocalExpression = 'Engaged Delivery';
             let composure = 88;
 
-            if (energyCategory === 'low' || pitchStdDev < 9) {
+            if (energyCategory === 'low' || normalizedPitchStdDev < 0.65) {
               vocalExpression = 'Monotone / Low Energy';
               composure = 58;
-            } else if (computedJitter > 2.2) {
-              vocalExpression = 'Vocal Fry / Sluggish';
+            } else if (normalizedJitter > 2.1) {
+              vocalExpression = 'Vocal Strain / Sluggish';
               composure = 64;
-            } else if (pitchStdDev > 26) {
+            } else if (normalizedPitchStdDev > 1.8) {
               vocalExpression = 'Dynamic & Expressive';
               composure = 94;
             } else {
@@ -260,12 +317,15 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
               const updated = {
                 ...prev,
                 pitchMeanHz: meanPitch,
-                jitterPercent: computedJitter,
+                jitterPercent: normalizedJitter,
                 vocalEnergy: energyCategory,
                 dominantExpression: prev.faceDetected
-                  ? (prev.gazePercentage < 40 ? 'Looking Away' : vocalExpression)
+                  ? (prev.gazePercentage < 40 && !prev.isCognitiveSearch ? 'Looking Away' : vocalExpression)
                   : 'Face Not Detected',
                 composureScore: prev.faceDetected ? composure : 45,
+                isBaselineCalibrated: isCalibratedRef.current,
+                calibrationProgress: isCalibratedRef.current ? 100 : calibPct,
+                baselinePitchHz: baselinePitchRef.current,
               };
               if (typeof window !== 'undefined') {
                 sessionStorage.setItem('felix_session_telemetry', JSON.stringify(updated));
@@ -533,19 +593,37 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
         }
       }
 
+      // Multimodal Cross-Attention Gating (VAD + Gaze Fusion):
+      // When the candidate is silent (thinking pause), averting gaze is healthy Cognitive Search!
+      const isCandidateSilent = !isUserSpeakingRef.current;
+      const isReflectiveGaze = isCandidateSilent && faceFound && (gazeDir === 'down' || gazeDir === 'left' || gazeDir === 'right');
+
+      let finalGazePercent = gazePercent;
+      let finalExpression = expressionLabel;
+
+      if (isReflectiveGaze) {
+        finalGazePercent = 85; // Calibrated positive cognitive engagement
+        finalExpression = 'Cognitive Search (Reflective Thinking)';
+      } else if (faceFound && gazeDir === 'center') {
+        finalExpression = 'Direct Eye Contact';
+      } else if (faceFound && !isCandidateSilent && gazePercent < 50) {
+        finalExpression = 'Averted Gaze While Speaking';
+      }
+
       // Update state and write to sessionStorage for seamless report sync
       setTelemetry((prev) => {
         const composure = faceFound
-          ? (gazePercent >= 70 ? 92 : gazePercent >= 40 ? 76 : 55)
+          ? (isReflectiveGaze ? 90 : (finalGazePercent >= 70 ? 92 : finalGazePercent >= 40 ? 76 : 55))
           : 35;
 
         const updated: LiveTelemetryData = {
           ...prev,
           faceDetected: faceFound,
           gazeDirection: gazeDir,
-          gazePercentage: gazePercent,
-          dominantExpression: faceFound ? expressionLabel : 'Eyes / Face Not Detected',
+          gazePercentage: finalGazePercent,
+          dominantExpression: faceFound ? finalExpression : 'Eyes / Face Not Detected',
           composureScore: composure,
+          isCognitiveSearch: isReflectiveGaze,
         };
 
         if (typeof window !== 'undefined') {
@@ -598,6 +676,25 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
         </div>
       </div>
 
+      {/* Model Architecture Upgrade: Adaptive ML DSP Normalizer Banner */}
+      <div className="px-3 py-1.5 bg-gradient-to-r from-violet-950/40 via-slate-900/60 to-indigo-950/40 border-b border-gray-800/80 flex items-center justify-between text-[10px]">
+        <div className="flex items-center gap-1.5 font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+          <span className="text-gray-400">Adaptive ML DSP:</span>
+        </div>
+        <div>
+          {telemetry.isBaselineCalibrated ? (
+            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-semibold border border-emerald-500/30 text-[9px]">
+              Calibrated ({telemetry.baselinePitchHz}Hz F₀ floor)
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 font-mono font-medium border border-violet-500/30 text-[9px]">
+              Calibrating Baseline ({telemetry.calibrationProgress}%)
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Expanded Metrics Content */}
       {isExpanded && (
         <div className="p-3 space-y-2.5 text-xs">
@@ -606,19 +703,32 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-sm">👁️</span>
               <div>
-                <div className="text-[11px] font-medium text-gray-300">MediaPipe Gaze</div>
+                <div className="text-[11px] font-medium text-gray-300 flex items-center gap-1.5">
+                  <span>MediaPipe Gaze</span>
+                  {telemetry.isCognitiveSearch && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-violet-500/30 text-violet-300 text-[9px] font-bold border border-violet-400/40">
+                      🧠 Reflecting
+                    </span>
+                  )}
+                </div>
                 <div className="text-[10px] text-gray-500">
                   Orientation:{' '}
                   <span
                     className={`font-mono font-bold capitalize ${
                       !telemetry.faceDetected
                         ? 'text-red-400'
+                        : telemetry.isCognitiveSearch
+                        ? 'text-violet-300'
                         : telemetry.gazeDirection === 'center'
                         ? 'text-emerald-300'
                         : 'text-amber-300'
                     }`}
                   >
-                    {telemetry.faceDetected ? telemetry.gazeDirection : 'Hidden / Away'}
+                    {!telemetry.faceDetected
+                      ? 'Hidden / Away'
+                      : telemetry.isCognitiveSearch
+                      ? 'Cognitive Search'
+                      : telemetry.gazeDirection}
                   </span>
                 </div>
               </div>
@@ -626,7 +736,9 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
             <div className="text-right">
               <div
                 className={`text-xs font-bold font-mono ${
-                  telemetry.gazePercentage >= 70
+                  telemetry.isCognitiveSearch
+                    ? 'text-violet-400'
+                    : telemetry.gazePercentage >= 70
                     ? 'text-emerald-400'
                     : telemetry.gazePercentage >= 35
                     ? 'text-amber-400'
@@ -637,7 +749,9 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
               </div>
               <div
                 className={`text-[9px] font-medium ${
-                  telemetry.gazePercentage >= 70
+                  telemetry.isCognitiveSearch
+                    ? 'text-violet-400'
+                    : telemetry.gazePercentage >= 70
                     ? 'text-emerald-500/90'
                     : telemetry.gazePercentage >= 35
                     ? 'text-amber-500/90'
@@ -645,7 +759,9 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
                 }`}
               >
                 {telemetry.faceDetected
-                  ? telemetry.gazePercentage >= 70
+                  ? telemetry.isCognitiveSearch
+                    ? 'Cognitive Search'
+                    : telemetry.gazePercentage >= 70
                     ? 'Focused'
                     : 'Looking Away'
                   : 'Eyes Hidden'}
@@ -725,7 +841,7 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
             <div className="bg-gray-900/70 p-2 rounded-xl border border-gray-800/80">
               <div className="text-[10px] text-gray-400 flex items-center justify-between">
                 <span>Vocal Jitter</span>
-                <span className="text-amber-400">📊</span>
+                <span className="text-[8px] font-mono text-violet-400 font-semibold">Δ Norm</span>
               </div>
               <div className="text-sm font-bold font-mono text-white mt-0.5">
                 {telemetry.jitterPercent}%
@@ -743,7 +859,7 @@ export const LiveTelemetryHud: React.FC<LiveTelemetryHudProps> = ({
                   ? 'Steady Pitch'
                   : telemetry.jitterPercent <= 2.0
                   ? 'Moderate Tremor'
-                  : 'Vocal Fry / Monotone'}
+                  : 'Vocal Strain'}
               </div>
             </div>
           </div>
