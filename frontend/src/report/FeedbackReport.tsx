@@ -365,6 +365,7 @@ export const FeedbackReport: React.FC<FeedbackReportProps> = ({
 
       {/* Transcript & Score Generation Audit (Full Grounding in Candidate's Actual Spoken Words) */}
       <TranscriptScoreAudit
+        sessionId={sessionId}
         scoreRationale={scoreRationale}
         transcriptAudit={transcriptAudit}
         candidateResponses={candidateResponses}

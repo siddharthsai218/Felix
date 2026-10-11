@@ -9,6 +9,7 @@ import {
   clearAllHistoricalSessions,
   type HistoricalSession,
 } from '../../lib/history-store';
+import { TurnVideoPlayer } from '../../components/TurnVideoPlayer';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -454,6 +455,13 @@ export default function HistoryPage() {
                         )}
                       </div>
                       <p className="text-slate-200">{turn.transcript}</p>
+
+                      <TurnVideoPlayer
+                        sessionId={activeTranscriptSession.sessionId}
+                        responseIndex={idx}
+                        turnLabel={`Question ${idx + 1}`}
+                        className="pt-2"
+                      />
                     </div>
                   </div>
                 </div>

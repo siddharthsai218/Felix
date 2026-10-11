@@ -79,6 +79,11 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Added Synchronized Video Transcript & IndexedDB Replay Vault:
+  - Engineered client-side IndexedDB video persistence engine `frontend/src/app/lib/video-store.ts` (`felix_video_vault_v1`) to archive WebM video blobs recorded via `MediaRecorder` per turn without hitting `localStorage` quotas.
+  - Wired live interview handoff in `frontend/src/app/session/live/page.tsx` to automatically listen for `capture:video-handoff` events from `MediaCapture` and archive turn video clips locally.
+  - Built interactive multimodal `TurnVideoPlayer` component with play/pause, duration tracking, and sync badges (`Synced IndexedDB Video Vault`).
+  - Integrated `TurnVideoPlayer` into the question-by-question dialogue transcript modal in `/session/history` and the evidence transcript audit in `/session/report`, enabling candidates to review their spoken response and watch their video replay side-by-side.
 - 2026-10-11 [1+3] — Added Persistent Interview History Archive & Transcript Modal:
   - Created persistent local session repository `frontend/src/app/lib/history-store.ts` (`felix_interview_history_v1`) capturing session metadata, candidate learner profile, full question-and-answer transcripts, duration, telemetry metrics (MediaPipe gaze, Parselmouth WPM, vocal jitter), and Gemini assessment reports. Pre-seeded with realistic sample sessions for out-of-the-box demo readiness.
   - Implemented `/session/history` dashboard with longitudinal summary metrics (total sessions completed, average rubric mastery score, latest target track), real-time search filtering by role or transcript keywords, and learner profile switcher pills (`All`, `Siddharth`, `Guest`).

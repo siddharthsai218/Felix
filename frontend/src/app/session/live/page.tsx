@@ -7,7 +7,8 @@ import { Avatar } from '../../components/Avatar';
 import { MediaCapture } from '../../components/MediaCapture';
 import { AudioVisualizer } from '../../components/AudioVisualizer';
 import { LiveTelemetryHud } from '../../components/LiveTelemetryHud';
-import { captureEventBus } from '../../lib/event-bus';
+import { captureEventBus, type VideoHandoff } from '../../lib/event-bus';
+import { saveVideoBlob } from '../../lib/video-store';
 import type {
   TurnState,
   ServerMessage,
@@ -660,6 +661,27 @@ function LiveInterviewContent() {
     };
   }, [targetRole, difficulty, questionCount, coachModeEnabled, playAudio, resetSilenceTimer, setupSpeechRecognition, runLocalSessionFallback, router]);
 
+  // Listen for completed video handoffs and archive video blobs locally in IndexedDB
+  useEffect(() => {
+    const handleVideoHandoff = (data: VideoHandoff) => {
+      if (data.videoBlob && data.videoBlob.size > 0) {
+        saveVideoBlob(data.sessionId, data.responseIndex, data.videoBlob, data.durationMs)
+          .then(() => {
+            console.log(
+              `🎥 Archived response video turn ${data.responseIndex} to IndexedDB (${(data.videoBlob.size / 1024).toFixed(1)} KB)`
+            );
+          })
+          .catch((err) => {
+            console.warn('Failed to archive video blob:', err);
+          });
+      }
+    };
+
+    captureEventBus.on('capture:video-handoff', handleVideoHandoff);
+    return () => {
+      captureEventBus.off('capture:video-handoff', handleVideoHandoff);
+    };
+  }, []);
 
   const handleStreamReady = useCallback((stream: MediaStream) => {
     setMediaStream(stream);

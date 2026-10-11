@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { TurnVideoPlayer } from '../app/components/TurnVideoPlayer';
 
 export interface PositiveEvidenceItem {
   quote: string;
@@ -35,6 +36,7 @@ export interface ScoreRationaleData {
 }
 
 export interface TranscriptScoreAuditProps {
+  sessionId?: string;
   scoreRationale?: ScoreRationaleData;
   transcriptAudit?: TurnTranscriptAudit[];
   candidateResponses?: Array<{ questionAsked: string; transcript: string }>;
@@ -42,6 +44,7 @@ export interface TranscriptScoreAuditProps {
 }
 
 export function TranscriptScoreAudit({
+  sessionId,
   scoreRationale,
   transcriptAudit = [],
   candidateResponses = [],
@@ -353,6 +356,15 @@ export function TranscriptScoreAudit({
                         ”
                       </span>
                     </div>
+
+                    {sessionId && (
+                      <TurnVideoPlayer
+                        sessionId={sessionId}
+                        responseIndex={item.turnNumber - 1}
+                        turnLabel={`Question ${item.turnNumber}`}
+                        className="mt-2.5"
+                      />
+                    )}
                   </div>
 
                   {/* Scoring Justification for this specific turn */}
