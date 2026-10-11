@@ -126,7 +126,7 @@ async function fetchReadmeExcerpt(owner: string, repo: string): Promise<string> 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { targetRole, difficulty, githubUrl, resumeText, jobDescription, agentId: customAgentId } = body;
+    const { targetRole, difficulty, githubUrl, resumeText, jobDescription, archetype, agentId: customAgentId } = body;
 
     const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
     const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || customAgentId || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
@@ -190,20 +190,53 @@ export async function POST(request: Request) {
     const hasGithub = Boolean(githubUrl?.trim() && repoNames.length > 0);
     const hasResume = Boolean(resumeText?.trim());
 
+    const archetypeName =
+      archetype === 'pragmatic-architect'
+        ? 'Pragmatic Staff Architect'
+        : archetype === 'rapid-fire-recruiter'
+        ? 'Rapid-Fire Recruiter'
+        : 'Supportive Felix';
+
     // Build dynamic greeting that speaks their actual repos ONLY if provided
     let greeting = '';
-    if (hasGithub) {
-      const featuredRepos = repoNames.slice(0, 3).join(', ');
-      const firstRepo = repoNames[0];
-      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your GitHub repositories including ${featuredRepos}. To get started, could you walk me through how you architected your ${firstRepo} project and the key technical trade-offs you made?`;
-    } else if (hasResume) {
-      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your resume background. To begin, could you walk me through a technical accomplishment relevant to ${roleName}?`;
+    if (archetype === 'pragmatic-architect') {
+      if (hasGithub) {
+        greeting = `Hello, I'm your interviewer today. I examined your GitHub projects including ${repoNames.slice(0, 3).join(', ')}. To start, walk me through the system boundaries of ${repoNames[0]}, and what failure states or latency bottlenecks you had to mitigate.`;
+      } else if (hasResume) {
+        greeting = `Hello, I'm your interviewer today for ${roleName}. I reviewed your background. To kick off, walk me through an architecture decision where you had to balance distributed consistency against latency.`;
+      } else {
+        greeting = `Hello, I'm your interviewer for ${roleName}. To begin, when architecting a high-load system, how do you defend against cascading failures, cache stampedes, and partition splits?`;
+      }
+    } else if (archetype === 'rapid-fire-recruiter') {
+      if (hasGithub) {
+        greeting = `Hello! I'm your interviewer today. I took a look at your GitHub profile including ${repoNames.slice(0, 3).join(', ')}. In 60 seconds, give me the executive elevator summary of ${repoNames[0]} and its measurable impact.`;
+      } else if (hasResume) {
+        greeting = `Hello! I'm your interviewer today for ${roleName}. In 60 seconds, give me your executive pitch: what is the single biggest measurable ROI you delivered on your previous engineering project?`;
+      } else {
+        greeting = `Hello! I'm your interviewer for ${roleName}. In 60 seconds, walk me through your engineering core competency and how you manage high-velocity delivery under tight deadlines.`;
+      }
     } else {
-      greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. To begin our discussion, how do you typically approach designing a resilient system architecture that can scale under high load?`;
+      if (hasGithub) {
+        const featuredRepos = repoNames.slice(0, 3).join(', ');
+        const firstRepo = repoNames[0];
+        greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your GitHub repositories including ${featuredRepos}. To get started, could you walk me through how you architected your ${firstRepo} project and the key technical trade-offs you made?`;
+      } else if (hasResume) {
+        greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. I reviewed your resume background. To begin, could you walk me through a technical accomplishment relevant to ${roleName}?`;
+      } else {
+        greeting = `Hello! I am Felix, your technical interviewer for the ${roleName} role. To begin our discussion, how do you typically approach designing a resilient system architecture that can scale under high load?`;
+      }
     }
 
     // Build system prompt strictly commanding the avatar
-    let systemPrompt = `You are Felix, an expert technical interview coaching AI conducting a live mock technical interview with a candidate for the target role: "${roleName}" at ${diffLevel} level.\n\n`;
+    let systemPrompt = `You are ${archetypeName}, an expert technical interview coaching AI conducting a live mock technical interview with a candidate for the target role: "${roleName}" at ${diffLevel} level.\n\n`;
+
+    if (archetype === 'pragmatic-architect') {
+      systemPrompt += `ARCHETYPE MANDATE: Pragmatic Staff Architect. You are rigorous, analytical, and uncompromising on engineering depth. Probing questions must focus on edge cases, distributed failure states, data consistency models, p99 tail latency, and explicit trade-offs. Challenge the candidate on what happens when infrastructure fails.\n\n`;
+    } else if (archetype === 'rapid-fire-recruiter') {
+      systemPrompt += `ARCHETYPE MANDATE: Rapid-Fire Recruiter. You are fast-paced, concise, and executive-focused. You test time management, 30-to-60 second elevator summaries, and quantified business impact ($ / % metrics, timeline delivery). Insist on succinct answers with zero filler.\n\n`;
+    } else {
+      systemPrompt += `ARCHETYPE MANDATE: Supportive Felix. You provide high reassurance, patience, and positive reinforcement. You build psychological safety, validate effort, and gently scaffold structured thinking.\n\n`;
+    }
 
     if (hasGithub) {
       systemPrompt += `CANDIDATE'S PRE-LOADED GITHUB PORTFOLIO & REPOSITORIES:\n${githubContext}\n\n`;

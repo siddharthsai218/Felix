@@ -9,15 +9,17 @@ import { AudioVisualizer } from '../../components/AudioVisualizer';
 import { LiveTelemetryHud } from '../../components/LiveTelemetryHud';
 import { captureEventBus, type VideoHandoff } from '../../lib/event-bus';
 import { saveVideoBlob } from '../../lib/video-store';
-import type {
-  TurnState,
-  ServerMessage,
-  ClientMessage,
-  SessionResponseRecord,
-  SessionRecord,
-  DrillSpec,
-  SttWordTimestamp,
-  TranscriptLine,
+import {
+  type TurnState,
+  type ServerMessage,
+  type ClientMessage,
+  type SessionResponseRecord,
+  type SessionRecord,
+  type DrillSpec,
+  type SttWordTimestamp,
+  type TranscriptLine,
+  type InterviewerArchetype,
+  INTERVIEWER_ARCHETYPES,
 } from '../../lib/types';
 
 function LiveInterviewContent() {
@@ -27,9 +29,15 @@ function LiveInterviewContent() {
   // Session Config from URL
   const targetRole = searchParams.get('role') || 'Software Engineer';
   const difficulty = (searchParams.get('difficulty') as any) || 'intermediate';
+  const rawArchetype = searchParams.get('archetype') as InterviewerArchetype;
   const questionCount = parseInt(searchParams.get('questions') || '0', 10);
   const isUnlimited = questionCount <= 0;
   const coachModeEnabled = searchParams.get('coach') !== 'false';
+
+  const [archetype, setArchetype] = useState<InterviewerArchetype>(
+    rawArchetype && INTERVIEWER_ARCHETYPES[rawArchetype] ? rawArchetype : 'supportive-coach'
+  );
+  const archConfig = INTERVIEWER_ARCHETYPES[archetype] || INTERVIEWER_ARCHETYPES['supportive-coach'];
 
   const rawGithubParam = searchParams.get('github') || '';
   const initialGithub = rawGithubParam ? decodeURIComponent(rawGithubParam) : '';
@@ -54,6 +62,10 @@ function LiveInterviewContent() {
       const storedGithub = sessionStorage.getItem('felix_session_github') || '';
       const storedResume = sessionStorage.getItem('felix_session_resume') || '';
       const storedJd = sessionStorage.getItem('felix_session_jd') || '';
+      const storedArchetype = sessionStorage.getItem('felix_session_archetype') as InterviewerArchetype;
+      if (storedArchetype && INTERVIEWER_ARCHETYPES[storedArchetype]) {
+        setArchetype(storedArchetype);
+      }
       if (!githubUrl && storedGithub) setGithubUrl(storedGithub);
       if (storedResume) setResumeText(storedResume);
       if (storedJd) setJobDescription(storedJd);
@@ -168,9 +180,15 @@ function LiveInterviewContent() {
         return;
       }
 
+      const currentLearner =
+        (typeof window !== 'undefined' &&
+          (sessionStorage.getItem('felix_learner_name') || localStorage.getItem('felix_learner_name'))) ||
+        'Candidate';
+
       const newLine: TranscriptLine = {
         lineId: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         speaker,
+        speakerName: speaker === 'interviewer' ? archConfig.name : currentLearner,
         text: clean,
         timestamp: new Date().toISOString(),
         turnIndex: extra?.turnIndex ?? (currentQuestionIndex > 0 ? currentQuestionIndex - 1 : 0),
@@ -199,24 +217,46 @@ function LiveInterviewContent() {
         }).catch(() => {});
       }
     },
-    [currentQuestionIndex, sessionId]
+    [currentQuestionIndex, sessionId, archConfig.name]
   );
 
-  // Fallback preset questions for offline/direct demo resiliency
-  const fallbackQuestionsRef = useRef<string[]>([
-    `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`,
-    `How do you approach debugging a high-stakes issue in production when telemetry or logs are sparse?`,
-    `Describe a time you had a technical disagreement with a team member. How did you resolve it constructively?`,
-    `Can you walk me through a major system architecture decision you made? What trade-offs did you consider?`,
-    `Tell me about a time you had to quickly pick up an unfamiliar technology or framework to deliver on a critical deadline.`,
-    `How do you prioritize tech debt reduction, code quality, and testing against urgent product feature demands?`,
-    `Imagine your application experiences an unexpected latency spike under heavy user load. What is your diagnostic plan?`,
-    `Describe a project where you took leadership or proactive initiative to improve the team's developer workflow.`,
-    `Tell me about a time you received difficult constructive feedback. How did you process and apply it?`,
-    `How would you explain a complex architectural choice or database schema to a non-technical product manager?`,
-    `Describe a situation where a release fell behind schedule. How did you communicate and align expectations?`,
-    `How do you evaluate and implement security and input validation considerations in your applications?`,
-  ]);
+  // Fallback preset questions generator tailored to the active Interviewer Archetype
+  const getFallbackQuestionsForArchetype = useCallback((arch: InterviewerArchetype, role: string) => {
+    if (arch === 'pragmatic-architect') {
+      return [
+        `When architecting distributed systems for ${role}, how do you systematically defend against cascading failures, cache stampedes, and partition splits? Walk me through your concrete trade-offs.`,
+        `Describe how you identify and mitigate p99 tail latency spikes and lock contention under 10x traffic spikes in ${role}.`,
+        `Tell me about an architectural decision you made in ${role} that you later realized was an incomplete trade-off. How did the edge case manifest, and how did you refactor it?`,
+        `When upstream dependencies experience degraded SLA or sudden 500 error surges, what defensive patterns (circuit breakers, dead-letter queues, backpressure) do you enforce?`,
+        `Walk me through how you orchestrate zero-downtime database schema evolutions and dual-write consistency under live traffic for ${role}.`,
+        `How do you evaluate consistency versus availability trade-offs when choosing between event-driven architecture and synchronous gRPC/REST APIs in ${role}?`,
+      ];
+    } else if (arch === 'rapid-fire-recruiter') {
+      return [
+        `In 60 seconds, give me your executive pitch as a ${role}: what is your engineering core strength, and what is the biggest measurable impact you delivered on your last team?`,
+        `Tell me about a high-velocity sprint in ${role} where you had to ship under aggressive deadlines with competing requirements. How did you prioritize what to cut?`,
+        `Walk me through a conflict you resolved with another engineer or product manager regarding technical direction in ${role}. What was your direct action, and the result?`,
+        `If you have only 2 minutes to brief an executive VP on a severe production blocker in ${role}, how do you structure that summary for immediate decision-making?`,
+        `Tell me about a time you optimized a process or pipeline in ${role} that saved engineering hours or infrastructure budget. What were the tangible numbers?`,
+        `In 30 seconds, what was a critical technical mistake you made in ${role}, and what did you implement to guarantee it never happened again?`,
+      ];
+    } else {
+      return [
+        `To begin, as a ${role}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`,
+        `How do you approach debugging a high-stakes issue in production when telemetry or logs are sparse?`,
+        `Describe a time you had a technical disagreement with a team member. How did you collaborate with your team to find the best path forward?`,
+        `Can you walk me through a major system architecture decision you made? What trade-offs did you consider?`,
+        `Tell me about a time you had to quickly pick up an unfamiliar technology or framework to deliver on a critical deadline.`,
+        `How do you prioritize tech debt reduction, code quality, and testing against urgent product feature demands?`,
+        `Imagine your application experiences an unexpected latency spike under heavy user load. What is your diagnostic plan?`,
+      ];
+    }
+  }, []);
+
+  const fallbackQuestionsRef = useRef<string[]>([]);
+  useEffect(() => {
+    fallbackQuestionsRef.current = getFallbackQuestionsForArchetype(archetype, targetRole);
+  }, [archetype, targetRole, getFallbackQuestionsForArchetype]);
 
   // Web Speech synthesis helper
   const speakWithBrowserTts = useCallback((text: string) => {
@@ -717,10 +757,24 @@ function LiveInterviewContent() {
     const effectiveResume = resumeText || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume') || '' : '');
 
     let firstQ = fallbackQuestionsRef.current[0];
-    if (effectiveGithub || effectiveResume) {
-      firstQ = `In the technical work on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+    if (archetype === 'pragmatic-architect') {
+      if (effectiveGithub || effectiveResume) {
+        firstQ = `Looking at the architectural choices in your ${effectiveGithub ? 'GitHub repositories' : 'resume projects'}, what were the most critical failure states and edge cases you had to guard against for ${targetRole}? How did you handle fallback mechanisms?`;
+      } else {
+        firstQ = `When architecting distributed systems for ${targetRole}, how do you systematically defend against cascading failures, cache stampedes, and partition splits? Walk me through your concrete trade-offs.`;
+      }
+    } else if (archetype === 'rapid-fire-recruiter') {
+      if (effectiveGithub || effectiveResume) {
+        firstQ = `In 60 seconds, give me the executive elevator pitch of the single most impactful project from your ${effectiveGithub ? 'GitHub work' : 'resume'}. What was the bottom-line business or technical ROI?`;
+      } else {
+        firstQ = `In 60 seconds, give me your executive pitch as a ${targetRole}: what is your engineering core strength, and what is the biggest measurable impact you delivered on your last team?`;
+      }
     } else {
-      firstQ = `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`;
+      if (effectiveGithub || effectiveResume) {
+        firstQ = `In the technical work on your ${effectiveGithub ? 'GitHub profile' : 'resume'}, can you walk me through the most challenging architectural decision you made for ${targetRole}? What trade-offs were involved?`;
+      } else {
+        firstQ = `To begin, as a ${targetRole}, how do you typically approach designing scalable, resilient systems and handling unexpected production failure modes?`;
+      }
     }
 
     setTimeout(() => {
@@ -733,7 +787,7 @@ function LiveInterviewContent() {
       });
       playAudio(firstQ);
     }, 800);
-  }, [playAudio, githubUrl, resumeText, targetRole, recordTranscriptLine, isDrillMode, drillSpec, drillParam, sessionId]);
+  }, [playAudio, githubUrl, resumeText, targetRole, recordTranscriptLine, isDrillMode, drillSpec, drillParam, sessionId, archetype]);
 
   // WebSocket Connection & Turn loop
   useEffect(() => {
@@ -761,6 +815,7 @@ function LiveInterviewContent() {
               questionCount: isDrillMode ? 1 : questionCount,
               difficulty,
               coachModeEnabled,
+              archetype,
               githubUrl: activeGithub,
               resumeText: activeResume,
               jobDescription: activeJd,
@@ -996,8 +1051,15 @@ function LiveInterviewContent() {
               <span>{targetRole} • LIVE REHEARSAL</span>
             </div>
           )}
+
+          {/* Archetype Indicator Badge */}
+          <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono ${archConfig.badgeClass}`}>
+            <span>{archConfig.icon}</span>
+            <span className="font-bold">{archConfig.name}</span>
+          </div>
+
           {githubUrl && (
-            <div className="hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-[10px] font-mono text-slate-300">
+            <div className="hidden lg:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-[10px] font-mono text-slate-300">
               <span>🐙</span>
               <span className="truncate max-w-[120px]">{githubUrl.replace(/^https?:\/\/(?:www\.)?github\.com\//, '')}</span>
             </div>
@@ -1053,6 +1115,7 @@ function LiveInterviewContent() {
           <Avatar
             state={turnState}
             isSpeaking={isAvatarSpeaking}
+            archetype={archetype}
           />
 
           {/* Mock Drill Problem & Mistake Analysis Banner */}

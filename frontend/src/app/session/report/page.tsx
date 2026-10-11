@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { DrillModal } from '../../components/DrillModal';
 import { FeedbackReport, type RubricScoreItem, type BehavioralInsightItem } from '../../../report';
 import type { StarResponseTransformation } from '../../../report/AnswerTransformer';
-import type { DrillSpec } from '../../lib/types';
+import type { DrillSpec, InterviewerArchetype } from '../../lib/types';
 import {
   getHistoricalSessionById,
   saveHistoricalSession,
@@ -27,6 +27,7 @@ function ReportContent() {
   const [roleTitle, setRoleTitle] = useState<string>('Senior Systems & Frontend Architect');
   const [learnerName, setLearnerName] = useState<string>('Siddharth');
   const [githubUrl, setGithubUrl] = useState<string>('');
+  const [archetype, setArchetype] = useState<InterviewerArchetype>('supportive-coach');
   const [overallScore, setOverallScore] = useState<number>(3.9);
   const [rubricScores, setRubricScores] = useState<RubricScoreItem[]>([]);
   const [behavioralInsights, setBehavioralInsights] = useState<BehavioralInsightItem[]>([]);
@@ -44,6 +45,9 @@ function ReportContent() {
     const existingSession = getHistoricalSessionById(sessionId);
     if (existingSession) {
       setRoleTitle(existingSession.roleTitle);
+      if (existingSession.archetype) {
+        setArchetype(existingSession.archetype);
+      }
       setGithubUrl(existingSession.githubUrl || '');
       setOverallScore(existingSession.overallScore);
       setRubricScores(existingSession.evaluation.rubricScores || []);
@@ -108,10 +112,13 @@ function ReportContent() {
     let storedTranscript: any[] = [];
     let storedTelemetry: any = null;
     let storedDuration = 0;
+    let storedArchetype: InterviewerArchetype = 'supportive-coach';
 
     if (typeof window !== 'undefined') {
       storedRole = sessionStorage.getItem('felix_session_role') || 'Senior Systems & Frontend Architect';
       storedGithub = sessionStorage.getItem('felix_session_github') || '';
+      const rawArch = sessionStorage.getItem('felix_session_archetype') as InterviewerArchetype;
+      if (rawArch) storedArchetype = rawArch;
 
       try {
         const rawResp = sessionStorage.getItem('felix_session_responses');
@@ -135,6 +142,7 @@ function ReportContent() {
     }
 
     setRoleTitle(storedRole);
+    setArchetype(storedArchetype);
     setGithubUrl(storedGithub);
     setCandidateResponses(storedResponses);
     setTelemetry(storedTelemetry);
@@ -149,6 +157,7 @@ function ReportContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roleTitle: storedRole,
+            archetype: storedArchetype,
             responses: storedResponses,
             telemetry: storedTelemetry || {},
           }),
@@ -220,6 +229,7 @@ function ReportContent() {
               sessionId,
               learnerId: learner,
               roleTitle: storedRole,
+              archetype: storedArchetype,
               createdAt: new Date().toISOString(),
               durationSeconds: Math.max(60, storedResponses.length * 45),
               overallScore: score,
@@ -466,6 +476,7 @@ function ReportContent() {
         sessionId,
         learnerId: learner,
         roleTitle: storedRole,
+        archetype: storedArchetype,
         createdAt: new Date().toISOString(),
         durationSeconds: Math.max(60, storedResponses.length * 45),
         overallScore: fallbackScore,
@@ -686,6 +697,7 @@ function ReportContent() {
         <FeedbackReport
           sessionId={sessionId}
           roleTitle={roleTitle}
+          archetype={archetype}
           githubUrl={githubUrl}
           overallScore={overallScore}
           rubricScores={rubricScores}

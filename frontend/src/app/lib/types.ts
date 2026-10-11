@@ -78,6 +78,68 @@ export interface SessionTranscript {
   lines: TranscriptLine[];
 }
 
+/** Configurable Interviewer Archetypes */
+export type InterviewerArchetype =
+  | 'supportive-coach'
+  | 'pragmatic-architect'
+  | 'rapid-fire-recruiter';
+
+export interface InterviewerArchetypeConfig {
+  id: InterviewerArchetype;
+  name: string;
+  shortName: string;
+  tagline: string;
+  description: string;
+  icon: string;
+  color: string;
+  badgeClass: string;
+  borderClass: string;
+  accentClass: string;
+  traits: string[];
+}
+
+export const INTERVIEWER_ARCHETYPES: Record<InterviewerArchetype, InterviewerArchetypeConfig> = {
+  'supportive-coach': {
+    id: 'supportive-coach',
+    name: 'Supportive Felix',
+    shortName: 'Supportive Coach',
+    tagline: 'Patience, high reassurance & positive reinforcement',
+    description: 'Nurturing and encouraging environment. Prioritizes psychological safety, scaffolding structured thinking, and affirming candidate effort before probing.',
+    icon: '🤝',
+    color: 'from-emerald-400 to-teal-500',
+    badgeClass: 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300',
+    borderClass: 'border-emerald-500/40 hover:border-emerald-400',
+    accentClass: 'text-emerald-400',
+    traits: ['Patience & Affirmation', 'Gentle Scaffolding', 'Confidence Building', 'Safe Practice Space'],
+  },
+  'pragmatic-architect': {
+    id: 'pragmatic-architect',
+    name: 'Pragmatic Staff Architect',
+    shortName: 'Staff Architect',
+    tagline: 'Zeroes in on edge cases, failure states & trade-offs',
+    description: 'Analytical and rigorous. Probes architectural boundaries, distributed consensus, data consistency models, p99 latencies, and explicit system trade-offs.',
+    icon: '🏗️',
+    color: 'from-cyan-400 to-blue-500',
+    badgeClass: 'bg-cyan-950/70 border-cyan-500/50 text-cyan-300',
+    borderClass: 'border-cyan-500/40 hover:border-cyan-400',
+    accentClass: 'text-cyan-400',
+    traits: ['Edge-Case Stress Testing', 'Distributed Trade-offs', 'Failure Mode Analysis', 'P99 Latency & Scale'],
+  },
+  'rapid-fire-recruiter': {
+    id: 'rapid-fire-recruiter',
+    name: 'Rapid-Fire Recruiter',
+    shortName: 'Rapid Recruiter',
+    tagline: 'Tests time management, executive summaries & elevator pitches',
+    description: 'Fast-paced, executive-focused, and concise. Tests time management, 30-second elevator summaries, and quantified business impact without rambling.',
+    icon: '⚡',
+    color: 'from-amber-400 to-orange-500',
+    badgeClass: 'bg-amber-950/70 border-amber-500/50 text-amber-300',
+    borderClass: 'border-amber-500/40 hover:border-amber-400',
+    accentClass: 'text-amber-400',
+    traits: ['Executive Summaries', 'Time-Boxed Delivery', 'Metric & ROI Attribution', 'Zero Fluff / Concise'],
+  },
+};
+
 export interface SessionRecord {
   sessionId: string;
   learnerId: string;
@@ -91,6 +153,7 @@ export interface SessionRecord {
     questionCount: number;
     difficulty: 'beginner' | 'intermediate' | 'advanced';
     coachModeEnabled: boolean;
+    archetype?: InterviewerArchetype;
   };
 }
 
@@ -100,6 +163,7 @@ export interface SessionConfig {
   questionCount: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   coachModeEnabled: boolean;
+  archetype?: InterviewerArchetype;
   githubUrl?: string;
   resumeText?: string;
   jobDescription?: string;

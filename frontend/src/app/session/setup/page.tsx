@@ -4,6 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ResumePdfUploader } from '../../components/ResumePdfUploader';
+import {
+  type InterviewerArchetype,
+  INTERVIEWER_ARCHETYPES,
+} from '../../lib/types';
 
 interface PresetRole {
   id: string;
@@ -92,6 +96,7 @@ export default function SessionSetupPage() {
   const [resumeFileName, setResumeFileName] = useState<string>('');
   const [pasteJd, setPasteJd] = useState<string>('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
+  const [archetype, setArchetype] = useState<InterviewerArchetype>('supportive-coach');
   const [coachModeEnabled, setCoachModeEnabled] = useState<boolean>(true);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>('');
@@ -105,6 +110,7 @@ export default function SessionSetupPage() {
       const savedResumeFile = sessionStorage.getItem('felix_session_resume_filename');
       const savedJd = sessionStorage.getItem('felix_session_jd');
       const savedLearner = localStorage.getItem('felix_learner_name') || sessionStorage.getItem('felix_learner_name');
+      const savedArchetype = sessionStorage.getItem('felix_session_archetype') as InterviewerArchetype;
 
       if (savedRole) setRoleTitle(savedRole);
       if (savedGithub) setGithubUrl(savedGithub);
@@ -112,6 +118,9 @@ export default function SessionSetupPage() {
       if (savedResumeFile) setResumeFileName(savedResumeFile);
       if (savedJd) setPasteJd(savedJd);
       if (savedLearner) setLearnerName(savedLearner);
+      if (savedArchetype && INTERVIEWER_ARCHETYPES[savedArchetype]) {
+        setArchetype(savedArchetype);
+      }
     }
   }, []);
 
@@ -129,6 +138,7 @@ export default function SessionSetupPage() {
     // Store in sessionStorage to handle large resumes and GitHub context cleanly
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('felix_session_role', finalRole);
+      sessionStorage.setItem('felix_session_archetype', archetype);
       if (githubUrl.trim()) {
         sessionStorage.setItem('felix_session_github', githubUrl.trim());
       } else {
@@ -167,6 +177,7 @@ export default function SessionSetupPage() {
         body: JSON.stringify({
           targetRole: finalRole,
           difficulty,
+          archetype,
           githubUrl: githubUrl.trim(),
           resumeText: resumeText.trim(),
           jobDescription: pasteJd.trim(),
@@ -190,6 +201,7 @@ export default function SessionSetupPage() {
     const params = new URLSearchParams({
       role: finalRole,
       difficulty,
+      archetype,
       questions: '0', // 0 = continuous adaptive learning loop
       coach: coachModeEnabled.toString(),
       ...(githubUrl.trim() ? { github: encodeURIComponent(githubUrl.trim()) } : {}),
@@ -424,10 +436,80 @@ export default function SessionSetupPage() {
           </div>
         </section>
 
-        {/* 3. Difficulty Rigor */}
+        {/* 3. Interviewer Archetype & Coaching Persona */}
+        <section className="p-6 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+            <label className="text-xs font-mono font-bold uppercase tracking-wider text-violet-400">
+              3. Interviewer Archetype & Persona Style
+            </label>
+            <span className="text-[11px] font-mono text-slate-400">
+              Select the coaching dynamic & interviewing style
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(Object.values(INTERVIEWER_ARCHETYPES)).map((arch) => {
+              const isSelected = archetype === arch.id;
+              return (
+                <button
+                  key={arch.id}
+                  type="button"
+                  onClick={() => setArchetype(arch.id)}
+                  className={`relative p-5 rounded-xl border text-left transition-all flex flex-col justify-between gap-3 group ${
+                    isSelected
+                      ? `${arch.borderClass} bg-slate-900 ring-2 ring-violet-500/80 shadow-xl shadow-violet-500/20`
+                      : 'border-slate-800 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-950/90'
+                  }`}
+                >
+                  {/* Active selection badge */}
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-violet-600/30 border border-violet-500/60 text-[9px] font-mono font-bold text-violet-300">
+                      SELECTED
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <span className="text-2xl">{arch.icon}</span>
+                      <div>
+                        <h3 className={`text-sm font-extrabold font-mono bg-gradient-to-r ${arch.color} bg-clip-text text-transparent`}>
+                          {arch.name}
+                        </h3>
+                        <span className="text-[10px] font-mono text-slate-400 block">
+                          {arch.shortName}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs font-semibold text-slate-200 mb-1">
+                      "{arch.tagline}"
+                    </p>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
+                      {arch.description}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/60">
+                    {arch.traits.map((trait, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300"
+                      >
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* 4. Difficulty Rigor */}
         <section className="p-6 rounded-2xl bg-[#0d131f] border border-slate-800/90 shadow-xl space-y-4">
           <label className="block text-xs font-mono font-bold uppercase tracking-wider text-violet-400 pb-2 border-b border-slate-800/80">
-            3. Evaluation Rigor & Curveball Probing
+            4. Evaluation Rigor & Curveball Probing
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {DIFFICULTIES.map((d) => (

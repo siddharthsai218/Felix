@@ -54,6 +54,18 @@ export class TurnEngine {
     return this.session;
   }
 
+  getInterviewerName(): string {
+    switch (this.session.config.archetype) {
+      case 'pragmatic-architect':
+        return 'Pragmatic Staff Architect';
+      case 'rapid-fire-recruiter':
+        return 'Rapid-Fire Recruiter';
+      case 'supportive-coach':
+      default:
+        return 'Supportive Felix';
+    }
+  }
+
   /**
    * Start the session: generate questions, then ask the first one.
    */
@@ -84,6 +96,7 @@ export class TurnEngine {
         this.session.config.difficulty,
         countToGen,
         questionContext,
+        this.session.config.archetype,
       );
       this.session.questions = questions;
 
@@ -94,6 +107,7 @@ export class TurnEngine {
         githubContext,
         resumeText: this.session.config.resumeText,
         firstQuestion: questions[0]?.text,
+        archetype: this.session.config.archetype,
       }).catch((err) => console.warn('Beyond Presence avatar sync error:', err));
 
       // If a drill was initiated concurrently, preserve drill mode and do not overwrite with question 0
@@ -134,6 +148,7 @@ export class TurnEngine {
             resumeText: this.session.config.resumeText,
             jobDescription: this.session.config.jobDescription,
           },
+          this.session.config.archetype,
         );
         this.session.questions.push(...additionalQuestions);
         question = this.session.questions[index];
@@ -155,7 +170,7 @@ export class TurnEngine {
     const line = sessionManager.addLine(this.session.sessionId, {
       turnIndex: index + 1,
       speaker: 'interviewer',
-      speakerName: 'Felix (Interviewer)',
+      speakerName: this.getInterviewerName(),
       text: question.text,
       timestamp: new Date().toISOString(),
       type: question.type === 'follow-up' ? 'follow-up' : 'question',
@@ -347,6 +362,7 @@ export class TurnEngine {
         originalQuestion,
         response,
         this.session.config.targetRole,
+        this.session.config.archetype,
       );
 
       // Replace current question with the follow-up
@@ -384,11 +400,12 @@ export class TurnEngine {
         question.text,
         this.currentTranscript,
         question.targetCompetency,
+        this.session.config.archetype,
       );
       const line = sessionManager.addLine(this.session.sessionId, {
         turnIndex: questionIndex + 1,
         speaker: 'interviewer',
-        speakerName: 'Felix (Coach Hint)',
+        speakerName: `${this.getInterviewerName()} (Coach Hint)`,
         text: hint,
         timestamp: new Date().toISOString(),
         type: 'hint',
@@ -401,7 +418,7 @@ export class TurnEngine {
       const line = sessionManager.addLine(this.session.sessionId, {
         turnIndex: questionIndex + 1,
         speaker: 'interviewer',
-        speakerName: 'Felix (Coach Hint)',
+        speakerName: `${this.getInterviewerName()} (Coach Hint)`,
         text: fallbackHint,
         timestamp: new Date().toISOString(),
         type: 'hint',
@@ -467,6 +484,7 @@ export class TurnEngine {
         question?.text || 'Tell me about your experience.',
         this.currentTranscript,
         this.session.config.targetRole,
+        this.session.config.archetype,
       );
 
       this.sendMessage({ type: 'rescue:activate', message: rescueMessage });

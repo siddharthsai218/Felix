@@ -11,6 +11,7 @@ import {
 } from '../../lib/history-store';
 import { exportHistoricalSessionToPdf } from '../../lib/pdf-exporter';
 import { TurnVideoPlayer } from '../../components/TurnVideoPlayer';
+import { INTERVIEWER_ARCHETYPES } from '../../lib/types';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -304,6 +305,11 @@ export default function HistoryPage() {
                       <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">
                         👤 {session.learnerId || 'Candidate'}
                       </span>
+                      {session.archetype && INTERVIEWER_ARCHETYPES[session.archetype] && (
+                        <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded border ${INTERVIEWER_ARCHETYPES[session.archetype].badgeClass}`}>
+                          {INTERVIEWER_ARCHETYPES[session.archetype].icon} {INTERVIEWER_ARCHETYPES[session.archetype].name}
+                        </span>
+                      )}
                       <span className="text-[11px] font-mono text-slate-500">
                         {formattedDate}
                       </span>
@@ -437,6 +443,11 @@ export default function HistoryPage() {
                   <span className="font-mono text-xs font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40">
                     {activeTranscriptSession.sessionId}
                   </span>
+                  {activeTranscriptSession.archetype && INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype] && (
+                    <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded border ${INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype].badgeClass}`}>
+                      {INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype].icon} {INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype].name}
+                    </span>
+                  )}
                   <span className="text-xs font-mono text-slate-400">
                     {new Date(activeTranscriptSession.createdAt).toLocaleDateString()}
                   </span>
@@ -499,7 +510,13 @@ export default function HistoryPage() {
                               : 'bg-slate-700 text-slate-300'
                           }`}
                         >
-                          {isInterviewer ? (isHint ? '💡' : 'F') : 'YOU'}
+                          {isInterviewer
+                            ? isHint
+                              ? '💡'
+                              : activeTranscriptSession.archetype && INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype]
+                              ? INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype].icon
+                              : 'F'
+                            : 'YOU'}
                         </div>
 
                         <div
@@ -526,7 +543,7 @@ export default function HistoryPage() {
                                   ? 'Coach Hint'
                                   : isDrill
                                   ? 'Micro-Drill Challenge'
-                                  : `Interviewer Turn ${idx + 1}`
+                                  : `${activeTranscriptSession.archetype && INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype] ? INTERVIEWER_ARCHETYPES[activeTranscriptSession.archetype].name : 'Interviewer'} Turn ${idx + 1}`
                                 : 'Candidate Response'}
                             </span>
                             {line.timestamp && (

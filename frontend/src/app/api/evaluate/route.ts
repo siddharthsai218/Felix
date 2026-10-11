@@ -25,10 +25,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       roleTitle = 'Software Engineer',
+      archetype = 'supportive-coach',
       responses = [],
       telemetry = {},
     }: {
       roleTitle: string;
+      archetype?: string;
       responses: CandidateResponse[];
       telemetry: TelemetryPayload;
     } = body;
@@ -44,8 +46,15 @@ export async function POST(request: Request) {
       .map((r, i) => `[Question ${i + 1}]\nInterviewer Question: "${r.questionAsked}"\nCandidate's Exact Spoken Answer: "${r.transcript}"`)
       .join('\n\n');
 
+    const archetypePerspective = archetype === 'pragmatic-architect'
+      ? 'EVALUATION PERSPECTIVE: You are evaluating under the "Pragmatic Staff Architect" persona. Zero in on edge case resilience, failure domain analysis, distributed trade-offs, p99 latency considerations, and technical depth over polite presentation.'
+      : archetype === 'rapid-fire-recruiter'
+      ? 'EVALUATION PERSPECTIVE: You are evaluating under the "Rapid-Fire Recruiter" persona. Zero in on conciseness, executive summaries, bottom-line business/ROI impact, 30-45s elevator brevity, and eliminating conversational fluff.'
+      : 'EVALUATION PERSPECTIVE: You are evaluating under the "Supportive Felix" persona. Emphasize positive reinforcement, psychological safety, growth-mindset remediation, and structured STAR scaffolding.';
+
     const prompt = `You are Felix, an expert EdTech interview coaching AI. You provide honest, evidence-based formative feedback to learners.
 You are evaluating a candidate who just practiced for the role: "${roleTitle}".
+${archetypePerspective}
 
 CRITICAL INSTRUCTIONS:
 1. YOU MUST EVALUATE WHAT THE CANDIDATE ACTUALLY SPOKE:

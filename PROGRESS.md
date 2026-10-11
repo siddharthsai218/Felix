@@ -79,6 +79,17 @@ Tracked in [`README.md` § Roadmap](README.md) — learner progress dashboard, s
 
 ## Log
 
+- 2026-10-11 [1+3] — Configurable Interviewer Archetypes:
+  - Implemented 3 distinct coaching personas:
+    1. Supportive Felix: Patience, high psychological safety, warmth, normalizing hesitation, positive reinforcement, and step-by-step STAR scaffolding.
+    2. Pragmatic Staff Architect: Zeroes in on edge cases, distributed failure modes, p99 tail latencies, concurrency bottlenecks, and explicit architectural trade-offs.
+    3. Rapid-Fire Recruiter: Tests time management, executive summaries, bottom-line ROI, 30-45s elevator pitches, and eliminates conversational fluff.
+  - Setup Selection UI (`frontend/src/app/session/setup/page.tsx`): Added interactive archetype selection cards with trait badges and descriptions, storing choice in `sessionStorage` (`felix_session_archetype`) and passing to sync endpoints.
+  - Live Turn Engine & Prompt Directives (`server/session/turn-engine.ts`, `server/session/prompts/`): Grounded question generation, follow-up probe style, rescue mode tone, and coach hints in the active archetype. Dynamic interviewer speaker naming and role-tailored fallback questions.
+  - Avatar Synchronization (`server/session/beyond-presence-sync.ts`, `frontend/src/app/api/avatar/sync/route.ts`, `frontend/src/app/components/Avatar.tsx`): Synchronized Beyond Presence agent system prompt and dynamic greeting with archetype persona, and displayed live archetype badge on the interviewer avatar.
+  - Live HUD & Reporting (`frontend/src/app/session/live/page.tsx`, `frontend/src/report/FeedbackReport.tsx`, `frontend/src/app/session/report/page.tsx`, `frontend/src/app/session/history/page.tsx`): Rendered archetype indicator in live call header, injected archetype perspective into Gemini evaluation prompt (`/api/evaluate`), added archetype badge to formative feedback report, and persisted archetype in historical session archives and transcript cards.
+  - Verified clean TypeScript compilation (`npx tsc --noEmit`) and successful Next.js production builds (`npm run build`).
+
 - 2026-10-11 [1+2+3] — Post-Pull Audit & Bug Fixes:
   - Fixed History Report Hydration: Resolved a critical data omission in `frontend/src/app/session/report/page.tsx` where viewing past interview reports or returning from a drill did not populate `candidateResponses`, `telemetry`, `sessionDurationSeconds`, or `transcriptAudit`, causing the interactive telemetry chart, speaking ratio, and evidence audit table to render blank or default to 0.
   - Restored Video Replay in History Dialogue Modal: Re-added `TurnVideoPlayer` to the new `transcriptLines` verbatim dialogue view in `frontend/src/app/session/history/page.tsx`, ensuring candidates can watch their synchronized video replays for each spoken response.
