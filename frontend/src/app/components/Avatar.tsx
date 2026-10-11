@@ -50,7 +50,7 @@ export const Avatar: React.FC<AvatarProps> = React.memo(({
   const agentId =
     process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID ||
     beyondPresenceAgentId ||
-    '16363db6-6fea-4681-981b-b4dbb26f787e';
+    '36be1e17-4228-4557-9cdc-45bdd5420814';
 
   const customUrl =
     beyondPresenceUrl ||

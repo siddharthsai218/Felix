@@ -128,8 +128,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { targetRole, difficulty, githubUrl, resumeText, jobDescription, archetype, agentId: customAgentId } = body;
 
-    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-MMK6dh557yXtw3Q3VAq8RLsMjWrbwhPvyjdCs2NU4xM';
-    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || customAgentId || 'd6f2bbee-88e6-42b5-a5f9-8eeb837a7fbf';
+    const apiKey = process.env.BEYOND_PRESENCE_API_KEY || 'sk-5K2RrvXjWYnRk-_ttCddRcULeMyOtqwQTy1O93PEdxA';
+    const agentId = process.env.NEXT_PUBLIC_BEYOND_PRESENCE_AGENT_ID || process.env.BEYOND_PRESENCE_AVATAR_ID || customAgentId || '36be1e17-4228-4557-9cdc-45bdd5420814';
 
     let githubContext = '';
     let repoNames: string[] = [];

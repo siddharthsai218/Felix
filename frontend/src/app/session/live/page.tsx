@@ -802,6 +802,7 @@ function LiveInterviewContent() {
     }
 
     const effectiveGithub = githubUrl || (typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_github') || '' : '');
+    const effectiveResume = typeof window !== 'undefined' ? sessionStorage.getItem('felix_session_resume_text') || '' : '';
     const openingFromSetup = typeof window !== 'undefined' ? sessionStorage.getItem('felix_opening_question') || '' : '';
     let firstQ = openingFromSetup || fallbackQuestionsRef.current[0];
     if (!openingFromSetup) {
