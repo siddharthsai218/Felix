@@ -31,7 +31,6 @@ The interview is the **practice activity**. The **learning** is the objective.
 - [Ethical Design & Bias Mitigation Guardrails](#-ethical-design--bias-mitigation-guardrails)
 - [Hackathon MVP Priorities & Deliverables](#-hackathon-mvp-priorities--deliverables)
 - [Getting Started](#-getting-started)
-- [Roadmap](#-roadmap)
 - [License](#-license)
 
 ---
@@ -279,23 +278,6 @@ One-click client-side vector PDF generation compiling:
    * **Frontend Application:** [http://localhost:3000](http://localhost:3000)
    * **Backend REST API:** [http://localhost:3001](http://localhost:3001)
    * **WebSocket Turn Server:** `ws://localhost:3002`
-
----
-
-## 🗺️ Roadmap
-
-- [x] Adaptive Self-Referential DSP Prosody Normalization
-- [x] Multimodal VAD-Gated Cognitive Search Vision Fusion
-- [x] Configurable Interviewer Archetypes
-- [x] Real GitHub Repository & PDF Resume Grounding
-- [x] Problem-First 30-Second Micro-Drills
-- [x] IndexedDB Turn-by-Turn Video Replay Vault
-- [x] Longitudinal Mastery Progression Engine
-- [x] One-Click Vector PDF Diagnostic Report Exporter
-- [ ] Multi-turn progressive learning pathways with cumulative skill certification.
-- [ ] Automated spaced-repetition scheduler with calendar notification webhooks.
-- [ ] Upstream GitHub MCP server for direct multi-branch code inspection.
-- [ ] Downstream LMS MCP server for Canvas, Google Classroom, and Notion assignment sync.
 
 ---
 
